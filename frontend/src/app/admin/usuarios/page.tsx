@@ -1,0 +1,160 @@
+"use client";
+
+import { useState } from "react";
+import { useQuery } from "@apollo/client";
+import { LISTAR_USUARIOS } from "@/graphql/admin/queries";
+import { Badge } from "@/components/ui/Badge";
+import { Users, Search, Loader2, CheckCircle, XCircle } from "lucide-react";
+
+interface UsuarioAdmin {
+  id: string; email: string; rol: string; verificado: boolean; activo: boolean; creadoEn: string;
+  perfilVendedor:  { id: string; nombreNegocio: string; ciudad: string } | null;
+  perfilComprador: { id: string; nombreCompleto: string } | null;
+}
+
+const FILAS = 15;
+
+function formatFecha(iso: string) {
+  return new Date(iso).toLocaleDateString("es-BO", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+export default function AdminUsuariosPage() {
+  const { data, loading } = useQuery<{ listarUsuarios: UsuarioAdmin[] }>(
+    LISTAR_USUARIOS, { fetchPolicy: "cache-and-network" },
+  );
+
+  const [search,  setSearch]  = useState("");
+  const [rolFiltro, setRolFiltro] = useState<"TODOS" | "ADMIN" | "VENDEDOR" | "COMPRADOR">("TODOS");
+  const [pagina, setPagina] = useState(1);
+
+  const todos = data?.listarUsuarios ?? [];
+  const filtrados = todos.filter((u) => {
+    const matchRol = rolFiltro === "TODOS" || u.rol === rolFiltro;
+    const nombre   = u.perfilVendedor?.nombreNegocio ?? u.perfilComprador?.nombreCompleto ?? "";
+    const matchQ   = search === "" ||
+      u.email.toLowerCase().includes(search.toLowerCase()) ||
+      nombre.toLowerCase().includes(search.toLowerCase());
+    return matchRol && matchQ;
+  });
+
+  const totalPaginas = Math.ceil(filtrados.length / FILAS);
+  const paginados    = filtrados.slice((pagina - 1) * FILAS, pagina * FILAS);
+
+  return (
+    <div className="p-8 max-w-5xl">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-slate-900">Usuarios</h1>
+        <p className="text-sm text-slate-400 mt-0.5">{todos.length} usuarios registrados en total</p>
+      </div>
+
+      {/* Filtros */}
+      <div className="flex items-center gap-3 mb-5">
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+          <input
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPagina(1); }}
+            placeholder="Buscar por email o nombre…"
+            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm
+                       focus:outline-none focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400 transition-all"
+          />
+        </div>
+        {(["TODOS", "ADMIN", "VENDEDOR", "COMPRADOR"] as const).map((rol) => (
+          <button
+            key={rol}
+            onClick={() => { setRolFiltro(rol); setPagina(1); }}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors ${
+              rolFiltro === rol
+                ? "bg-slate-800 text-white border-slate-800"
+                : "border-slate-200 text-slate-600 hover:bg-slate-50"
+            }`}
+          >
+            {rol === "TODOS" ? "Todos" : rol.charAt(0) + rol.slice(1).toLowerCase()}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-20 gap-2">
+          <Loader2 className="h-6 w-6 animate-spin text-slate-300" />
+          <p className="text-sm text-slate-400">Cargando usuarios…</p>
+        </div>
+      ) : filtrados.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-slate-200 text-center py-20">
+          <Users className="h-10 w-10 text-slate-200 mx-auto mb-3" />
+          <p className="font-semibold text-slate-700">Sin resultados</p>
+          <p className="text-sm text-slate-400 mt-1">Intenta con otros filtros</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+            <p className="text-sm font-semibold text-slate-700">{filtrados.length} usuario{filtrados.length !== 1 ? "s" : ""}</p>
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-100">
+                <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Usuario</th>
+                <th className="px-5 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">Rol</th>
+                <th className="px-5 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">Verificado</th>
+                <th className="px-5 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">Estado</th>
+                <th className="px-5 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Registro</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {paginados.map((u, i) => {
+                const nombre = u.perfilVendedor?.nombreNegocio ?? u.perfilComprador?.nombreCompleto ?? "—";
+                return (
+                  <tr key={u.id} className={`hover:bg-slate-50 transition-colors ${i % 2 !== 0 ? "bg-slate-50/40" : ""}`}>
+                    <td className="px-5 py-3">
+                      <p className="font-medium text-slate-900">{nombre}</p>
+                      <p className="text-xs text-slate-400">{u.email}</p>
+                    </td>
+                    <td className="px-5 py-3 text-center">
+                      <Badge variant={u.rol.toLowerCase() as "admin" | "vendedor" | "comprador"} size="sm" />
+                    </td>
+                    <td className="px-5 py-3 text-center">
+                      {u.verificado
+                        ? <CheckCircle className="h-4 w-4 text-emerald-500 mx-auto" />
+                        : <XCircle    className="h-4 w-4 text-slate-300 mx-auto" />
+                      }
+                    </td>
+                    <td className="px-5 py-3 text-center">
+                      <Badge variant={u.activo ? "activo" : "inactivo"} size="sm" />
+                    </td>
+                    <td className="px-5 py-3 text-right text-xs text-slate-400">{formatFecha(u.creadoEn)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          {totalPaginas > 1 && (
+            <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100">
+              <p className="text-xs text-slate-500">
+                {(pagina - 1) * FILAS + 1}–{Math.min(pagina * FILAS, filtrados.length)} de {filtrados.length}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPagina(p => Math.max(1, p - 1))}
+                  disabled={pagina === 1}
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200
+                             hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  Anterior
+                </button>
+                <button
+                  onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
+                  disabled={pagina === totalPaginas}
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200
+                             hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  Siguiente
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

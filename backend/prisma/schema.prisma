@@ -1,0 +1,662 @@
+// ══════════════════════════════════════════════════════════════
+// NEXCOM — SCHEMA DE BASE DE DATOS COMPLETO
+// 29 tablas | 5 enums | PostgreSQL 17 | Prisma 5
+// ══════════════════════════════════════════════════════════════
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ══════════════════════════════════════════════════════════════
+// ENUMS
+// ══════════════════════════════════════════════════════════════
+
+enum Rol {
+  ADMIN
+  VENDEDOR
+  COMPRADOR
+}
+
+enum EstadoOferta {
+  PROGRAMADA
+  ACTIVA
+  VENCIDA
+  CANCELADA
+}
+
+enum EstadoOrden {
+  PENDIENTE_PAGO
+  PAGADO
+  EN_PREPARACION
+  ENVIADO
+  ENTREGADO
+  COMPLETADO
+  CANCELADO
+}
+
+enum EstadoPago {
+  PENDIENTE
+  COMPLETADO
+  FALLIDO
+  REEMBOLSADO
+}
+
+enum EstadoReporte {
+  PENDIENTE
+  REVISANDO
+  RESUELTO
+  RECHAZADO
+}
+
+enum TipoReporte {
+  PRODUCTO
+  VENDEDOR
+  VALORACION
+  OFERTA
+  MENSAJE
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLA 1: USUARIOS (supertipo base del sistema)
+// ══════════════════════════════════════════════════════════════
+
+model Usuario {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String
+  rol           Rol      @default(COMPRADOR)
+  verificado    Boolean  @default(false)
+  activo        Boolean  @default(true)
+  creadoEn      DateTime @default(now()) @map("creado_en")
+  actualizadoEn DateTime @updatedAt      @map("actualizado_en")
+
+  perfilVendedor    PerfilVendedor?
+  perfilComprador   PerfilComprador?
+  tokens            TokenVerificacion[]
+  refreshTokens     RefreshToken[]
+  notificaciones    Notificacion[]
+  reportesHechos    Reporte[]           @relation("ReportesHechos")
+  reportesResueltos Reporte[]           @relation("ReportesResueltos")
+
+  @@map("usuarios")
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLA 2: REFRESH TOKENS (gestión de sesiones persistentes)
+// ══════════════════════════════════════════════════════════════
+
+model RefreshToken {
+  id          String   @id @default(cuid())
+  usuarioId   String   @map("usuario_id")
+  tokenHash   String   @unique @map("token_hash")
+  expiraEn    DateTime @map("expira_en")
+  revocado    Boolean  @default(false)
+  dispositivo String?
+  creadoEn    DateTime @default(now()) @map("creado_en")
+
+  usuario     Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId, revocado])
+  @@map("refresh_tokens")
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLA 3: TOKENS DE VERIFICACIÓN (email y reset de contraseña)
+// ══════════════════════════════════════════════════════════════
+
+model TokenVerificacion {
+  id        String   @id @default(cuid())
+  usuarioId String   @map("usuario_id")
+  token     String   @unique
+  tipo      String   // "EMAIL_VERIFICACION" | "RESET_PASSWORD"
+  expiraEn  DateTime @map("expira_en")
+  usado     Boolean  @default(false)
+
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId, tipo])
+  @@map("tokens_verificacion")
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLA 4: PERFILES DE VENDEDOR (Class Table Inheritance)
+// ══════════════════════════════════════════════════════════════
+
+model PerfilVendedor {
+  id             String   @id @default(cuid())
+  usuarioId      String   @unique @map("usuario_id")
+  nombreNegocio  String   @map("nombre_negocio")
+  descripcion    String?
+  telefono       String?
+  ciudad         String   @default("Santa Cruz")
+  logoUrl        String?  @map("logo_url")
+  ratingPromedio Decimal  @default(0) @db.Decimal(3, 2) @map("rating_promedio")
+  totalVentas    Int      @default(0) @map("total_ventas")
+  totalResenias  Int      @default(0) @map("total_resenias")
+  creadoEn       DateTime @default(now()) @map("creado_en")
+
+  usuario               Usuario        @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  productos             Producto[]
+  ofertas               Oferta[]
+  ordenesComoVendedor   Orden[]        @relation("OrdenesVendedor")
+  valoracionesRecibidas Valoracion[]   @relation("ValoracionesVendedor")
+  conversaciones        Conversacion[]
+
+  @@map("perfiles_vendedor")
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLA 5: PERFILES DE COMPRADOR (Class Table Inheritance)
+// ══════════════════════════════════════════════════════════════
+
+model PerfilComprador {
+  id             String   @id @default(cuid())
+  usuarioId      String   @unique @map("usuario_id")
+  nombreCompleto String   @map("nombre_completo")
+  telefono       String?
+  creadoEn       DateTime @default(now()) @map("creado_en")
+
+  usuario              Usuario         @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  direcciones          Direccion[]
+  carrito              Carrito?
+  ordenesComoComprador Orden[]         @relation("OrdenesComprador")
+  valoracionesHechas   Valoracion[]    @relation("ValoracionesComprador")
+  favoritos            Favorito[]
+  conversaciones       Conversacion[]
+
+  @@map("perfiles_comprador")
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLA 6: DIRECCIONES DE ENVÍO
+// ══════════════════════════════════════════════════════════════
+
+model Direccion {
+  id           String   @id @default(cuid())
+  compradorId  String   @map("comprador_id")
+  alias        String                           // "Casa", "Trabajo"
+  destinatario String                           // quién recibe físicamente
+  calle        String
+  zona         String?
+  ciudad       String   @default("Santa Cruz")
+  departamento String   @default("Santa Cruz")
+  referencia   String?                          // "Frente al mercado Los Pozos"
+  esPrincipal  Boolean  @default(false) @map("es_principal")
+  activo       Boolean  @default(true)
+
+  comprador    PerfilComprador @relation(fields: [compradorId], references: [id], onDelete: Cascade)
+  ordenes      Orden[]
+
+  @@index([compradorId, esPrincipal])
+  @@map("direcciones")
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLA 7: CATEGORÍAS (árbol auto-referenciado)
+// ══════════════════════════════════════════════════════════════
+
+model Categoria {
+  id      String  @id @default(cuid())
+  nombre  String  @unique
+  slug    String  @unique
+  icono   String?
+  padreId String? @map("padre_id")
+  orden   Int     @default(0)
+  activo  Boolean @default(true)
+
+  padre     Categoria?  @relation("Subcategorias", fields: [padreId], references: [id])
+  hijos     Categoria[] @relation("Subcategorias")
+  productos Producto[]
+
+  @@map("categorias")
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLA 8: PRODUCTOS
+// ══════════════════════════════════════════════════════════════
+
+model Producto {
+  id            String   @id @default(cuid())
+  vendedorId    String   @map("vendedor_id")
+  categoriaId   String   @map("categoria_id")
+  nombre        String
+  descripcion   String?
+  precio        Decimal  @db.Decimal(12, 4)
+  stock         Int      @default(0)
+  activo        Boolean  @default(true)
+  destacado     Boolean  @default(false)
+  totalVendido  Int      @default(0) @map("total_vendido")
+  creadoEn      DateTime @default(now()) @map("creado_en")
+  actualizadoEn DateTime @updatedAt      @map("actualizado_en")
+
+  vendedor        PerfilVendedor     @relation(fields: [vendedorId], references: [id])
+  categoria       Categoria          @relation(fields: [categoriaId], references: [id])
+  imagenes        ImagenProducto[]
+  etiquetas       ProductoEtiqueta[]
+  itemsOrden      ItemOrden[]
+  itemsCarrito    ItemCarrito[]
+  favoritos       Favorito[]
+  ofertaProductos OfertaProducto[]
+
+  @@index([vendedorId, activo])
+  @@index([categoriaId, activo])
+  @@index([activo, destacado])
+  @@index([precio])
+  @@map("productos")
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLA 9: IMÁGENES DE PRODUCTO
+// ══════════════════════════════════════════════════════════════
+
+model ImagenProducto {
+  id         String @id @default(cuid())
+  productoId String @map("producto_id")
+  url        String
+  orden      Int    @default(0) // 0 = imagen principal
+
+  producto   Producto @relation(fields: [productoId], references: [id], onDelete: Cascade)
+
+  @@index([productoId, orden])
+  @@map("imagenes_producto")
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLA 10: ETIQUETAS (tags para búsqueda enriquecida)
+// ══════════════════════════════════════════════════════════════
+
+model Etiqueta {
+  id     String @id @default(cuid())
+  nombre String @unique
+  slug   String @unique
+
+  productos ProductoEtiqueta[]
+
+  @@map("etiquetas")
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLA 11: PRODUCTO_ETIQUETAS (N:M — Producto ↔ Etiqueta)
+// ══════════════════════════════════════════════════════════════
+
+model ProductoEtiqueta {
+  productoId String @map("producto_id")
+  etiquetaId String @map("etiqueta_id")
+
+  producto   Producto @relation(fields: [productoId], references: [id], onDelete: Cascade)
+  etiqueta   Etiqueta @relation(fields: [etiquetaId], references: [id], onDelete: Cascade)
+
+  @@id([productoId, etiquetaId])
+  @@map("producto_etiquetas")
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLA 12: FAVORITOS (lista de deseos del comprador)
+// ══════════════════════════════════════════════════════════════
+
+model Favorito {
+  id          String   @id @default(cuid())
+  compradorId String   @map("comprador_id")
+  productoId  String   @map("producto_id")
+  creadoEn    DateTime @default(now()) @map("creado_en")
+
+  comprador   PerfilComprador @relation(fields: [compradorId], references: [id], onDelete: Cascade)
+  producto    Producto        @relation(fields: [productoId], references: [id], onDelete: Cascade)
+
+  @@unique([compradorId, productoId])
+  @@map("favoritos")
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLA 13: CARRITOS
+// ══════════════════════════════════════════════════════════════
+
+model Carrito {
+  id            String   @id @default(cuid())
+  compradorId   String   @unique @map("comprador_id")
+  actualizadoEn DateTime @updatedAt @map("actualizado_en")
+  creadoEn      DateTime @default(now()) @map("creado_en")
+
+  comprador PerfilComprador @relation(fields: [compradorId], references: [id], onDelete: Cascade)
+  items     ItemCarrito[]
+
+  @@map("carritos")
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLA 14: ITEMS DEL CARRITO
+// ══════════════════════════════════════════════════════════════
+
+model ItemCarrito {
+  id             String   @id @default(cuid())
+  carritoId      String   @map("carrito_id")
+  productoId     String   @map("producto_id")
+  cantidad       Int
+  precioSnapshot Decimal  @db.Decimal(12, 4) @map("precio_snapshot")
+  agregadoEn     DateTime @default(now())    @map("agregado_en")
+
+  carrito  Carrito  @relation(fields: [carritoId], references: [id], onDelete: Cascade)
+  producto Producto @relation(fields: [productoId], references: [id])
+
+  @@unique([carritoId, productoId])
+  @@map("items_carrito")
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLA 15: OFERTAS (con vigencia temporal)
+// ══════════════════════════════════════════════════════════════
+
+model Oferta {
+  id          String       @id @default(cuid())
+  vendedorId  String       @map("vendedor_id")
+  titulo      String
+  descripcion String?
+  descuento   Decimal      @db.Decimal(5, 2)  // porcentaje: 1.00 a 100.00
+  fechaInicio DateTime     @map("fecha_inicio")
+  fechaFin    DateTime     @map("fecha_fin")
+  estado      EstadoOferta @default(PROGRAMADA)
+  creadoEn    DateTime     @default(now()) @map("creado_en")
+
+  vendedor  PerfilVendedor   @relation(fields: [vendedorId], references: [id])
+  productos OfertaProducto[]
+
+  @@index([vendedorId, estado])
+  @@index([fechaFin, estado])
+  @@map("ofertas")
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLA 16: OFERTA_PRODUCTOS (N:M — Oferta ↔ Producto)
+// ══════════════════════════════════════════════════════════════
+
+model OfertaProducto {
+  ofertaId   String @map("oferta_id")
+  productoId String @map("producto_id")
+
+  oferta   Oferta   @relation(fields: [ofertaId], references: [id], onDelete: Cascade)
+  producto Producto @relation(fields: [productoId], references: [id])
+
+  @@id([ofertaId, productoId])
+  @@map("oferta_productos")
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLA 17: CUPONES DE DESCUENTO
+// ══════════════════════════════════════════════════════════════
+
+model Cupon {
+  id           String   @id @default(cuid())
+  codigo       String   @unique
+  tipo         String   // "PORCENTAJE" | "MONTO_FIJO"
+  valor        Decimal  @db.Decimal(10, 4)
+  montoMinimo  Decimal? @db.Decimal(12, 4) @map("monto_minimo")
+  maxUsos      Int?     @map("max_usos")
+  usosActuales Int      @default(0) @map("usos_actuales")
+  vendedorId   String?  @map("vendedor_id") // null = cupón global de la plataforma
+  fechaInicio  DateTime @map("fecha_inicio")
+  fechaFin     DateTime @map("fecha_fin")
+  activo       Boolean  @default(true)
+  creadoEn     DateTime @default(now()) @map("creado_en")
+
+  usos         UsoCupon[]
+
+  @@index([codigo, activo])
+  @@map("cupones")
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLA 18: USOS DE CUPÓN (previene doble uso)
+// ══════════════════════════════════════════════════════════════
+
+model UsoCupon {
+  id        String   @id @default(cuid())
+  cuponId   String   @map("cupon_id")
+  ordenId   String   @unique @map("orden_id")
+  usuarioId String   @map("usuario_id")
+  descuento Decimal  @db.Decimal(12, 4)
+  creadoEn  DateTime @default(now()) @map("creado_en")
+
+  cupon     Cupon    @relation(fields: [cuponId], references: [id])
+  orden     Orden    @relation(fields: [ordenId], references: [id])
+
+  @@index([cuponId, usuarioId])
+  @@map("usos_cupon")
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLA 19: ÓRDENES
+// ══════════════════════════════════════════════════════════════
+
+model Orden {
+  id                    String      @id @default(cuid())
+  compradorId           String      @map("comprador_id")
+  vendedorId            String      @map("vendedor_id")
+  direccionId           String?     @map("direccion_id")
+  estado                EstadoOrden @default(PENDIENTE_PAGO)
+  subtotal              Decimal     @db.Decimal(12, 4)
+  descuentoCupon        Decimal     @default(0) @db.Decimal(12, 4) @map("descuento_cupon")
+  total                 Decimal     @db.Decimal(12, 4)
+  stripePaymentIntentId String?     @unique @map("stripe_payment_intent_id")
+  comprobanteUrl        String?     @map("comprobante_url")
+  notas                 String?
+  // JSON inmutable: snapshot de la dirección al momento de la compra
+  direccionSnapshot     Json?       @map("direccion_snapshot")
+  creadoEn              DateTime    @default(now()) @map("creado_en")
+  actualizadoEn         DateTime    @updatedAt      @map("actualizado_en")
+
+  comprador        PerfilComprador        @relation("OrdenesComprador", fields: [compradorId], references: [id])
+  vendedor         PerfilVendedor         @relation("OrdenesVendedor",  fields: [vendedorId],  references: [id])
+  direccion        Direccion?             @relation(fields: [direccionId], references: [id])
+  items            ItemOrden[]
+  pago             Pago?
+  valoracion       Valoracion?
+  historialEstados HistorialEstadoOrden[]
+  notificaciones   Notificacion[]
+  usoCupon         UsoCupon?
+
+  @@index([compradorId, estado])
+  @@index([vendedorId, estado])
+  @@index([estado, creadoEn])
+  @@map("ordenes")
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLA 20: ITEMS DE ORDEN (líneas de la compra — histórico inmutable)
+// ══════════════════════════════════════════════════════════════
+
+model ItemOrden {
+  id             String  @id @default(cuid())
+  ordenId        String  @map("orden_id")
+  productoId     String  @map("producto_id")
+  // Snapshot del nombre al momento de la compra (producto puede cambiar después)
+  nombreSnapshot String  @map("nombre_snapshot")
+  cantidad       Int
+  precioUnitario Decimal @db.Decimal(12, 4) @map("precio_unitario")
+  subtotal       Decimal @db.Decimal(12, 4)
+
+  orden    Orden    @relation(fields: [ordenId],    references: [id], onDelete: Cascade)
+  producto Producto @relation(fields: [productoId], references: [id])
+
+  @@map("items_orden")
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLA 21: HISTORIAL DE ESTADOS DE ORDEN (auditoría completa)
+// ══════════════════════════════════════════════════════════════
+
+model HistorialEstadoOrden {
+  id             String       @id @default(cuid())
+  ordenId        String       @map("orden_id")
+  estadoAnterior EstadoOrden? @map("estado_anterior") // null = creación inicial
+  estadoNuevo    EstadoOrden  @map("estado_nuevo")
+  cambiadoPorId  String       @map("cambiado_por_id") // usuarioId
+  notas          String?
+  creadoEn       DateTime     @default(now()) @map("creado_en")
+
+  orden          Orden        @relation(fields: [ordenId], references: [id], onDelete: Cascade)
+
+  @@index([ordenId, creadoEn])
+  @@map("historial_estados_orden")
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLA 22: PAGOS (registro financiero de cada transacción)
+// ══════════════════════════════════════════════════════════════
+
+model Pago {
+  id             String     @id @default(cuid())
+  ordenId        String     @unique @map("orden_id")
+  monto          Decimal    @db.Decimal(12, 4)
+  moneda         String     @default("USD")
+  metodo         String     // "card" | "qr"
+  stripeChargeId String?    @map("stripe_charge_id")
+  estado         EstadoPago @default(PENDIENTE)
+  creadoEn       DateTime   @default(now()) @map("creado_en")
+
+  orden Orden @relation(fields: [ordenId], references: [id])
+
+  @@map("pagos")
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLA 23: VALORACIONES (reseñas post-transacción)
+// ══════════════════════════════════════════════════════════════
+
+model Valoracion {
+  id           String   @id @default(cuid())
+  ordenId      String   @unique @map("orden_id")
+  compradorId  String   @map("comprador_id")
+  vendedorId   String   @map("vendedor_id")
+  calificacion Int      // 1 a 5 — constraint CHECK en migración SQL
+  comentario   String?
+  creadoEn     DateTime @default(now()) @map("creado_en")
+
+  orden     Orden              @relation(fields: [ordenId],     references: [id])
+  comprador PerfilComprador    @relation("ValoracionesComprador", fields: [compradorId], references: [id])
+  vendedor  PerfilVendedor     @relation("ValoracionesVendedor",  fields: [vendedorId],  references: [id])
+  respuesta RespuestaValoracion?
+
+  @@index([vendedorId, calificacion])
+  @@map("valoraciones")
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLA 24: RESPUESTAS A VALORACIONES (vendedor responde reseñas)
+// ══════════════════════════════════════════════════════════════
+
+model RespuestaValoracion {
+  id           String   @id @default(cuid())
+  valoracionId String   @unique @map("valoracion_id")
+  vendedorId   String   @map("vendedor_id")
+  respuesta    String
+  creadoEn     DateTime @default(now()) @map("creado_en")
+
+  valoracion   Valoracion @relation(fields: [valoracionId], references: [id], onDelete: Cascade)
+
+  @@map("respuestas_valoracion")
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLA 25: CONVERSACIONES (mensajería comprador ↔ vendedor)
+// ══════════════════════════════════════════════════════════════
+
+model Conversacion {
+  id          String   @id @default(cuid())
+  compradorId String   @map("comprador_id")
+  vendedorId  String   @map("vendedor_id")
+  productoId  String?  @map("producto_id") // nullable: puede ser general
+  activo      Boolean  @default(true)
+  creadoEn    DateTime @default(now()) @map("creado_en")
+
+  comprador PerfilComprador @relation(fields: [compradorId], references: [id])
+  vendedor  PerfilVendedor  @relation(fields: [vendedorId],  references: [id])
+  mensajes  Mensaje[]
+
+  @@unique([compradorId, vendedorId, productoId])
+  @@map("conversaciones")
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLA 26: MENSAJES
+// ══════════════════════════════════════════════════════════════
+
+model Mensaje {
+  id             String   @id @default(cuid())
+  conversacionId String   @map("conversacion_id")
+  emisorId       String   @map("emisor_id")
+  contenido      String
+  leido          Boolean  @default(false)
+  creadoEn       DateTime @default(now()) @map("creado_en")
+
+  conversacion   Conversacion @relation(fields: [conversacionId], references: [id], onDelete: Cascade)
+
+  @@index([conversacionId, creadoEn])
+  @@index([conversacionId, leido])
+  @@map("mensajes")
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLA 27: REPORTES Y MODERACIÓN
+// ══════════════════════════════════════════════════════════════
+
+model Reporte {
+  id            String        @id @default(cuid())
+  reportadorId  String        @map("reportador_id")
+  tipo          TipoReporte
+  referenciaId  String        @map("referencia_id")
+  motivo        String        // "FRAUDE" | "SPAM" | "CONTENIDO_INAPROPIADO" | "PRODUCTO_FALSO"
+  descripcion   String?
+  estado        EstadoReporte @default(PENDIENTE)
+  resueltoPorId String?       @map("resuelto_por_id")
+  resolucion    String?
+  creadoEn      DateTime      @default(now()) @map("creado_en")
+  resueltoEn    DateTime?     @map("resuelto_en")
+
+  reportador    Usuario      @relation("ReportesHechos",    fields: [reportadorId],  references: [id])
+  resueltoPor   Usuario?     @relation("ReportesResueltos", fields: [resueltoPorId], references: [id])
+
+  @@index([tipo, estado])
+  @@index([reportadorId])
+  @@map("reportes")
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLA 28: CONFIGURACIÓN DEL SISTEMA (parámetros dinámicos)
+// ══════════════════════════════════════════════════════════════
+
+model ConfiguracionSistema {
+  clave         String   @id
+  valor         String
+  tipo          String   // "NUMBER" | "STRING" | "BOOLEAN" | "JSON"
+  descripcion   String
+  actualizadoEn DateTime @updatedAt @map("actualizado_en")
+
+  @@map("configuracion_sistema")
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLA 29: NOTIFICACIONES (sistema transversal)
+// ══════════════════════════════════════════════════════════════
+
+model Notificacion {
+  id        String   @id @default(cuid())
+  usuarioId String   @map("usuario_id")
+  ordenId   String?  @map("orden_id")
+  tipo      String
+  titulo    String
+  mensaje   String
+  leido     Boolean  @default(false)
+  url       String?  // link de acción en el frontend
+  creadoEn  DateTime @default(now()) @map("creado_en")
+
+  usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  orden     Orden?  @relation(fields: [ordenId],   references: [id])
+
+  @@index([usuarioId, leido])
+  @@index([creadoEn])
+  @@map("notificaciones")
+}

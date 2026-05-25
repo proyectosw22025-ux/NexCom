@@ -1,0 +1,201 @@
+import "dotenv/config";
+import Fastify from "fastify";
+import { createYoga } from "graphql-yoga";
+import { makeExecutableSchema } from "@graphql-tools/schema";
+import Stripe from "stripe";
+
+import { env } from "./config/env.js";
+import { corsPlugin } from "./plugins/cors.plugin.js";
+import { ofertasRepository } from "./modules/ofertas/ofertas.repository.js";
+import { schema as typeDefs } from "./graphql/schema.js";
+import { resolvers } from "./graphql/resolvers.js";
+import prisma from "./shared/prisma.client.js";
+import redis from "./shared/redis.client.js";
+import { extractBearerToken, verifyAccessToken } from "./shared/jwt.util.js";
+import type { NexComContext } from "./shared/types/context.type.js";
+
+const stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: "2024-04-10" });
+
+async function bootstrap() {
+  const app = Fastify({ logger: env.NODE_ENV === "development" });
+
+  await app.register(corsPlugin);
+
+  const executableSchema = makeExecutableSchema({ typeDefs, resolvers });
+
+  const yoga = createYoga<{ req: any; reply: any }>({
+    schema:          executableSchema,
+    graphiql:        env.NODE_ENV === "development",
+    graphqlEndpoint: env.GRAPHQL_PATH,
+    context: ({ req }): NexComContext => {
+      const authHeader = (req as any).headers?.authorization as string | undefined;
+      const token = extractBearerToken(authHeader);
+      const user  = token ? verifyAccessToken(token) : null;
+      return { user, prisma, redis, stripe };
+    },
+  });
+
+  // Fastify + graphql-yoga: convertir la Web Response a raw response
+  app.route({
+    url:    env.GRAPHQL_PATH,
+    method: ["GET", "POST", "OPTIONS"],
+    handler: async (req, reply) => {
+      const response = await yoga.handleNodeRequestAndResponse(req, reply, { req, reply });
+
+      for (const [key, value] of response.headers.entries()) {
+        reply.header(key, value);
+      }
+      reply.status(response.status);
+
+      if (response.body) {
+        const reader = response.body.getReader();
+        const chunks: Uint8Array[] = [];
+        let done = false;
+        while (!done) {
+          const result = await reader.read();
+          done = result.done;
+          if (result.value) chunks.push(result.value);
+        }
+        const buffer = Buffer.concat(chunks.map((c) => Buffer.from(c)));
+        reply.send(buffer);
+      } else {
+        reply.send(null);
+      }
+    },
+  });
+
+  app.post("/webhooks/stripe", { config: { rawBody: true } }, async (req, reply) => {
+    const sig = req.headers["stripe-signature"] as string | undefined;
+    const rawBody = (req as unknown as { rawBody?: Buffer }).rawBody;
+
+    if (!sig || !rawBody) {
+      reply.status(400).send({ error: "Firma o cuerpo faltante" });
+      return;
+    }
+
+    let event: Stripe.Event;
+    try {
+      event = stripe.webhooks.constructEvent(rawBody, sig, env.STRIPE_WEBHOOK_SECRET);
+    } catch {
+      reply.status(400).send({ error: "Firma inválida" });
+      return;
+    }
+
+    try {
+      if (event.type === "payment_intent.succeeded") {
+        const intent = event.data.object as Stripe.PaymentIntent;
+        const orden = await prisma.orden.findUnique({
+          where:   { stripePaymentIntentId: intent.id },
+          include: { pago: true, items: true, comprador: { include: { usuario: true } }, vendedor: { include: { usuario: true } } },
+        });
+        if (orden && orden.estado === "PENDIENTE_PAGO") {
+          await prisma.$transaction(async (tx) => {
+            await tx.orden.update({ where: { id: orden.id }, data: { estado: "PAGADO" } });
+            if (orden.pago) {
+              const chargeId = (intent.latest_charge as string) ?? null;
+              await tx.pago.update({
+                where: { id: orden.pago!.id },
+                data:  { estado: "COMPLETADO", stripeChargeId: chargeId },
+              });
+            }
+            await tx.historialEstadoOrden.create({
+              data: {
+                ordenId:        orden.id,
+                estadoAnterior: "PENDIENTE_PAGO",
+                estadoNuevo:    "PAGADO",
+                cambiadoPorId:  orden.compradorId,
+                notas:          "Pago confirmado vía Stripe webhook",
+              },
+            });
+            // Vaciar carrito
+            const carrito = await tx.carrito.findUnique({ where: { compradorId: orden.compradorId } });
+            if (carrito) {
+              await tx.itemCarrito.deleteMany({ where: { carritoId: carrito.id } });
+            }
+            // Notificaciones
+            await tx.notificacion.createMany({
+              data: [
+                {
+                  usuarioId: orden.comprador.usuarioId,
+                  ordenId:   orden.id,
+                  tipo:      "PAGO_CONFIRMADO",
+                  titulo:    "¡Pago confirmado!",
+                  mensaje:   `Tu orden #${orden.id.slice(-6).toUpperCase()} fue pagada exitosamente.`,
+                  url:       `/comprador/ordenes/${orden.id}`,
+                },
+                {
+                  usuarioId: orden.vendedor.usuarioId,
+                  ordenId:   orden.id,
+                  tipo:      "NUEVA_ORDEN",
+                  titulo:    "Nueva orden recibida",
+                  mensaje:   `Tienes una nueva orden #${orden.id.slice(-6).toUpperCase()}.`,
+                  url:       `/vendedor/ordenes/${orden.id}`,
+                },
+              ],
+            });
+          });
+        }
+      } else if (event.type === "payment_intent.payment_failed") {
+        const intent = event.data.object as Stripe.PaymentIntent;
+        const orden = await prisma.orden.findUnique({
+          where:   { stripePaymentIntentId: intent.id },
+          include: { pago: true, items: true },
+        });
+        if (orden && orden.estado === "PENDIENTE_PAGO") {
+          await prisma.$transaction(async (tx) => {
+            await tx.orden.update({ where: { id: orden.id }, data: { estado: "CANCELADO" } });
+            if (orden.pago) {
+              await tx.pago.update({ where: { id: orden.pago!.id }, data: { estado: "FALLIDO" } });
+            }
+            // Restituir stock
+            for (const it of orden.items) {
+              await tx.producto.update({
+                where: { id: it.productoId },
+                data:  { stock: { increment: it.cantidad } },
+              });
+            }
+            await tx.historialEstadoOrden.create({
+              data: {
+                ordenId:        orden.id,
+                estadoAnterior: "PENDIENTE_PAGO",
+                estadoNuevo:    "CANCELADO",
+                cambiadoPorId:  orden.compradorId,
+                notas:          "Pago fallido — stock restituido automáticamente",
+              },
+            });
+          });
+        }
+      }
+    } catch (err) {
+      app.log.error({ err }, "Error procesando webhook de Stripe");
+    }
+
+    reply.status(200).send({ received: true });
+  });
+
+  // Cron: actualizar estado de ofertas cada hora
+  setInterval(
+    () => ofertasRepository.actualizarEstadosAutomaticos(prisma).catch(console.error),
+    60 * 60 * 1000,
+  );
+
+  try {
+    await redis.connect();
+    await app.listen({ port: env.PORT, host: "0.0.0.0" });
+
+    console.log(`
+╔══════════════════════════════════════════════════════╗
+║           NEXCOM BACKEND — CORRIENDO                 ║
+╠══════════════════════════════════════════════════════╣
+║  GraphQL:    http://localhost:${env.PORT}${env.GRAPHQL_PATH}          ║
+║  GraphiQL:   http://localhost:${env.PORT}${env.GRAPHQL_PATH}          ║
+║  Entorno:    ${env.NODE_ENV}                              ║
+╚══════════════════════════════════════════════════════╝
+    `);
+  } catch (err) {
+    app.log.error(err);
+    process.exit(1);
+  }
+}
+
+bootstrap();

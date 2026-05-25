@@ -1,0 +1,28 @@
+# Dependencias
+node_modules/
+.pnpm-store/
+
+# Variables de entorno — NUNCA al repositorio
+.env
+.env.local
+.env.production
+
+# Build
+dist/
+.next/
+out/
+
+# Prisma
+prisma/migrations/*.sql
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/

@@ -1,0 +1,47 @@
+{
+  "name": "nexcom-backend",
+  "version": "1.0.0",
+  "description": "NexCom Backend — API GraphQL para marketplace local boliviano | UAGRM",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:reset": "prisma migrate reset --force",
+    "db:generate": "prisma generate",
+    "db:studio": "prisma studio",
+    "db:seed": "tsx src/prisma/seed.ts",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fastify/cors": "^9.0.1",
+    "@fastify/multipart": "^8.3.0",
+    "@graphql-tools/merge": "^9.0.0",
+    "@graphql-tools/schema": "^10.0.0",
+    "@prisma/client": "7.8.0",
+    "@prisma/adapter-pg": "7.8.0",
+    "pg": "^8.13.3",
+    "bcryptjs": "^2.4.3",
+    "decimal.js": "^10.4.3",
+    "dotenv": "^17.4.2",
+    "fastify": "^4.28.0",
+    "graphql": "^16.9.0",
+    "graphql-yoga": "^5.7.0",
+    "ioredis": "^5.4.1",
+    "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^6.9.15",
+    "stripe": "^15.7.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^22.5.0",
+    "@types/pg": "^8.11.10",
+    "@types/nodemailer": "^6.4.16",
+    "prisma": "7.8.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.4"
+  }
+}

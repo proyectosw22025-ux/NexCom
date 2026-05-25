@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background-color: #e0e7ff;
+  color: #3730a3;
+}
+
+/* UX-PRO: Animaciones de entrada */
+@keyframes slide-from-right {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes fade-in-backdrop {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes stagger-fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-from-right {
+  animation: slide-from-right 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-fade-in-backdrop {
+  animation: fade-in-backdrop 0.2s ease forwards;
+}
+
+.animate-stagger-fade-up {
+  animation: stagger-fade-up 0.35s ease forwards;
+  opacity: 0;
+}

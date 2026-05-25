@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"const c=require\\('crypto'\\);console.log\\('ACCESS:',c.randomBytes\\(48\\).toString\\('hex'\\)\\);console.log\\('REFRESH:',c.randomBytes\\(48\\).toString\\('hex'\\)\\);\")",
+      "Bash(PGPASSWORD=josephfgj psql -U postgres -h localhost -p 5432 -c \"CREATE DATABASE nexcom_dev;\")",
+      "Bash(ls \"C:/Program Files/\" 2>/dev/null | head -20 || echo \"No acceso\")",
+      "Read(//c/Program Files/**)"
+    ]
+  }
+}

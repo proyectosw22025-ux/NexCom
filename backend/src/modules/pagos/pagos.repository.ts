@@ -1,0 +1,239 @@
+import type { PrismaClient, EstadoOrden, EstadoPago } from "@prisma/client";
+import { Decimal } from "decimal.js";
+
+export const pagosRepository = {
+  async findCarritoConItems(compradorId: string, prisma: PrismaClient) {
+    return prisma.carrito.findUnique({
+      where:   { compradorId },
+      include: {
+        items: {
+          include: {
+            producto: {
+              select: {
+                id:         true,
+                nombre:     true,
+                precio:     true,
+                stock:      true,
+                activo:     true,
+                vendedorId: true,
+              },
+            },
+          },
+          orderBy: { agregadoEn: "asc" },
+        },
+      },
+    });
+  },
+
+  async findDireccionConSnapshot(id: string, prisma: PrismaClient) {
+    return prisma.direccion.findUnique({ where: { id } });
+  },
+
+  async crearOrdenConItems(
+    data: {
+      compradorId:      string;
+      vendedorId:       string;
+      direccionId:      string;
+      direccionSnapshot: object;
+      subtotal:         Decimal;
+      descuentoCupon:   Decimal;
+      total:            Decimal;
+      items: { productoId: string; nombreSnapshot: string; cantidad: number; precioUnitario: Decimal }[];
+    },
+    prisma: PrismaClient,
+  ) {
+    return prisma.$transaction(async (tx) => {
+      const orden = await tx.orden.create({
+        data: {
+          compradorId:      data.compradorId,
+          vendedorId:       data.vendedorId,
+          direccionId:      data.direccionId,
+          direccionSnapshot: data.direccionSnapshot,
+          subtotal:         data.subtotal,
+          descuentoCupon:   data.descuentoCupon,
+          total:            data.total,
+          estado:           "PENDIENTE_PAGO",
+          items: {
+            create: data.items.map((it) => ({
+              productoId:     it.productoId,
+              nombreSnapshot: it.nombreSnapshot,
+              cantidad:       it.cantidad,
+              precioUnitario: it.precioUnitario,
+              subtotal:       it.precioUnitario.mul(it.cantidad),
+            })),
+          },
+        },
+      });
+
+      // Crear pago en estado PENDIENTE
+      await tx.pago.create({
+        data: {
+          ordenId: orden.id,
+          monto:   data.total,
+          moneda:  "USD",
+          metodo:  "card",
+          estado:  "PENDIENTE",
+        },
+      });
+
+      // Descontar stock de cada producto
+      for (const it of data.items) {
+        await tx.producto.update({
+          where: { id: it.productoId },
+          data:  { stock: { decrement: it.cantidad } },
+        });
+      }
+
+      // Crear historial de estado inicial
+      await tx.historialEstadoOrden.create({
+        data: {
+          ordenId:      orden.id,
+          estadoNuevo:  "PENDIENTE_PAGO",
+          cambiadoPorId: data.compradorId,
+          notas:        "Orden creada — esperando pago",
+        },
+      });
+
+      return orden;
+    });
+  },
+
+  async guardarStripePaymentIntentId(ordenId: string, intentId: string, prisma: PrismaClient) {
+    await prisma.orden.update({
+      where: { id: ordenId },
+      data:  { stripePaymentIntentId: intentId },
+    });
+  },
+
+  async findOrdenByPaymentIntentId(intentId: string, prisma: PrismaClient) {
+    return prisma.orden.findUnique({
+      where:   { stripePaymentIntentId: intentId },
+      include: {
+        pago:  true,
+        items: { include: { producto: { select: { id: true } } } },
+      },
+    });
+  },
+
+  async confirmarPago(
+    ordenId: string,
+    pagoId: string,
+    chargeId: string,
+    compradorId: string,
+    prisma: PrismaClient,
+  ) {
+    return prisma.$transaction(async (tx) => {
+      await tx.orden.update({
+        where: { id: ordenId },
+        data:  { estado: "PAGADO" },
+      });
+      await tx.pago.update({
+        where: { id: pagoId },
+        data:  { estado: "COMPLETADO", stripeChargeId: chargeId },
+      });
+      await tx.historialEstadoOrden.create({
+        data: {
+          ordenId,
+          estadoAnterior: "PENDIENTE_PAGO",
+          estadoNuevo:    "PAGADO",
+          cambiadoPorId:  compradorId,
+          notas:          "Pago confirmado vía Stripe",
+        },
+      });
+    });
+  },
+
+  async fallarPago(
+    orden: {
+      id: string;
+      compradorId: string;
+      pago: { id: string } | null;
+      items: { productoId: string; cantidad: number }[];
+    },
+    prisma: PrismaClient,
+  ) {
+    return prisma.$transaction(async (tx) => {
+      await tx.orden.update({
+        where: { id: orden.id },
+        data:  { estado: "CANCELADO" },
+      });
+      if (orden.pago) {
+        await tx.pago.update({
+          where: { id: orden.pago.id },
+          data:  { estado: "FALLIDO" },
+        });
+      }
+      // Restituir stock
+      for (const it of orden.items) {
+        await tx.producto.update({
+          where: { id: it.productoId },
+          data:  { stock: { increment: it.cantidad } },
+        });
+      }
+      await tx.historialEstadoOrden.create({
+        data: {
+          ordenId:       orden.id,
+          estadoAnterior: "PENDIENTE_PAGO",
+          estadoNuevo:    "CANCELADO",
+          cambiadoPorId:  orden.compradorId,
+          notas:          "Pago fallido — stock restituido",
+        },
+      });
+    });
+  },
+
+  async crearUsoCupon(
+    cuponId: string,
+    ordenId: string,
+    usuarioId: string,
+    descuento: Decimal,
+    prisma: PrismaClient,
+  ) {
+    await prisma.usoCupon.create({
+      data: { cuponId, ordenId, usuarioId, descuento },
+    });
+    await prisma.cupon.update({
+      where: { id: cuponId },
+      data:  { usosActuales: { increment: 1 } },
+    });
+  },
+
+  async limpiarCarrito(compradorId: string, prisma: PrismaClient) {
+    const carrito = await prisma.carrito.findUnique({ where: { compradorId } });
+    if (carrito) {
+      await prisma.itemCarrito.deleteMany({ where: { carritoId: carrito.id } });
+    }
+  },
+
+  async crearNotificaciones(
+    { compradorId, vendedorIdUsuario, ordenId, titulo, mensaje }: {
+      compradorId:      string;
+      vendedorIdUsuario: string;
+      ordenId:          string;
+      titulo:           string;
+      mensaje:          string;
+    },
+    prisma: PrismaClient,
+  ) {
+    await prisma.notificacion.createMany({
+      data: [
+        {
+          usuarioId: compradorId,
+          ordenId,
+          tipo:      "PAGO_CONFIRMADO",
+          titulo,
+          mensaje,
+          url:       `/comprador/ordenes/${ordenId}`,
+        },
+        {
+          usuarioId: vendedorIdUsuario,
+          ordenId,
+          tipo:      "NUEVA_ORDEN",
+          titulo:    "Nueva orden recibida",
+          mensaje:   `Tienes una nueva orden #${ordenId.slice(-6).toUpperCase()}.`,
+          url:       `/vendedor/ordenes/${ordenId}`,
+        },
+      ],
+    });
+  },
+};
