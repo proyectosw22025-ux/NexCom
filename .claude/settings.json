@@ -61,7 +61,14 @@
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\flore\\\\OneDrive\\\\Escritorio\\\\ProyectoSW1\\\\frontend\\\\src\" -Recurse -Name)",
       "Bash(pnpm add *)",
       "Bash(npm --version)",
-      "Bash(dir \"c:\\\\Users\\\\flore\\\\OneDrive\\\\Escritorio\\\\ProyectoSW1\\\\frontend\\\\src\\\\\" /b)"
+      "Bash(dir \"c:\\\\Users\\\\flore\\\\OneDrive\\\\Escritorio\\\\ProyectoSW1\\\\frontend\\\\src\\\\\" /b)",
+      "Bash(cat .env)",
+      "Bash(cat .env.local)",
+      "Bash(curl -s -X POST http://localhost:4000/graphql -H \"Content-Type: application/json\" -d \"{\\\\\"query\\\\\":\\\\\"{ __typename }\\\\\"}\")",
+      "Bash(curl -s -X POST http://localhost:4000/graphql -H \"Content-Type: application/json\" -d \"{\\\\\"query\\\\\":\\\\\"mutation { login\\(email: \\\\\\\\\\\\\"test_me@nexcom.bo\\\\\\\\\\\\\", password: \\\\\\\\\\\\\"password123\\\\\\\\\\\\\"\\) { accessToken usuario { id email rol } } }\\\\\"}\")",
+      "Bash(curl -s -X POST http://localhost:4000/graphql -H \"Content-Type: application/json\" -d \"{\\\\\"query\\\\\":\\\\\"mutation { login\\(email: \\\\\\\\\\\\\"admin@nexcom.bo\\\\\\\\\\\\\", password: \\\\\\\\\\\\\"Admin1234!\\\\\\\\\\\\\"\\) { accessToken usuario { id email rol verificado } } }\\\\\"}\")",
+      "Bash(curl -s -X POST http://localhost:4000/graphql -H \"Content-Type: application/json\" -d \"{\\\\\"query\\\\\":\\\\\"mutation { login\\(email: \\\\\\\\\\\\\"vendedor@nexcom.bo\\\\\\\\\\\\\", password: \\\\\\\\\\\\\"Vendedor123!\\\\\\\\\\\\\"\\) { accessToken usuario { id email rol } } }\\\\\"}\")",
+      "Bash(curl -s -X POST http://localhost:4000/graphql -H \"Content-Type: application/json\" -d \"{\\\\\"query\\\\\":\\\\\"mutation { login\\(email: \\\\\\\\\\\\\"admin@nexcom.bo\\\\\\\\\\\\\", password: \\\\\\\\\\\\\"Admin1234!\\\\\\\\\\\\\"\\) { accessToken usuario { email rol } } }\\\\\"}\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\flore\\.claude",

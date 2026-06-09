@@ -13,6 +13,9 @@ import { pagosTypeDefs }          from "../modules/pagos/pagos.typedefs.js";
 import { ordenesTypeDefs }        from "../modules/ordenes/ordenes.typedefs.js";
 import { valoracionesTypeDefs }   from "../modules/valoraciones/valoraciones.typedefs.js";
 import { notificacionesTypeDefs } from "../modules/notificaciones/notificaciones.typedefs.js";
+import { adminTypeDefs }          from "../modules/admin/admin.typedefs.js";
+import { reportesTypeDefs }       from "../modules/reportes/reportes.typedefs.js";
+import { configSistemaTypeDefs }  from "../modules/config-sistema/config-sistema.typedefs.js";
 
 const baseTypeDefs = /* GraphQL */ `
   type Query {
@@ -40,4 +43,7 @@ export const schema = mergeTypeDefs([
   ordenesTypeDefs,
   valoracionesTypeDefs,
   notificacionesTypeDefs,
+  adminTypeDefs,
+  reportesTypeDefs,
+  configSistemaTypeDefs,
 ]);

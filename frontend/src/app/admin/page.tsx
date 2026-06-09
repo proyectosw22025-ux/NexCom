@@ -24,9 +24,10 @@ function formatFecha(iso: string) {
 export default function AdminPage() {
   const { user } = useAuth();
 
-  const { data: usuariosData, loading: loadingU } = useQuery<{ listarUsuarios: UsuarioAdmin[] }>(
-    LISTAR_USUARIOS, { fetchPolicy: "cache-and-network" },
-  );
+  const { data: usuariosData, loading: loadingU } = useQuery<{
+    listarUsuarios: { items: UsuarioAdmin[]; total: number }
+  }>(LISTAR_USUARIOS, { variables: { pagina: 1, limite: 100 }, fetchPolicy: "cache-and-network" });
+
   const { data: productosData, loading: loadingP } = useQuery<{
     productos: { items: ProductoAdmin[]; total: number }
   }>(TODOS_PRODUCTOS, { variables: { pagina: 1, limite: 5, soloActivos: false }, fetchPolicy: "cache-and-network" });
@@ -35,7 +36,8 @@ export default function AdminPage() {
     TODOS_PRODUCTOS, { variables: { pagina: 1, limite: 1, soloActivos: true }, fetchPolicy: "cache-and-network" },
   );
 
-  const usuarios  = usuariosData?.listarUsuarios ?? [];
+  const usuarios  = usuariosData?.listarUsuarios?.items ?? [];
+  const totalUsuarios = usuariosData?.listarUsuarios?.total ?? 0;
   const productos = productosData?.productos?.items ?? [];
   const totalProductos        = productosData?.productos?.total ?? 0;
   const totalProductosActivos = productosActivosData?.productos?.total ?? 0;
@@ -45,10 +47,10 @@ export default function AdminPage() {
   const usuariosActivos   = usuarios.filter(u => u.activo).length;
 
   const stats = [
-    { label: "Usuarios",           value: loadingU ? "…" : usuarios.length, icon: Users,       color: "bg-slate-100",   iconColor: "text-slate-700",  href: "/admin/usuarios" },
-    { label: "Vendedores",         value: loadingU ? "…" : totalVendedores,  icon: Star,        color: "bg-violet-50",   iconColor: "text-violet-600", href: "/admin/usuarios" },
-    { label: "Compradores",        value: loadingU ? "…" : totalCompradores, icon: ShoppingBag, color: "bg-indigo-50",   iconColor: "text-indigo-600", href: "/admin/usuarios" },
-    { label: "Productos activos",  value: loadingP ? "…" : totalProductosActivos, icon: Package, color: "bg-emerald-50", iconColor: "text-emerald-600", href: "/admin/productos" },
+    { label: "Usuarios",          value: loadingU ? "…" : totalUsuarios,         icon: Users,       color: "bg-slate-100",   iconColor: "text-slate-700",  href: "/admin/usuarios" },
+    { label: "Vendedores",        value: loadingU ? "…" : totalVendedores,        icon: Star,        color: "bg-violet-50",   iconColor: "text-violet-600", href: "/admin/usuarios" },
+    { label: "Compradores",       value: loadingU ? "…" : totalCompradores,       icon: ShoppingBag, color: "bg-indigo-50",   iconColor: "text-indigo-600", href: "/admin/usuarios" },
+    { label: "Productos activos", value: loadingP ? "…" : totalProductosActivos,  icon: Package,     color: "bg-emerald-50",  iconColor: "text-emerald-600", href: "/admin/productos" },
   ];
 
   return (

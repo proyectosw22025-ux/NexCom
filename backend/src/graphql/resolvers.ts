@@ -13,7 +13,10 @@ import { direccionesResolvers } from "../modules/direcciones/direcciones.resolve
 import { pagosResolvers }          from "../modules/pagos/pagos.resolver.js";
 import { ordenesResolvers }        from "../modules/ordenes/ordenes.resolver.js";
 import { valoracionesResolvers }   from "../modules/valoraciones/valoraciones.resolver.js";
-import { notificacionesResolvers } from "../modules/notificaciones/notificaciones.resolver.js";
+import { notificacionesResolvers }  from "../modules/notificaciones/notificaciones.resolver.js";
+import { adminResolvers }           from "../modules/admin/admin.resolver.js";
+import { reportesResolvers }        from "../modules/reportes/reportes.resolver.js";
+import { configSistemaResolvers }   from "../modules/config-sistema/config-sistema.resolver.js";
 
 const baseResolvers = {
   Query: {
@@ -42,4 +45,7 @@ export const resolvers = mergeResolvers([
   ordenesResolvers,
   valoracionesResolvers,
   notificacionesResolvers,
+  adminResolvers,
+  reportesResolvers,
+  configSistemaResolvers,
 ]);

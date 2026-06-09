@@ -59,8 +59,7 @@ export const authTypeDefs = /* GraphQL */ `
   }
 
   extend type Query {
-    me:              UsuarioPublico
-    listarUsuarios:  [UsuarioPublico!]!
+    me: UsuarioPublico
   }
 
   extend type Mutation {

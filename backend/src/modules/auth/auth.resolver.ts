@@ -1,6 +1,6 @@
 import { GraphQLError } from "graphql";
 import type { NexComContext } from "../../shared/types/context.type.js";
-import { requireAuth, requireRole } from "../../shared/guards.js";
+import { requireAuth } from "../../shared/guards.js";
 import * as service from "./auth.service.js";
 
 export const authResolvers = {
@@ -10,10 +10,6 @@ export const authResolvers = {
       return service.getMe(user.id, ctx.prisma);
     },
 
-    listarUsuarios: async (_: unknown, __: unknown, ctx: NexComContext) => {
-      requireRole(ctx, "ADMIN");
-      return service.listarUsuarios(ctx.prisma);
-    },
   },
 
   Mutation: {

@@ -5,13 +5,15 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
+    "build": "prisma generate && tsc",
+    "start": "prisma migrate deploy && node dist/index.js",
+    "postinstall": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:migrate:reset": "prisma migrate reset --force",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
-    "db:seed": "tsx src/prisma/seed.ts",
+    "db:seed": "tsx src/scripts/seed-data.ts",
+    "db:seed:admin": "tsx src/scripts/seed-admin.ts",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {

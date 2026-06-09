@@ -1,16 +1,71 @@
 import { gql } from "@apollo/client";
 
 export const LISTAR_USUARIOS = gql`
-  query ListarUsuarios {
-    listarUsuarios {
+  query ListarUsuarios($rol: String, $activo: Boolean, $pagina: Int, $limite: Int) {
+    listarUsuarios(rol: $rol, activo: $activo, pagina: $pagina, limite: $limite) {
+      items {
+        id
+        email
+        rol
+        verificado
+        activo
+        creadoEn
+        perfilVendedor  { id nombreNegocio ciudad ratingPromedio totalVentas totalResenias }
+        perfilComprador { id nombreCompleto telefono }
+      }
+      total
+      pagina
+      totalPaginas
+    }
+  }
+`;
+
+export const USUARIO_DETALLE = gql`
+  query UsuarioDetalle($id: ID!) {
+    usuarioDetalle(id: $id) {
       id
       email
       rol
       verificado
       activo
       creadoEn
-      perfilVendedor  { id nombreNegocio ciudad }
-      perfilComprador { id nombreCompleto }
+      perfilVendedor  { id nombreNegocio ciudad ratingPromedio totalVentas totalResenias }
+      perfilComprador { id nombreCompleto telefono }
+    }
+  }
+`;
+
+export const LISTAR_REPORTES = gql`
+  query ListarReportes($estado: EstadoReporte, $tipo: TipoReporte, $pagina: Int, $limite: Int) {
+    reportes(estado: $estado, tipo: $tipo, pagina: $pagina, limite: $limite) {
+      items {
+        id
+        tipo
+        referenciaId
+        motivo
+        descripcion
+        estado
+        resolucion
+        creadoEn
+        resueltoEn
+        reportador  { id email }
+        resueltoPor { id email }
+      }
+      total
+      pagina
+      totalPaginas
+    }
+  }
+`;
+
+export const CONFIGURACION_SISTEMA = gql`
+  query ConfiguracionSistema {
+    configuracionSistema {
+      clave
+      valor
+      tipo
+      descripcion
+      actualizadoEn
     }
   }
 `;

@@ -179,8 +179,12 @@ async function bootstrap() {
     60 * 60 * 1000,
   );
 
+  // Redis: conexión no bloqueante — el servidor arranca aunque Redis no esté disponible
+  redis.connect()
+    .then(() => console.log("[Redis] Conectado en", env.REDIS_URL))
+    .catch((err: Error) => console.warn("[Redis] No disponible — cache desactivado:", err.message));
+
   try {
-    await redis.connect();
     await app.listen({ port: env.PORT, host: "0.0.0.0" });
 
     console.log(`

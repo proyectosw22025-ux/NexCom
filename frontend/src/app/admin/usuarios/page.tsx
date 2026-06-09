@@ -1,10 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@apollo/client";
+import { useQuery, useMutation } from "@apollo/client";
 import { LISTAR_USUARIOS } from "@/graphql/admin/queries";
+import { TOGGLE_ACTIVO_USUARIO, CAMBIAR_ROL_USUARIO } from "@/graphql/admin/mutations";
 import { Badge } from "@/components/ui/Badge";
-import { Users, Search, Loader2, CheckCircle, XCircle } from "lucide-react";
+import { Users, Search, Loader2, CheckCircle, XCircle, ToggleLeft, ToggleRight } from "lucide-react";
+import { toast } from "sonner";
+import { ApolloError } from "@apollo/client";
+import Link from "next/link";
 
 interface UsuarioAdmin {
   id: string; email: string; rol: string; verificado: boolean; activo: boolean; creadoEn: string;
@@ -19,15 +23,21 @@ function formatFecha(iso: string) {
 }
 
 export default function AdminUsuariosPage() {
-  const { data, loading } = useQuery<{ listarUsuarios: UsuarioAdmin[] }>(
-    LISTAR_USUARIOS, { fetchPolicy: "cache-and-network" },
-  );
-
-  const [search,  setSearch]  = useState("");
+  const [search,    setSearch]    = useState("");
   const [rolFiltro, setRolFiltro] = useState<"TODOS" | "ADMIN" | "VENDEDOR" | "COMPRADOR">("TODOS");
-  const [pagina, setPagina] = useState(1);
+  const [pagina,    setPagina]    = useState(1);
 
-  const todos = data?.listarUsuarios ?? [];
+  const { data, loading, refetch } = useQuery<{
+    listarUsuarios: { items: UsuarioAdmin[]; total: number; totalPaginas: number }
+  }>(LISTAR_USUARIOS, {
+    variables: { pagina: 1, limite: 200 },
+    fetchPolicy: "cache-and-network",
+  });
+
+  const [toggleActivo, { loading: toggling }] = useMutation(TOGGLE_ACTIVO_USUARIO);
+  const [cambiarRol,   { loading: changing }] = useMutation(CAMBIAR_ROL_USUARIO);
+
+  const todos = data?.listarUsuarios?.items ?? [];
   const filtrados = todos.filter((u) => {
     const matchRol = rolFiltro === "TODOS" || u.rol === rolFiltro;
     const nombre   = u.perfilVendedor?.nombreNegocio ?? u.perfilComprador?.nombreCompleto ?? "";
@@ -40,15 +50,44 @@ export default function AdminUsuariosPage() {
   const totalPaginas = Math.ceil(filtrados.length / FILAS);
   const paginados    = filtrados.slice((pagina - 1) * FILAS, pagina * FILAS);
 
+  async function handleToggle(id: string, email: string, activo: boolean) {
+    if (!confirm(`¿${activo ? "Desactivar" : "Activar"} la cuenta de ${email}?`)) return;
+    try {
+      await toggleActivo({ variables: { id } });
+      toast.success(activo ? "Cuenta desactivada." : "Cuenta activada.");
+      refetch();
+    } catch (err: unknown) {
+      const msg = err instanceof ApolloError ? (err.graphQLErrors[0]?.message ?? "Error.") : "Error.";
+      toast.error(msg);
+    }
+  }
+
+  async function handleCambiarRol(id: string, rolActual: string) {
+    const roles = ["ADMIN", "VENDEDOR", "COMPRADOR"].filter(r => r !== rolActual);
+    const nuevoRol = prompt(`Cambiar rol de ${rolActual} a:\n${roles.join(" / ")}\n\nEscribe el nuevo rol:`);
+    if (!nuevoRol || !roles.includes(nuevoRol.toUpperCase())) {
+      toast.error("Rol inválido.");
+      return;
+    }
+    try {
+      await cambiarRol({ variables: { id, rol: nuevoRol.toUpperCase() } });
+      toast.success("Rol actualizado.");
+      refetch();
+    } catch (err: unknown) {
+      const msg = err instanceof ApolloError ? (err.graphQLErrors[0]?.message ?? "Error.") : "Error.";
+      toast.error(msg);
+    }
+  }
+
   return (
     <div className="p-8 max-w-5xl">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900">Usuarios</h1>
-        <p className="text-sm text-slate-400 mt-0.5">{todos.length} usuarios registrados en total</p>
+        <p className="text-sm text-slate-400 mt-0.5">{data?.listarUsuarios?.total ?? 0} usuarios registrados en total</p>
       </div>
 
       {/* Filtros */}
-      <div className="flex items-center gap-3 mb-5">
+      <div className="flex items-center gap-3 mb-5 flex-wrap">
         <div className="relative flex-1 max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
           <input
@@ -98,6 +137,7 @@ export default function AdminUsuariosPage() {
                 <th className="px-5 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">Verificado</th>
                 <th className="px-5 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">Estado</th>
                 <th className="px-5 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Registro</th>
+                <th className="px-5 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -106,11 +146,20 @@ export default function AdminUsuariosPage() {
                 return (
                   <tr key={u.id} className={`hover:bg-slate-50 transition-colors ${i % 2 !== 0 ? "bg-slate-50/40" : ""}`}>
                     <td className="px-5 py-3">
-                      <p className="font-medium text-slate-900">{nombre}</p>
-                      <p className="text-xs text-slate-400">{u.email}</p>
+                      <Link href={`/admin/usuarios/${u.id}`} className="hover:text-indigo-600 transition-colors">
+                        <p className="font-medium text-slate-900">{nombre}</p>
+                        <p className="text-xs text-slate-400">{u.email}</p>
+                      </Link>
                     </td>
                     <td className="px-5 py-3 text-center">
-                      <Badge variant={u.rol.toLowerCase() as "admin" | "vendedor" | "comprador"} size="sm" />
+                      <button
+                        onClick={() => handleCambiarRol(u.id, u.rol)}
+                        disabled={changing}
+                        title="Cambiar rol"
+                        className="hover:opacity-70 transition-opacity"
+                      >
+                        <Badge variant={u.rol.toLowerCase() as "admin" | "vendedor" | "comprador"} size="sm" />
+                      </button>
                     </td>
                     <td className="px-5 py-3 text-center">
                       {u.verificado
@@ -122,6 +171,19 @@ export default function AdminUsuariosPage() {
                       <Badge variant={u.activo ? "activo" : "inactivo"} size="sm" />
                     </td>
                     <td className="px-5 py-3 text-right text-xs text-slate-400">{formatFecha(u.creadoEn)}</td>
+                    <td className="px-5 py-3 text-center">
+                      <button
+                        onClick={() => handleToggle(u.id, u.email, u.activo)}
+                        disabled={toggling}
+                        title={u.activo ? "Desactivar cuenta" : "Activar cuenta"}
+                        className={`p-1.5 rounded-lg transition-colors ${u.activo ? "hover:bg-red-50" : "hover:bg-emerald-50"}`}
+                      >
+                        {u.activo
+                          ? <ToggleRight className="h-4 w-4 text-emerald-500" />
+                          : <ToggleLeft  className="h-4 w-4 text-slate-300" />
+                        }
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
