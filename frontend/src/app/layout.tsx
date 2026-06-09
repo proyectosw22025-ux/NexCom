@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
 import { ApolloClientProvider } from "@/lib/apollo-provider";
 import { AuthProvider } from "@/context/auth-context";
+import { CartProvider } from "@/context/cart-context";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -18,8 +19,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${inter.className} antialiased bg-slate-50 text-slate-900`}>
         <ApolloClientProvider>
           <AuthProvider>
-            {children}
-            <Toaster position="top-right" richColors closeButton />
+            <CartProvider>
+              {children}
+              <Toaster position="top-right" richColors closeButton />
+            </CartProvider>
           </AuthProvider>
         </ApolloClientProvider>
       </body>
