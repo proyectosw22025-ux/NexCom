@@ -7,6 +7,7 @@ import { BUSCAR } from "@/graphql/productos/queries";
 import { ProductoCard, type ProductoCardData } from "@/components/productos/ProductoCard";
 import { ProductoCardSkeleton } from "@/components/productos/ProductoCardSkeleton";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
+import Link from "next/link";
 
 interface BuscarResult {
   buscar: {
@@ -88,13 +89,13 @@ function BuscarContent() {
           <Search className="h-12 w-12 text-slate-200 mx-auto mb-4" />
           <p className="font-semibold text-slate-700">¿Qué estás buscando?</p>
           <p className="text-sm text-slate-400 mt-1 mb-5">Escribe el nombre de un producto para encontrarlo</p>
-          <a
+          <Link
             href="/productos"
             className="inline-flex items-center gap-1.5 text-sm font-semibold text-indigo-600
                        hover:text-indigo-700 transition-colors"
           >
             Ver todos los productos →
-          </a>
+          </Link>
         </div>
       ) : loading && !data ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -105,13 +106,13 @@ function BuscarContent() {
           <Search className="h-12 w-12 text-slate-200 mx-auto mb-4" />
           <p className="font-semibold text-slate-700">Sin resultados para &ldquo;{termino}&rdquo;</p>
           <p className="text-sm text-slate-400 mt-1 mb-5">Intenta con otras palabras clave</p>
-          <a
+          <Link
             href="/productos"
             className="inline-flex items-center gap-1.5 text-sm font-semibold text-indigo-600
                        hover:text-indigo-700 transition-colors"
           >
             Explorar todo el catálogo →
-          </a>
+          </Link>
         </div>
       ) : (
         <>
