@@ -1,7 +1,6 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
+import { Suspense } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -20,7 +19,7 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-export default function LoginPage() {
+function LoginContent() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const { login }    = useAuth();
@@ -66,7 +65,6 @@ export default function LoginPage() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-        {/* Email */}
         <div className="space-y-1.5">
           <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wide">
             Email
@@ -84,7 +82,6 @@ export default function LoginPage() {
           {errors.email && <p className="text-red-500 text-xs">{errors.email.message}</p>}
         </div>
 
-        {/* Password */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wide">
@@ -133,5 +130,13 @@ export default function LoginPage() {
         Crear cuenta gratis
       </Link>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="bg-white rounded-2xl border border-slate-100 h-64 animate-pulse" />}>
+      <LoginContent />
+    </Suspense>
   );
 }

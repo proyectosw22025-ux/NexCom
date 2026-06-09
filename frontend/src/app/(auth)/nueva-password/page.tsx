@@ -1,7 +1,6 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
+import { Suspense } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -27,7 +26,7 @@ type FormData = z.infer<typeof schema>;
 const inputClass = "w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 focus:bg-white transition-all";
 const iconClass  = "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none";
 
-export default function NuevaPasswordPage() {
+function NuevaPasswordContent() {
   const searchParams = useSearchParams();
   const router       = useRouter();
   const token        = searchParams.get("token");
@@ -112,5 +111,13 @@ export default function NuevaPasswordPage() {
         </button>
       </form>
     </div>
+  );
+}
+
+export default function NuevaPasswordPage() {
+  return (
+    <Suspense fallback={<div className="bg-white rounded-2xl border border-slate-100 h-64 animate-pulse" />}>
+      <NuevaPasswordContent />
+    </Suspense>
   );
 }

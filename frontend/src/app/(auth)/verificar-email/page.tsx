@@ -1,8 +1,6 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useMutation, ApolloError } from "@apollo/client";
 import Link from "next/link";
@@ -11,7 +9,7 @@ import { VERIFY_EMAIL } from "@/graphql/auth/mutations";
 
 type Estado = "verificando" | "exito" | "error";
 
-export default function VerificarEmailPage() {
+function VerificarEmailContent() {
   const searchParams = useSearchParams();
   const router       = useRouter();
   const token        = searchParams.get("token");
@@ -90,5 +88,13 @@ export default function VerificarEmailPage() {
         </>
       )}
     </div>
+  );
+}
+
+export default function VerificarEmailPage() {
+  return (
+    <Suspense fallback={<div className="bg-white rounded-2xl border border-slate-100 h-48 animate-pulse" />}>
+      <VerificarEmailContent />
+    </Suspense>
   );
 }
