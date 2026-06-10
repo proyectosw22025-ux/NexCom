@@ -6,6 +6,7 @@ import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { ShoppingBag, User, Package, Bell, LogOut } from "lucide-react";
+import { DashboardTopbar } from "@/components/layout/DashboardTopbar";
 
 const NAV = [
   { href: "/comprador",          label: "Mi Panel",   icon: ShoppingBag },
@@ -91,6 +92,7 @@ export default function CompradorLayout({ children }: { children: React.ReactNod
 
       {/* Main */}
       <main className="flex-1 overflow-auto">
+        <DashboardTopbar accent="indigo" />
         {children}
       </main>
     </div>

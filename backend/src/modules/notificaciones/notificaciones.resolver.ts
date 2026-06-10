@@ -1,6 +1,7 @@
 import { requireAuth } from "../../shared/guards.js";
 import type { NexComContext } from "../../shared/types/context.type.js";
 import { notificacionesService } from "./notificaciones.service.js";
+import { pubsub, type NotificacionPayload } from "../../shared/pubsub.js";
 
 export const notificacionesResolvers = {
   Query: {
@@ -24,6 +25,16 @@ export const notificacionesResolvers = {
     marcarTodasLeidas: (_: unknown, __: unknown, ctx: NexComContext) => {
       const user = requireAuth(ctx);
       return notificacionesService.marcarTodasLeidas(user.id, ctx.prisma);
+    },
+  },
+
+  Subscription: {
+    notificacionCreada: {
+      subscribe: (_: unknown, __: unknown, ctx: NexComContext) => {
+        const user = requireAuth(ctx);
+        return pubsub.subscribe(`notificacion:${user.id}`);
+      },
+      resolve: (payload: NotificacionPayload) => payload,
     },
   },
 };

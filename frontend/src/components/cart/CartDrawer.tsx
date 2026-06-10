@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { X, ShoppingCart, Plus, Minus, Trash2, ShoppingBag } from "lucide-react";
+import { X, ShoppingCart, Trash2, ShoppingBag } from "lucide-react";
 import { useCart } from "@/context/cart-context";
+import { QuantityStepper } from "@/components/ui/QuantityStepper";
 
 export function CartDrawer() {
   const { carrito, isOpen, closeCart, actualizar, eliminar, vaciar } = useCart();
@@ -75,26 +76,14 @@ export function CartDrawer() {
                     <p className="text-sm font-medium text-slate-900 truncate">{item.producto.nombre}</p>
                     <p className="text-xs text-slate-400 mt-0.5">Bs. {item.precioSnapshot} c/u</p>
                     <div className="flex items-center justify-between mt-2">
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => item.cantidad > 1
-                            ? actualizar(item.producto.id, item.cantidad - 1)
-                            : eliminar(item.producto.id)}
-                          className="w-6 h-6 rounded-md bg-white border border-slate-200 flex items-center justify-center
-                                     hover:bg-slate-100 transition-colors"
-                        >
-                          <Minus className="h-3 w-3 text-slate-600" />
-                        </button>
-                        <span className="w-7 text-center text-sm font-medium text-slate-900">{item.cantidad}</span>
-                        <button
-                          onClick={() => actualizar(item.producto.id, item.cantidad + 1)}
-                          disabled={item.cantidad >= item.producto.stock}
-                          className="w-6 h-6 rounded-md bg-white border border-slate-200 flex items-center justify-center
-                                     hover:bg-slate-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          <Plus className="h-3 w-3 text-slate-600" />
-                        </button>
-                      </div>
+                      <QuantityStepper
+                        value={item.cantidad}
+                        max={item.producto.stock}
+                        onDecrement={() => item.cantidad > 1
+                          ? actualizar(item.producto.id, item.cantidad - 1)
+                          : eliminar(item.producto.id)}
+                        onIncrement={() => actualizar(item.producto.id, item.cantidad + 1)}
+                      />
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-slate-900">Bs. {item.subtotal}</span>
                         <button

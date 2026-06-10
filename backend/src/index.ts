@@ -2,6 +2,8 @@ import "dotenv/config";
 import Fastify from "fastify";
 import { createYoga } from "graphql-yoga";
 import { makeExecutableSchema } from "@graphql-tools/schema";
+import { useServer } from "graphql-ws/use/ws";
+import { WebSocketServer } from "ws";
 import Stripe from "stripe";
 
 import { env } from "./config/env.js";
@@ -12,7 +14,13 @@ import { resolvers } from "./graphql/resolvers.js";
 import prisma from "./shared/prisma.client.js";
 import redis from "./shared/redis.client.js";
 import { extractBearerToken, verifyAccessToken } from "./shared/jwt.util.js";
-import type { NexComContext } from "./shared/types/context.type.js";
+import { publishNotificacion } from "./shared/pubsub.js";
+import type { NexComContext, UsuarioJWT } from "./shared/types/context.type.js";
+
+interface WSExtra {
+  user?: UsuarioJWT | null;
+  [key: string | symbol]: unknown;
+}
 
 const stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: "2024-04-10" });
 
@@ -21,14 +29,27 @@ async function bootstrap() {
 
   await app.register(corsPlugin);
 
+  app.get("/health", async (_req, reply) => {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      reply.send({ status: "ok", redis: redis.status });
+    } catch {
+      reply.status(503).send({ status: "error" });
+    }
+  });
+
   const executableSchema = makeExecutableSchema({ typeDefs, resolvers });
 
-  const yoga = createYoga<{ req: any; reply: any }>({
+  const yoga = createYoga<{ req: any; reply: any; extra?: WSExtra }>({
     schema:          executableSchema,
     graphiql:        env.NODE_ENV === "development",
     graphqlEndpoint: env.GRAPHQL_PATH,
-    context: ({ req }): NexComContext => {
-      const authHeader = (req as any).headers?.authorization as string | undefined;
+    context: ({ req, extra }): NexComContext => {
+      // Conexión WebSocket (subscriptions): el usuario ya fue resuelto en onConnect
+      if (extra?.user !== undefined) {
+        return { user: extra.user, prisma, redis, stripe };
+      }
+      const authHeader = (req as any)?.headers?.authorization as string | undefined;
       const token = extractBearerToken(authHeader);
       const user  = token ? verifyAccessToken(token) : null;
       return { user, prisma, redis, stripe };
@@ -64,6 +85,46 @@ async function bootstrap() {
     },
   });
 
+  // GraphQL Subscriptions sobre WebSocket (graphql-ws)
+  const wsServer = new WebSocketServer({ server: app.server, path: env.GRAPHQL_PATH });
+
+  useServer<Record<string, unknown>, WSExtra>(
+    {
+      schema: executableSchema,
+      onConnect: (ctx) => {
+        const authorization = ctx.connectionParams?.authorization as string | undefined;
+        const token = extractBearerToken(authorization);
+        const user  = token ? verifyAccessToken(token) : null;
+        if (!user) return false;
+        ctx.extra.user = user;
+      },
+      execute: (args: any) => args.rootValue.execute(args),
+      subscribe: (args: any) => args.rootValue.subscribe(args),
+      onSubscribe: async (ctx, _id, payload) => {
+        const { schema, execute, subscribe, contextFactory, parse, validate } = yoga.getEnveloped({
+          ...ctx,
+          req: ctx.extra.request,
+          socket: ctx.extra.socket,
+          params: payload,
+        });
+
+        const args = {
+          schema,
+          operationName: payload.operationName,
+          document: parse(payload.query),
+          variableValues: payload.variables,
+          contextValue: await contextFactory(),
+          rootValue: { execute, subscribe },
+        };
+
+        const errors = validate(args.schema, args.document);
+        if (errors.length) return errors;
+        return args;
+      },
+    },
+    wsServer,
+  );
+
   app.post("/webhooks/stripe", { config: { rawBody: true } }, async (req, reply) => {
     const sig = req.headers["stripe-signature"] as string | undefined;
     const rawBody = (req as unknown as { rawBody?: Buffer }).rawBody;
@@ -89,7 +150,7 @@ async function bootstrap() {
           include: { pago: true, items: true, comprador: { include: { usuario: true } }, vendedor: { include: { usuario: true } } },
         });
         if (orden && orden.estado === "PENDIENTE_PAGO") {
-          await prisma.$transaction(async (tx) => {
+          const notificacionesCreadas = await prisma.$transaction(async (tx) => {
             await tx.orden.update({ where: { id: orden.id }, data: { estado: "PAGADO" } });
             if (orden.pago) {
               const chargeId = (intent.latest_charge as string) ?? null;
@@ -112,28 +173,42 @@ async function bootstrap() {
             if (carrito) {
               await tx.itemCarrito.deleteMany({ where: { carritoId: carrito.id } });
             }
-            // Notificaciones
-            await tx.notificacion.createMany({
-              data: [
-                {
-                  usuarioId: orden.comprador.usuarioId,
-                  ordenId:   orden.id,
-                  tipo:      "PAGO_CONFIRMADO",
-                  titulo:    "¡Pago confirmado!",
-                  mensaje:   `Tu orden #${orden.id.slice(-6).toUpperCase()} fue pagada exitosamente.`,
-                  url:       `/comprador/ordenes/${orden.id}`,
-                },
-                {
-                  usuarioId: orden.vendedor.usuarioId,
-                  ordenId:   orden.id,
-                  tipo:      "NUEVA_ORDEN",
-                  titulo:    "Nueva orden recibida",
-                  mensaje:   `Tienes una nueva orden #${orden.id.slice(-6).toUpperCase()}.`,
-                  url:       `/vendedor/ordenes/${orden.id}`,
-                },
-              ],
+            // Notificaciones (create individual para poder publicarlas vía pubsub tras el commit)
+            const notifComprador = await tx.notificacion.create({
+              data: {
+                usuarioId: orden.comprador.usuarioId,
+                ordenId:   orden.id,
+                tipo:      "PAGO_CONFIRMADO",
+                titulo:    "¡Pago confirmado!",
+                mensaje:   `Tu orden #${orden.id.slice(-6).toUpperCase()} fue pagada exitosamente.`,
+                url:       `/comprador/ordenes/${orden.id}`,
+              },
             });
+            const notifVendedor = await tx.notificacion.create({
+              data: {
+                usuarioId: orden.vendedor.usuarioId,
+                ordenId:   orden.id,
+                tipo:      "NUEVA_ORDEN",
+                titulo:    "Nueva orden recibida",
+                mensaje:   `Tienes una nueva orden #${orden.id.slice(-6).toUpperCase()}.`,
+                url:       `/vendedor/ordenes/${orden.id}`,
+              },
+            });
+            return [notifComprador, notifVendedor];
           });
+
+          for (const notif of notificacionesCreadas) {
+            publishNotificacion(notif.usuarioId, {
+              id:       notif.id,
+              tipo:     notif.tipo,
+              titulo:   notif.titulo,
+              mensaje:  notif.mensaje,
+              leido:    notif.leido,
+              url:      notif.url,
+              ordenId:  notif.ordenId,
+              creadoEn: notif.creadoEn.toISOString(),
+            });
+          }
         }
       } else if (event.type === "payment_intent.payment_failed") {
         const intent = event.data.object as Stripe.PaymentIntent;

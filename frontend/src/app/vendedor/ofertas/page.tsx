@@ -5,6 +5,7 @@ import Link from "next/link";
 import { MIS_OFERTAS } from "@/graphql/ofertas/queries";
 import { CANCELAR_OFERTA } from "@/graphql/ofertas/mutations";
 import { Badge } from "@/components/ui/Badge";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Plus, Tag, Pencil, XCircle, Loader2, Package } from "lucide-react";
 import { toast } from "sonner";
 import { ApolloError } from "@apollo/client";
@@ -46,8 +47,7 @@ export default function VendedorOfertasPage() {
 
   const ofertas = data?.misOfertas ?? [];
 
-  async function handleCancelar(id: string, titulo: string) {
-    if (!confirm(`¿Cancelar la oferta "${titulo}"?`)) return;
+  async function handleCancelar(id: string) {
     try {
       await cancelarOferta({ variables: { id } });
       toast.success("Oferta cancelada.");
@@ -156,15 +156,23 @@ export default function VendedorOfertasPage() {
                   >
                     <Pencil className="h-3.5 w-3.5" /> Editar
                   </Link>
-                  <button
-                    onClick={() => handleCancelar(o.id, o.titulo)}
-                    disabled={canceling}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl
-                               border border-red-100 hover:bg-red-50 text-xs font-semibold text-red-500
-                               transition-colors disabled:opacity-40"
-                  >
-                    <XCircle className="h-3.5 w-3.5" /> Cancelar
-                  </button>
+                  <ConfirmDialog
+                    title="Cancelar oferta"
+                    description={`¿Cancelar la oferta "${o.titulo}"? Esta acción no se puede deshacer.`}
+                    confirmLabel="Cancelar oferta"
+                    variant="danger"
+                    onConfirm={() => handleCancelar(o.id)}
+                    trigger={
+                      <button
+                        disabled={canceling}
+                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl
+                                   border border-red-100 hover:bg-red-50 text-xs font-semibold text-red-500
+                                   transition-colors disabled:opacity-40 w-full"
+                      >
+                        <XCircle className="h-3.5 w-3.5" /> Cancelar
+                      </button>
+                    }
+                  />
                 </div>
               )}
             </div>

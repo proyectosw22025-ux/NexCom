@@ -8,6 +8,7 @@ import { MI_ORDEN } from "@/graphql/ordenes/queries";
 import { MARCAR_ORDEN_ENTREGADA } from "@/graphql/ordenes/mutations";
 import { CREAR_VALORACION } from "@/graphql/valoraciones/mutations";
 import { Badge } from "@/components/ui/Badge";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import {
   ArrowLeft, Loader2, Package, MapPin, CreditCard,
   CheckCircle, Star, Send, Clock,
@@ -61,7 +62,6 @@ export default function CompradorOrdenDetallePage() {
   const orden = data?.miOrden;
 
   async function handleEntregada() {
-    if (!confirm("¿Confirmas que recibiste tu pedido?")) return;
     try {
       await marcarEntregada({ variables: { id } });
       toast.success("¡Pedido confirmado como entregado!");
@@ -197,16 +197,23 @@ export default function CompradorOrdenDetallePage() {
 
         {/* Acciones */}
         {orden.estado === "ENVIADO" && (
-          <button
-            onClick={handleEntregada}
-            disabled={marcando}
-            className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700
-                       disabled:opacity-50 text-white font-semibold px-6 py-3 rounded-xl text-sm
-                       transition-colors shadow-sm shadow-emerald-200"
-          >
-            {marcando ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
-            Confirmar que recibí mi pedido
-          </button>
+          <ConfirmDialog
+            title="Confirmar entrega"
+            description="¿Confirmas que recibiste tu pedido? Esta acción no se puede deshacer."
+            confirmLabel="Sí, lo recibí"
+            onConfirm={handleEntregada}
+            trigger={
+              <button
+                disabled={marcando}
+                className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700
+                           disabled:opacity-50 text-white font-semibold px-6 py-3 rounded-xl text-sm
+                           transition-colors shadow-sm shadow-emerald-200"
+              >
+                {marcando ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                Confirmar que recibí mi pedido
+              </button>
+            }
+          />
         )}
 
         {/* Valoración */}

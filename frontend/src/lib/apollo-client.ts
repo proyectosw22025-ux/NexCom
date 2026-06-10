@@ -1,6 +1,9 @@
-import { ApolloClient, InMemoryCache, createHttpLink, from } from "@apollo/client";
+import { ApolloClient, InMemoryCache, createHttpLink, from, split } from "@apollo/client";
 import { setContext } from "@apollo/client/link/context";
 import { onError } from "@apollo/client/link/error";
+import { GraphQLWsLink } from "@apollo/client/link/subscriptions";
+import { getMainDefinition } from "@apollo/client/utilities";
+import { createClient } from "graphql-ws";
 
 const httpLink = createHttpLink({
   uri: process.env.NEXT_PUBLIC_GRAPHQL_URL ?? "http://localhost:4000/graphql",
@@ -31,7 +34,37 @@ const errorLink = onError(({ graphQLErrors, networkError }) => {
   if (networkError) console.error(`[Network Error] ${networkError}`);
 });
 
+const httpChain = from([errorLink, authLink, httpLink]);
+
+function getWsUrl() {
+  if (process.env.NEXT_PUBLIC_GRAPHQL_WS_URL) return process.env.NEXT_PUBLIC_GRAPHQL_WS_URL;
+  const httpUrl = process.env.NEXT_PUBLIC_GRAPHQL_URL ?? "http://localhost:4000/graphql";
+  return httpUrl.replace(/^http/, "ws");
+}
+
+const link =
+  typeof window !== "undefined"
+    ? split(
+        ({ query }) => {
+          const definition = getMainDefinition(query);
+          return (
+            definition.kind === "OperationDefinition" && definition.operation === "subscription"
+          );
+        },
+        new GraphQLWsLink(
+          createClient({
+            url: getWsUrl(),
+            connectionParams: () => {
+              const token = localStorage.getItem("nexcom_access_token");
+              return token ? { authorization: `Bearer ${token}` } : {};
+            },
+          }),
+        ),
+        httpChain,
+      )
+    : httpChain;
+
 export const apolloClient = new ApolloClient({
-  link: from([errorLink, authLink, httpLink]),
+  link,
   cache: new InMemoryCache(),
 });

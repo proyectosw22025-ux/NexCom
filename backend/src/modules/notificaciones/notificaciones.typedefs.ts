@@ -19,4 +19,8 @@ export const notificacionesTypeDefs = /* GraphQL */ `
     marcarNotificacionLeida(id: ID!): Notificacion!
     marcarTodasLeidas:                Boolean!
   }
+
+  extend type Subscription {
+    notificacionCreada: Notificacion!
+  }
 `;

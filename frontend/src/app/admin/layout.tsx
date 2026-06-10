@@ -6,6 +6,7 @@ import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { LayoutDashboard, Users, Package, BarChart2, Settings, Shield, LogOut } from "lucide-react";
+import { DashboardTopbar } from "@/components/layout/DashboardTopbar";
 
 const NAV = [
   { href: "/admin",               label: "Dashboard",     icon: LayoutDashboard, exact: true },
@@ -91,6 +92,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Main */}
       <main className="flex-1 overflow-auto">
+        <DashboardTopbar accent="slate" />
         {children}
       </main>
     </div>

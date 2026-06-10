@@ -204,36 +204,4 @@ export const pagosRepository = {
       await prisma.itemCarrito.deleteMany({ where: { carritoId: carrito.id } });
     }
   },
-
-  async crearNotificaciones(
-    { compradorId, vendedorIdUsuario, ordenId, titulo, mensaje }: {
-      compradorId:      string;
-      vendedorIdUsuario: string;
-      ordenId:          string;
-      titulo:           string;
-      mensaje:          string;
-    },
-    prisma: PrismaClient,
-  ) {
-    await prisma.notificacion.createMany({
-      data: [
-        {
-          usuarioId: compradorId,
-          ordenId,
-          tipo:      "PAGO_CONFIRMADO",
-          titulo,
-          mensaje,
-          url:       `/comprador/ordenes/${ordenId}`,
-        },
-        {
-          usuarioId: vendedorIdUsuario,
-          ordenId,
-          tipo:      "NUEVA_ORDEN",
-          titulo:    "Nueva orden recibida",
-          mensaje:   `Tienes una nueva orden #${ordenId.slice(-6).toUpperCase()}.`,
-          url:       `/vendedor/ordenes/${ordenId}`,
-        },
-      ],
-    });
-  },
 };

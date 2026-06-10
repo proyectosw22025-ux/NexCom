@@ -10,6 +10,7 @@ import { ArrowLeft, Loader2, Tag, Package, CheckSquare, Square } from "lucide-re
 import { toast } from "sonner";
 import { ApolloError } from "@apollo/client";
 import type { ProductoCardData } from "@/components/productos/ProductoCard";
+import { DateTimePicker } from "@/components/ui/DateTimePicker";
 
 export default function NuevaOfertaPage() {
   const router = useRouter();
@@ -154,27 +155,19 @@ export default function NuevaOfertaPage() {
               <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5">
                 Fecha inicio *
               </label>
-              <input
-                required
-                type="datetime-local"
+              <DateTimePicker
                 value={form.fechaInicio}
-                onChange={(e) => setForm((p) => ({ ...p, fechaInicio: e.target.value }))}
-                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm
-                           focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
+                onChange={(v) => setForm((p) => ({ ...p, fechaInicio: v }))}
               />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5">
                 Fecha fin *
               </label>
-              <input
-                required
-                type="datetime-local"
+              <DateTimePicker
                 value={form.fechaFin}
-                onChange={(e) => setForm((p) => ({ ...p, fechaFin: e.target.value }))}
+                onChange={(v) => setForm((p) => ({ ...p, fechaFin: v }))}
                 min={form.fechaInicio}
-                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm
-                           focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
               />
             </div>
           </div>

@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery } from "@apollo/client";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from "next/link";
@@ -11,6 +11,7 @@ import { CATEGORIAS } from "@/graphql/productos/queries";
 import { ArrowLeft, Package, Loader2, ImagePlus } from "lucide-react";
 import { toast } from "sonner";
 import { ApolloError } from "@apollo/client";
+import { Select, type SelectOption } from "@/components/ui/Select";
 
 const schema = z.object({
   nombre:      z.string().min(3, "Mínimo 3 caracteres"),
@@ -26,16 +27,19 @@ type FormData = z.infer<typeof schema>;
 
 export default function NuevoProductoPage() {
   const router = useRouter();
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
+  const { register, handleSubmit, control, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
 
   const [crearProducto] = useMutation(CREAR_PRODUCTO);
   const { data: catData } = useQuery<{
-    categorias: { id: string; nombre: string; padre: null | object }[]
+    categorias: { id: string; nombre: string; hijos: { id: string; nombre: string }[] }[]
   }>(CATEGORIAS, { variables: { soloRaices: false } });
 
-  const categorias = catData?.categorias ?? [];
+  const categoriaOptions: SelectOption[] = (catData?.categorias ?? []).flatMap((c) => [
+    { value: c.id, label: c.nombre, depth: 0 },
+    ...c.hijos.map((h) => ({ value: h.id, label: h.nombre, depth: 1 })),
+  ]);
 
   async function onSubmit(values: FormData) {
     try {
@@ -124,14 +128,18 @@ export default function NuevoProductoPage() {
         {/* Categoría */}
         <div className="space-y-1.5">
           <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wide">Categoría *</label>
-          <select {...register("categoriaId")}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm
-                             focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 focus:bg-white transition-all">
-            <option value="">Seleccionar categoría…</option>
-            {categorias.map((c) => (
-              <option key={c.id} value={c.id}>{c.nombre}</option>
-            ))}
-          </select>
+          <Controller
+            name="categoriaId"
+            control={control}
+            render={({ field }) => (
+              <Select
+                value={field.value}
+                onValueChange={field.onChange}
+                options={categoriaOptions}
+                placeholder="Seleccionar categoría…"
+              />
+            )}
+          />
           {errors.categoriaId && <p className="text-red-500 text-xs">{errors.categoriaId.message}</p>}
         </div>
 

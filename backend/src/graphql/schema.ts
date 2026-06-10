@@ -25,6 +25,10 @@ const baseTypeDefs = /* GraphQL */ `
   type Mutation {
     _placeholder: Boolean
   }
+
+  type Subscription {
+    _placeholder: Boolean
+  }
 `;
 
 export const schema = mergeTypeDefs([

@@ -1,0 +1,48 @@
+# NexCom — Stack completo (Postgres + Redis + Backend + Frontend)
+#
+# Reproduce localmente la arquitectura de producción (Vercel + Railway + Neon + Upstash)
+# de forma 100% containerizada. Útil para demos, QA y entrega académica.
+#
+# Uso:
+#   cp .env.example .env   (completar valores)
+#   docker compose -f docker-compose.yml -f docker-compose.full.yml up --build
+#
+# URLs:
+#   Frontend: http://localhost:3000
+#   Backend:  http://localhost:4000/graphql  (GraphiQL solo en NODE_ENV=development)
+#   Health:   http://localhost:4000/health
+
+services:
+  backend:
+    build: ./backend
+    env_file: ./backend/.env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-nexcom}:${POSTGRES_PASSWORD:-nexcom}@postgres:5432/${POSTGRES_DB:-nexcom}
+      REDIS_URL: redis://redis:6379
+      FRONTEND_URL: http://localhost:3000
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_GRAPHQL_URL: ${NEXT_PUBLIC_GRAPHQL_URL:-http://localhost:4000/graphql}
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy

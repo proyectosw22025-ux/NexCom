@@ -7,6 +7,7 @@ import { MIS_PRODUCTOS } from "@/graphql/productos/queries";
 import { ELIMINAR_PRODUCTO } from "@/graphql/productos/mutations";
 import { Plus, Package, Pencil, Trash2, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { toast } from "sonner";
 import { ApolloError } from "@apollo/client";
 import type { ProductoCardData } from "@/components/productos/ProductoCard";
@@ -27,8 +28,7 @@ export default function VendedorProductosPage() {
   );
   const totalPaginasTabla = Math.ceil(productos.length / FILAS_POR_PAGINA);
 
-  async function handleDelete(id: string, nombre: string) {
-    if (!confirm(`¿Desactivar el producto "${nombre}"? (soft delete)`)) return;
+  async function handleDelete(id: string) {
     try {
       await eliminarProducto({ variables: { id } });
       toast.success("Producto desactivado.");
@@ -115,13 +115,21 @@ export default function VendedorProductosPage() {
                       >
                         <Pencil className="h-4 w-4 text-indigo-600" />
                       </Link>
-                      <button
-                        onClick={() => handleDelete(p.id, p.nombre)}
-                        disabled={deleting}
-                        className="p-1.5 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-40"
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </button>
+                      <ConfirmDialog
+                        title="Desactivar producto"
+                        description={`¿Desactivar el producto "${p.nombre}"? Podrás reactivarlo más tarde.`}
+                        confirmLabel="Desactivar"
+                        variant="danger"
+                        onConfirm={() => handleDelete(p.id)}
+                        trigger={
+                          <button
+                            disabled={deleting}
+                            className="p-1.5 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-40"
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </button>
+                        }
+                      />
                     </div>
                   </td>
                 </tr>

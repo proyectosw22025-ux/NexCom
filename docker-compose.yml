@@ -1,0 +1,42 @@
+# NexCom — Infraestructura local (Postgres + Redis)
+#
+# Uso recomendado para desarrollo diario:
+#   docker compose up -d
+#   (backend y frontend siguen corriendo nativos con `npm run dev`
+#    para aprovechar el hot-reload de tsx/Turbopack)
+#
+# Para levantar el stack completo (backend + frontend dockerizados):
+#   docker compose -f docker-compose.yml -f docker-compose.full.yml up --build
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nexcom}
+      POSTGRES_USER: ${POSTGRES_USER:-nexcom}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nexcom}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nexcom}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.2-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:

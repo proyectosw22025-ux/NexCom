@@ -5,6 +5,7 @@ import { useQuery, useMutation } from "@apollo/client";
 import { LISTAR_USUARIOS } from "@/graphql/admin/queries";
 import { TOGGLE_ACTIVO_USUARIO, CAMBIAR_ROL_USUARIO } from "@/graphql/admin/mutations";
 import { Badge } from "@/components/ui/Badge";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Users, Search, Loader2, CheckCircle, XCircle, ToggleLeft, ToggleRight } from "lucide-react";
 import { toast } from "sonner";
 import { ApolloError } from "@apollo/client";
@@ -50,8 +51,7 @@ export default function AdminUsuariosPage() {
   const totalPaginas = Math.ceil(filtrados.length / FILAS);
   const paginados    = filtrados.slice((pagina - 1) * FILAS, pagina * FILAS);
 
-  async function handleToggle(id: string, email: string, activo: boolean) {
-    if (!confirm(`¿${activo ? "Desactivar" : "Activar"} la cuenta de ${email}?`)) return;
+  async function handleToggle(id: string, activo: boolean) {
     try {
       await toggleActivo({ variables: { id } });
       toast.success(activo ? "Cuenta desactivada." : "Cuenta activada.");
@@ -172,17 +172,25 @@ export default function AdminUsuariosPage() {
                     </td>
                     <td className="px-5 py-3 text-right text-xs text-slate-400">{formatFecha(u.creadoEn)}</td>
                     <td className="px-5 py-3 text-center">
-                      <button
-                        onClick={() => handleToggle(u.id, u.email, u.activo)}
-                        disabled={toggling}
+                      <ConfirmDialog
                         title={u.activo ? "Desactivar cuenta" : "Activar cuenta"}
-                        className={`p-1.5 rounded-lg transition-colors ${u.activo ? "hover:bg-red-50" : "hover:bg-emerald-50"}`}
-                      >
-                        {u.activo
-                          ? <ToggleRight className="h-4 w-4 text-emerald-500" />
-                          : <ToggleLeft  className="h-4 w-4 text-slate-300" />
+                        description={`¿${u.activo ? "Desactivar" : "Activar"} la cuenta de ${u.email}?`}
+                        confirmLabel={u.activo ? "Desactivar" : "Activar"}
+                        variant={u.activo ? "danger" : "default"}
+                        onConfirm={() => handleToggle(u.id, u.activo)}
+                        trigger={
+                          <button
+                            disabled={toggling}
+                            title={u.activo ? "Desactivar cuenta" : "Activar cuenta"}
+                            className={`p-1.5 rounded-lg transition-colors ${u.activo ? "hover:bg-red-50" : "hover:bg-emerald-50"}`}
+                          >
+                            {u.activo
+                              ? <ToggleRight className="h-4 w-4 text-emerald-500" />
+                              : <ToggleLeft  className="h-4 w-4 text-slate-300" />
+                            }
+                          </button>
                         }
-                      </button>
+                      />
                     </td>
                   </tr>
                 );

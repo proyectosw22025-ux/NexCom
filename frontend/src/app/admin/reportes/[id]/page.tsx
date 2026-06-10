@@ -5,6 +5,7 @@ import { useQuery, useMutation } from "@apollo/client";
 import { LISTAR_REPORTES } from "@/graphql/admin/queries";
 import { RESOLVER_REPORTE } from "@/graphql/admin/mutations";
 import { Badge } from "@/components/ui/Badge";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ArrowLeft, BarChart2, Loader2, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { ApolloError } from "@apollo/client";
@@ -52,7 +53,6 @@ export default function AdminReporteDetallePage() {
       toast.error("Escribe una resolución antes de continuar.");
       return;
     }
-    if (!confirm(`¿${estado === "RESUELTO" ? "Resolver" : "Rechazar"} este reporte?`)) return;
     try {
       await resolverReporte({ variables: { id, estado, resolucion: resolucion.trim() } });
       toast.success(estado === "RESUELTO" ? "Reporte resuelto." : "Reporte rechazado.");
@@ -185,24 +185,39 @@ export default function AdminReporteDetallePage() {
           </div>
 
           <div className="flex gap-3">
-            <button
-              onClick={() => handleResolver("RESUELTO")}
-              disabled={resolving || !resolucion.trim()}
-              className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700
-                         text-white font-semibold rounded-xl py-2.5 text-sm transition-colors
-                         shadow-sm shadow-emerald-200 disabled:opacity-50"
-            >
-              <CheckCircle className="h-4 w-4" /> Resolver
-            </button>
-            <button
-              onClick={() => handleResolver("RECHAZADO")}
-              disabled={resolving || !resolucion.trim()}
-              className="flex-1 flex items-center justify-center gap-2 border border-red-200
-                         text-red-600 font-semibold rounded-xl py-2.5 text-sm hover:bg-red-50
-                         transition-colors disabled:opacity-50"
-            >
-              <XCircle className="h-4 w-4" /> Rechazar
-            </button>
+            <ConfirmDialog
+              title="Resolver reporte"
+              description="¿Marcar este reporte como resuelto con la resolución indicada?"
+              confirmLabel="Resolver"
+              onConfirm={() => handleResolver("RESUELTO")}
+              trigger={
+                <button
+                  disabled={resolving || !resolucion.trim()}
+                  className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700
+                             text-white font-semibold rounded-xl py-2.5 text-sm transition-colors
+                             shadow-sm shadow-emerald-200 disabled:opacity-50 w-full"
+                >
+                  <CheckCircle className="h-4 w-4" /> Resolver
+                </button>
+              }
+            />
+            <ConfirmDialog
+              title="Rechazar reporte"
+              description="¿Rechazar este reporte con la resolución indicada?"
+              confirmLabel="Rechazar"
+              variant="danger"
+              onConfirm={() => handleResolver("RECHAZADO")}
+              trigger={
+                <button
+                  disabled={resolving || !resolucion.trim()}
+                  className="flex-1 flex items-center justify-center gap-2 border border-red-200
+                             text-red-600 font-semibold rounded-xl py-2.5 text-sm hover:bg-red-50
+                             transition-colors disabled:opacity-50 w-full"
+                >
+                  <XCircle className="h-4 w-4" /> Rechazar
+                </button>
+              }
+            />
           </div>
         </div>
       )}

@@ -8,6 +8,7 @@ import { useEffect } from "react";
 import {
   LayoutDashboard, Package, Tag, LogOut, Store, ShoppingBag, Star,
 } from "lucide-react";
+import { DashboardTopbar } from "@/components/layout/DashboardTopbar";
 
 const NAV = [
   { href: "/vendedor",              label: "Panel",         icon: LayoutDashboard },
@@ -95,6 +96,7 @@ export default function VendedorLayout({ children }: { children: React.ReactNode
 
       {/* Main */}
       <main className="flex-1 overflow-auto">
+        <DashboardTopbar accent="violet" />
         {children}
       </main>
     </div>

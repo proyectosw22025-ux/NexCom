@@ -11,6 +11,7 @@ import { CartProvider, useCart } from "@/context/cart-context";
 import { useAuth } from "@/context/auth-context";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { SearchBar } from "@/components/busqueda/SearchBar";
+import { NotificationBell } from "@/components/notificaciones/NotificationBell";
 
 function NavbarInner() {
   const { user, logout } = useAuth();
@@ -57,6 +58,9 @@ function NavbarInner() {
               )}
             </button>
           )}
+
+          {/* Notificaciones */}
+          {user && <NotificationBell accent="indigo" />}
 
           {/* User menu */}
           {user ? (
