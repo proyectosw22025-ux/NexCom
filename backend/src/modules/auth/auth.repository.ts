@@ -11,6 +11,16 @@ export async function findUsuarioByEmail(
   });
 }
 
+export async function findUsuarioByEmailConPerfil(email: string, prisma: PrismaClient) {
+  return prisma.usuario.findUnique({
+    where: { email },
+    include: {
+      perfilVendedor:  true,
+      perfilComprador: true,
+    },
+  });
+}
+
 export async function findUsuarioById(
   id: string,
   prisma: PrismaClient

@@ -31,13 +31,12 @@ describe("auth.service.login", () => {
   });
 
   it("retorna access/refresh token cuando las credenciales son correctas", async () => {
-    vi.mocked(repo.findUsuarioByEmail).mockResolvedValue(usuarioBase as never);
-    vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
-    vi.mocked(repo.findUsuarioConPerfil).mockResolvedValue({
+    vi.mocked(repo.findUsuarioByEmailConPerfil).mockResolvedValue({
       ...usuarioBase,
       perfilVendedor: null,
       perfilComprador: { id: "perfil-1" },
     } as never);
+    vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
     vi.mocked(repo.saveRefreshToken).mockResolvedValue({} as never);
 
     const result = await login(
@@ -51,7 +50,7 @@ describe("auth.service.login", () => {
   });
 
   it("rechaza credenciales cuando el usuario no existe", async () => {
-    vi.mocked(repo.findUsuarioByEmail).mockResolvedValue(null);
+    vi.mocked(repo.findUsuarioByEmailConPerfil).mockResolvedValue(null);
 
     await expect(
       login({ email: "noexiste@nexcom.bo", password: "password123" }, prisma),
@@ -62,7 +61,7 @@ describe("auth.service.login", () => {
   });
 
   it("rechaza credenciales cuando la contraseña no coincide", async () => {
-    vi.mocked(repo.findUsuarioByEmail).mockResolvedValue(usuarioBase as never);
+    vi.mocked(repo.findUsuarioByEmailConPerfil).mockResolvedValue(usuarioBase as never);
     vi.mocked(bcrypt.compare).mockResolvedValue(false as never);
 
     await expect(
@@ -74,7 +73,7 @@ describe("auth.service.login", () => {
   });
 
   it("rechaza el login si la cuenta está desactivada", async () => {
-    vi.mocked(repo.findUsuarioByEmail).mockResolvedValue({
+    vi.mocked(repo.findUsuarioByEmailConPerfil).mockResolvedValue({
       ...usuarioBase,
       activo: false,
     } as never);
@@ -89,7 +88,7 @@ describe("auth.service.login", () => {
   });
 
   it("rechaza el login si el email no está verificado", async () => {
-    vi.mocked(repo.findUsuarioByEmail).mockResolvedValue({
+    vi.mocked(repo.findUsuarioByEmailConPerfil).mockResolvedValue({
       ...usuarioBase,
       verificado: false,
     } as never);

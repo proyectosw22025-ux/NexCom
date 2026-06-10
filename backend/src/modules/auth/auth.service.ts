@@ -28,13 +28,12 @@ function badInput(message: string): never {
   });
 }
 
-async function buildAuthPayload(usuarioId: string, rol: "ADMIN" | "VENDEDOR" | "COMPRADOR", prisma: PrismaClient, dispositivo?: string) {
-  const usuario = await repo.findUsuarioConPerfil(usuarioId, prisma);
-  if (!usuario) throw new GraphQLError("Error interno", { extensions: { code: "INTERNAL_SERVER_ERROR" } });
+type UsuarioConPerfil = NonNullable<Awaited<ReturnType<typeof repo.findUsuarioConPerfil>>>;
 
+async function buildAuthPayload(usuario: UsuarioConPerfil, prisma: PrismaClient, dispositivo?: string) {
   const accessToken = signAccessToken({
-    id:                usuarioId,
-    rol,
+    id:                usuario.id,
+    rol:               usuario.rol as "ADMIN" | "VENDEDOR" | "COMPRADOR",
     perfilVendedorId:  usuario.perfilVendedor?.id  ?? null,
     perfilCompradorId: usuario.perfilComprador?.id ?? null,
   });
@@ -44,7 +43,7 @@ async function buildAuthPayload(usuarioId: string, rol: "ADMIN" | "VENDEDOR" | "
   const expiraEn = new Date();
   expiraEn.setDate(expiraEn.getDate() + 7); // 7 días
 
-  await repo.saveRefreshToken({ usuarioId, tokenHash: refreshHash, expiraEn, dispositivo }, prisma);
+  await repo.saveRefreshToken({ usuarioId: usuario.id, tokenHash: refreshHash, expiraEn, dispositivo }, prisma);
 
   return { accessToken, refreshToken: refreshRaw, usuario };
 }
@@ -83,7 +82,10 @@ export async function register(rawInput: unknown, prisma: PrismaClient, disposit
   );
   await sendVerificationEmail(usuario.email, verifyToken);
 
-  return buildAuthPayload(usuario.id, usuario.rol as "ADMIN" | "VENDEDOR" | "COMPRADOR", prisma, dispositivo);
+  const usuarioConPerfil = await repo.findUsuarioConPerfil(usuario.id, prisma);
+  if (!usuarioConPerfil) throw new GraphQLError("Error interno", { extensions: { code: "INTERNAL_SERVER_ERROR" } });
+
+  return buildAuthPayload(usuarioConPerfil, prisma, dispositivo);
 }
 
 // ── login ─────────────────────────────────────────────────────────────────────
@@ -95,7 +97,7 @@ export async function login(rawInput: unknown, prisma: PrismaClient, dispositivo
   }
   const input = result.data as LoginInput;
 
-  const usuario = await repo.findUsuarioByEmail(input.email, prisma);
+  const usuario = await repo.findUsuarioByEmailConPerfil(input.email, prisma);
   if (!usuario) badInput("Credenciales incorrectas.");
 
   const passwordOk = await bcrypt.compare(input.password, usuario.passwordHash);
@@ -113,7 +115,7 @@ export async function login(rawInput: unknown, prisma: PrismaClient, dispositivo
     });
   }
 
-  return buildAuthPayload(usuario.id, usuario.rol as "ADMIN" | "VENDEDOR" | "COMPRADOR", prisma, dispositivo);
+  return buildAuthPayload(usuario, prisma, dispositivo);
 }
 
 // ── logout ────────────────────────────────────────────────────────────────────
@@ -144,7 +146,7 @@ export async function refreshToken(tokenRaw: string, prisma: PrismaClient, dispo
     });
   }
 
-  const usuario = await repo.findUsuarioById(rt.usuarioId, prisma);
+  const usuario = await repo.findUsuarioConPerfil(rt.usuarioId, prisma);
   if (!usuario || !usuario.activo) {
     throw new GraphQLError("Cuenta no disponible.", { extensions: { code: "FORBIDDEN" } });
   }
@@ -152,7 +154,7 @@ export async function refreshToken(tokenRaw: string, prisma: PrismaClient, dispo
   // Rotación: revocar el token anterior antes de emitir uno nuevo
   await repo.revokeRefreshToken(rt.id, prisma);
 
-  return buildAuthPayload(usuario.id, usuario.rol as "ADMIN" | "VENDEDOR" | "COMPRADOR", prisma, dispositivo);
+  return buildAuthPayload(usuario, prisma, dispositivo);
 }
 
 // ── verifyEmail ───────────────────────────────────────────────────────────────
