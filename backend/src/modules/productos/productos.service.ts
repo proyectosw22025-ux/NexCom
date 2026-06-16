@@ -24,6 +24,7 @@ async function resolveEtiquetaIds(nombres: string[], prisma: PrismaClient): Prom
 
 async function invalidarCaches(vendedorId?: string) {
   await invalidatePattern("busqueda:*");
+  await invalidatePattern("catalogo:list:*"); // catálogo paginado cacheado
   await deleteCache(CacheKeys.categorias());
   if (vendedorId) await deleteCache(CacheKeys.catalogoVendedor(vendedorId, 1));
 }
@@ -34,16 +35,26 @@ export const productosService = {
       { pagina?: number; limite?: number; categoriaId?: string | null; soloActivos?: boolean | null },
     prisma: PrismaClient,
   ) {
+    // Caché de catálogo: lectura pública y de altísima frecuencia, datos que
+    // cambian poco. TTL corto (CACHE_TTL_CATALOGO) + invalidación al mutar
+    // productos. Convierte el cuello de botella medido (~1-1.8s) en ~piso de red.
+    const cacheKey = CacheKeys.catalogo(pagina, limite, categoriaId, soloActivos);
+    const cached   = await getFromCache<{ items: unknown[]; total: number; pagina: number; totalPaginas: number }>(cacheKey);
+    if (cached) return cached;
+
     const { total, items } = await productosRepository.findPaginated(
       { pagina, limite, categoriaId, soloActivos },
       prisma,
     );
-    return {
+    const result = {
       items,
       total,
       pagina,
       totalPaginas: Math.ceil(total / limite),
     };
+
+    await setCache(cacheKey, result, env.CACHE_TTL_CATALOGO);
+    return result;
   },
 
   async getById(id: string, prisma: PrismaClient) {
@@ -141,6 +152,7 @@ export const productosService = {
     const p = await productosRepository.toggleDestacado(id, prisma);
     await deleteCache(CacheKeys.producto(id));
     await invalidatePattern("busqueda:*");
+    await invalidatePattern("catalogo:list:*"); // el orden del catálogo depende de `destacado`
     return p;
   },
 
