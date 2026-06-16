@@ -61,3 +61,11 @@ export const ORDEN_VENDEDOR = gql`
     }
   }
 `;
+
+export const VENTAS_VENDEDOR_POR_DIA = gql`
+  query VentasVendedorPorDia($dias: Int) {
+    ventasVendedorPorDia(dias: $dias) {
+      fecha total ordenes
+    }
+  }
+`;

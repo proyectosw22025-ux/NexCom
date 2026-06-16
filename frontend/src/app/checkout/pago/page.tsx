@@ -11,6 +11,7 @@ import {
 } from "@stripe/react-stripe-js";
 import { Lock, Loader2, CreditCard } from "lucide-react";
 import Link from "next/link";
+import { CheckoutStepper } from "@/components/checkout/CheckoutStepper";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "");
 
@@ -132,6 +133,8 @@ export default function PagoPage() {
 
   return (
     <div className="max-w-md mx-auto px-4 py-12">
+      <CheckoutStepper current="pago" />
+
       <div className="text-center mb-8">
         <div className="w-12 h-12 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
           <Lock className="h-5 w-5 text-indigo-600" />

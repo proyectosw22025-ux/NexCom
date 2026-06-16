@@ -95,13 +95,17 @@ export const ordenesRepository = {
     estadoNuevo: string,
     usuarioId: string,
     notas: string | null | undefined,
+    comprobanteUrl: string | null | undefined,
     prisma: PrismaClient,
   ) {
     const orden = await prisma.orden.findUniqueOrThrow({ where: { id } });
     const updated = await prisma.$transaction(async (tx) => {
       const o = await tx.orden.update({
         where:   { id },
-        data:    { estado: estadoNuevo as never },
+        data:    {
+          estado: estadoNuevo as never,
+          ...(comprobanteUrl ? { comprobanteUrl } : {}),
+        },
         include: ordenVendedorInclude,
       });
       await tx.historialEstadoOrden.create({
@@ -116,6 +120,49 @@ export const ordenesRepository = {
       return o;
     });
     return { ...mapOrden(updated), comprador: updated.comprador ?? null };
+  },
+
+  /**
+   * Serie de ventas por día (últimos `dias` días) para el dashboard del vendedor.
+   *
+   * La agregación se hace 100% en PostgreSQL (`GROUP BY date_trunc`), no en
+   * memoria: una sola query devuelve como máximo `dias` filas sin importar
+   * cuántas órdenes existan — esto escala a millones de órdenes. Se apoya en el
+   * índice `(estado, creado_en)` ya definido en el modelo Orden.
+   *
+   * Los huecos (días sin ventas) se rellenan en JS para que el gráfico dibuje
+   * una serie continua, manteniendo el cálculo pesado en la base de datos.
+   */
+  async ventasPorDia(vendedorId: string, dias: number, prisma: PrismaClient) {
+    const now = new Date();
+    const desde = new Date(Date.UTC(
+      now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - (dias - 1),
+    ));
+
+    const rows = await prisma.$queryRaw<Array<{ fecha: string; ordenes: number; total: string }>>`
+      SELECT
+        to_char(date_trunc('day', creado_en), 'YYYY-MM-DD') AS fecha,
+        COUNT(*)::int                                       AS ordenes,
+        COALESCE(SUM(total), 0)::text                       AS total
+      FROM ordenes
+      WHERE vendedor_id = ${vendedorId}
+        AND estado NOT IN ('PENDIENTE_PAGO', 'CANCELADO')
+        AND creado_en >= ${desde}
+      GROUP BY 1
+      ORDER BY 1 ASC
+    `;
+
+    const porFecha = new Map(rows.map((r) => [r.fecha, r]));
+    const serie: Array<{ fecha: string; total: string; ordenes: number }> = [];
+    for (let i = 0; i < dias; i++) {
+      const d = new Date(Date.UTC(
+        desde.getUTCFullYear(), desde.getUTCMonth(), desde.getUTCDate() + i,
+      ));
+      const key = d.toISOString().slice(0, 10);
+      const found = porFecha.get(key);
+      serie.push({ fecha: key, total: found?.total ?? "0", ordenes: found?.ordenes ?? 0 });
+    }
+    return serie;
   },
 
   async marcarEntregada(id: string, usuarioId: string, prisma: PrismaClient) {

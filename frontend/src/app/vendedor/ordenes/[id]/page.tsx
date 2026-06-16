@@ -6,6 +6,8 @@ import Link from "next/link";
 import { ORDEN_VENDEDOR } from "@/graphql/ordenes/queries";
 import { AVANZAR_ESTADO_ORDEN } from "@/graphql/ordenes/mutations";
 import { Badge } from "@/components/ui/Badge";
+import { TimelineEstados } from "@/components/ordenes/TimelineEstados";
+import { CambiarEstadoModal, transicionDisponible } from "@/components/ordenes/CambiarEstadoModal";
 import { ArrowLeft, Loader2, Package, MapPin, CreditCard, Clock, User, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { ApolloError } from "@apollo/client";
@@ -52,14 +54,15 @@ export default function VendedorOrdenDetallePage() {
   });
   const [avanzar, { loading: avanzando }] = useMutation(AVANZAR_ESTADO_ORDEN);
 
-  async function handleAvanzar() {
+  async function handleAvanzar(input: { notas?: string; comprobanteUrl?: string }) {
     try {
-      await avanzar({ variables: { id } });
-      toast.success("Estado de orden actualizado.");
+      await avanzar({ variables: { id, notas: input.notas ?? null, comprobanteUrl: input.comprobanteUrl ?? null } });
+      toast.success("Estado de orden actualizado. El comprador fue notificado.");
       refetch();
     } catch (err: unknown) {
       const msg = err instanceof ApolloError ? (err.graphQLErrors[0]?.message ?? "Error.") : "Error.";
       toast.error(msg);
+      throw err; // mantiene el modal abierto si falla
     }
   }
 
@@ -78,7 +81,7 @@ export default function VendedorOrdenDetallePage() {
     </div>
   );
 
-  const puedeAvanzar = ["PAGADO", "EN_PREPARACION"].includes(orden.estado);
+  const puedeAvanzar = transicionDisponible(orden.estado);
 
   return (
     <div className="p-8 max-w-3xl">
@@ -166,34 +169,28 @@ export default function VendedorOrdenDetallePage() {
         {/* Historial */}
         <div className="bg-white rounded-2xl border border-slate-200 p-6">
           <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide mb-4 flex items-center gap-2">
-            <Clock className="h-4 w-4 text-indigo-600" /> Historial
+            <Clock className="h-4 w-4 text-indigo-600" /> Seguimiento de la orden
           </h2>
-          <div className="space-y-3">
-            {orden.historialEstados.map((h) => (
-              <div key={h.id} className="flex items-start gap-3">
-                <div className="w-2 h-2 rounded-full bg-indigo-400 mt-1.5 shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-slate-900">{estadoLabel[h.estadoNuevo] ?? h.estadoNuevo}</p>
-                  {h.notas && <p className="text-xs text-slate-400">{h.notas}</p>}
-                  <p className="text-xs text-slate-400">{formatFecha(h.creadoEn)}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+          <TimelineEstados historial={orden.historialEstados} estadoActual={orden.estado} />
         </div>
 
         {/* Acción */}
         {puedeAvanzar && (
-          <button
-            onClick={handleAvanzar}
-            disabled={avanzando}
-            className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700
-                       disabled:opacity-50 text-white font-semibold px-6 py-3 rounded-xl text-sm
-                       transition-colors shadow-sm shadow-indigo-200"
-          >
-            {avanzando ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
-            {SIGUIENTE[orden.estado]}
-          </button>
+          <CambiarEstadoModal
+            estadoActual={orden.estado}
+            onConfirm={handleAvanzar}
+            trigger={
+              <button
+                disabled={avanzando}
+                className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700
+                           disabled:opacity-50 text-white font-semibold px-6 py-3 rounded-xl text-sm
+                           transition-colors shadow-sm shadow-indigo-200"
+              >
+                {avanzando ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+                {SIGUIENTE[orden.estado]}
+              </button>
+            }
+          />
         )}
       </div>
     </div>

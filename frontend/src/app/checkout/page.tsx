@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Decimal } from "decimal.js";
+import { CheckoutStepper } from "@/components/checkout/CheckoutStepper";
 
 interface Direccion {
   id: string;
@@ -152,7 +153,11 @@ export default function CheckoutPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-slate-900 mb-8">Finalizar compra</h1>
+      <h1 className="text-2xl font-bold text-slate-900 mb-6">Finalizar compra</h1>
+
+      <div className="max-w-md mx-auto sm:mx-0 sm:max-w-sm">
+        <CheckoutStepper current="carrito" />
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
         {/* Columna principal */}

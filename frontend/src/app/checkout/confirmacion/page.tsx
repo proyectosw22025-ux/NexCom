@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle, XCircle, ShoppingBag, Package } from "lucide-react";
+import { CheckoutStepper } from "@/components/checkout/CheckoutStepper";
 
 function ConfirmacionContent() {
   const params  = useSearchParams();
@@ -14,7 +15,10 @@ function ConfirmacionContent() {
   const ok      = status === "ok";
 
   return (
-    <div className="max-w-md mx-auto px-4 py-20 text-center">
+    <div className="max-w-md mx-auto px-4 py-16">
+      <CheckoutStepper current="confirmacion" success={ok} />
+
+      <div className="text-center">
       <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5 ${
         ok ? "bg-emerald-100" : "bg-red-100"
       }`}>
@@ -71,6 +75,7 @@ function ConfirmacionContent() {
           <ShoppingBag className="h-4 w-4" />
           Seguir comprando
         </Link>
+      </div>
       </div>
     </div>
   );

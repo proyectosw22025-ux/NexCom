@@ -34,6 +34,7 @@ describe("ordenesService.avanzarEstado", () => {
       "vendedor-1",
       "usuario-1",
       "Preparando pedido",
+      undefined,
       prisma,
     );
 
@@ -42,6 +43,7 @@ describe("ordenesService.avanzarEstado", () => {
       "EN_PREPARACION",
       "usuario-1",
       "Preparando pedido",
+      undefined,
       prisma,
     );
     expect(result).toMatchObject({ estado: "EN_PREPARACION" });
@@ -57,13 +59,16 @@ describe("ordenesService.avanzarEstado", () => {
       estado: "ENVIADO",
     } as never);
 
-    await ordenesService.avanzarEstado("orden-2", "vendedor-1", "usuario-1", null, prisma);
+    await ordenesService.avanzarEstado(
+      "orden-2", "vendedor-1", "usuario-1", null, "https://tracking.bo/abc", prisma,
+    );
 
     expect(ordenesRepository.avanzarEstado).toHaveBeenCalledWith(
       "orden-2",
       "ENVIADO",
       "usuario-1",
       null,
+      "https://tracking.bo/abc",
       prisma,
     );
   });
@@ -75,7 +80,7 @@ describe("ordenesService.avanzarEstado", () => {
     } as never);
 
     await expect(
-      ordenesService.avanzarEstado("orden-3", "vendedor-1", "usuario-1", null, prisma),
+      ordenesService.avanzarEstado("orden-3", "vendedor-1", "usuario-1", null, undefined, prisma),
     ).rejects.toMatchObject({
       extensions: { code: "BAD_USER_INPUT" },
     });
@@ -87,7 +92,7 @@ describe("ordenesService.avanzarEstado", () => {
     vi.mocked(ordenesRepository.findOneByVendedor).mockResolvedValue(null);
 
     await expect(
-      ordenesService.avanzarEstado("orden-x", "vendedor-1", "usuario-1", null, prisma),
+      ordenesService.avanzarEstado("orden-x", "vendedor-1", "usuario-1", null, undefined, prisma),
     ).rejects.toMatchObject({
       extensions: { code: "NOT_FOUND" },
     });

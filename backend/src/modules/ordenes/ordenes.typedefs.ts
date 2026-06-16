@@ -84,15 +84,22 @@ export const ordenesTypeDefs = /* GraphQL */ `
     telefono:       String
   }
 
+  type VentaDia {
+    fecha:   String!
+    total:   String!
+    ordenes: Int!
+  }
+
   extend type Query {
     misOrdenes:             [Orden!]!
     miOrden(id: ID!):       Orden
     ordenesVendedor:        [OrdenVendedor!]!
     ordenVendedor(id: ID!): OrdenVendedor
+    ventasVendedorPorDia(dias: Int): [VentaDia!]!
   }
 
   extend type Mutation {
-    avanzarEstadoOrden(id: ID!, notas: String): OrdenVendedor!
+    avanzarEstadoOrden(id: ID!, notas: String, comprobanteUrl: String): OrdenVendedor!
     marcarOrdenEntregada(id: ID!): Orden!
   }
 `;

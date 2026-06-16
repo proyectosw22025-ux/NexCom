@@ -33,11 +33,18 @@ export const ordenesService = {
     return orden;
   },
 
+  async getVentasPorDia(vendedorId: string, dias: number, prisma: PrismaClient) {
+    // Acotar el rango a un valor razonable para evitar consultas abusivas
+    const rango = Math.min(Math.max(dias, 1), 90);
+    return ordenesRepository.ventasPorDia(vendedorId, rango, prisma);
+  },
+
   async avanzarEstado(
     id: string,
     vendedorId: string,
     usuarioId: string,
     notas: string | null | undefined,
+    comprobanteUrl: string | null | undefined,
     prisma: PrismaClient,
   ) {
     const orden = await ordenesRepository.findOneByVendedor(id, vendedorId, prisma);
@@ -53,7 +60,10 @@ export const ordenesService = {
       );
     }
 
-    return ordenesRepository.avanzarEstado(id, estadoNuevo, usuarioId, notas, prisma);
+    // El comprobante solo aplica al pasar a ENVIADO
+    const comprobante = estadoNuevo === "ENVIADO" ? comprobanteUrl : undefined;
+
+    return ordenesRepository.avanzarEstado(id, estadoNuevo, usuarioId, notas, comprobante, prisma);
   },
 
   async marcarEntregada(id: string, compradorId: string, usuarioId: string, prisma: PrismaClient) {

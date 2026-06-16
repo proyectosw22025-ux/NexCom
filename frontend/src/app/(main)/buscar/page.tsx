@@ -3,10 +3,10 @@
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@apollo/client";
 import { useState, useEffect, Suspense } from "react";
-import { BUSCAR } from "@/graphql/productos/queries";
+import { BUSCAR, PRODUCTOS } from "@/graphql/productos/queries";
 import { ProductoCard, type ProductoCardData } from "@/components/productos/ProductoCard";
 import { ProductoCardSkeleton } from "@/components/productos/ProductoCardSkeleton";
-import { Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 interface BuscarResult {
@@ -17,6 +17,10 @@ interface BuscarResult {
     totalPaginas: number;
     termino:     string;
   };
+}
+
+interface ProductosResult {
+  productos: { items: ProductoCardData[] };
 }
 
 function BuscarContent() {
@@ -37,6 +41,18 @@ function BuscarContent() {
     fetchPolicy: "cache-and-network",
   });
 
+  const result      = data?.buscar;
+  const sinResultados = !!termino && !loading && !!result && result.items.length === 0;
+
+  // Fallback "nunca una página vacía": al no haber resultados, sugerir productos
+  // populares. Solo se dispara cuando confirmamos 0 resultados (skip controla el costo).
+  const { data: sugeridosData } = useQuery<ProductosResult>(PRODUCTOS, {
+    variables:   { pagina: 1, limite: 4, soloActivos: true },
+    skip:        !sinResultados,
+    fetchPolicy: "cache-first",
+  });
+  const sugeridos = sugeridosData?.productos.items ?? [];
+
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     if (input.trim()) {
@@ -44,8 +60,6 @@ function BuscarContent() {
       window.dispatchEvent(new PopStateEvent("popstate"));
     }
   }
-
-  const result = data?.buscar;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -102,17 +116,34 @@ function BuscarContent() {
           {Array.from({ length: 8 }).map((_, i) => <ProductoCardSkeleton key={i} />)}
         </div>
       ) : !result || result.items.length === 0 ? (
-        <div className="text-center py-24">
-          <Search className="h-12 w-12 text-slate-200 mx-auto mb-4" />
-          <p className="font-semibold text-slate-700">Sin resultados para &ldquo;{termino}&rdquo;</p>
-          <p className="text-sm text-slate-400 mt-1 mb-5">Intenta con otras palabras clave</p>
-          <Link
-            href="/productos"
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-indigo-600
-                       hover:text-indigo-700 transition-colors"
-          >
-            Explorar todo el catálogo →
-          </Link>
+        <div>
+          <div className="text-center py-16">
+            <Search className="h-12 w-12 text-slate-200 mx-auto mb-4" />
+            <p className="font-semibold text-slate-700">Sin resultados para &ldquo;{termino}&rdquo;</p>
+            <p className="text-sm text-slate-400 mt-1 mb-5">
+              Revisa la ortografía o intenta con términos más generales
+            </p>
+            <Link
+              href="/productos"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-indigo-600
+                         hover:text-indigo-700 transition-colors"
+            >
+              Explorar todo el catálogo →
+            </Link>
+          </div>
+
+          {/* Nunca una página 100% vacía: sugerencias populares */}
+          {sugeridos.length > 0 && (
+            <div className="border-t border-slate-100 pt-8 mt-2">
+              <div className="flex items-center gap-2 mb-5">
+                <Sparkles className="h-4 w-4 text-indigo-500" />
+                <h2 className="text-sm font-bold text-slate-900">Productos que te pueden interesar</h2>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                {sugeridos.map((p, index) => <ProductoCard key={p.id} producto={p} index={index} />)}
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <>

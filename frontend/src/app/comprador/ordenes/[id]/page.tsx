@@ -9,6 +9,7 @@ import { MARCAR_ORDEN_ENTREGADA } from "@/graphql/ordenes/mutations";
 import { CREAR_VALORACION } from "@/graphql/valoraciones/mutations";
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { TimelineEstados } from "@/components/ordenes/TimelineEstados";
 import {
   ArrowLeft, Loader2, Package, MapPin, CreditCard,
   CheckCircle, Star, Send, Clock,
@@ -177,22 +178,9 @@ export default function CompradorOrdenDetallePage() {
         {/* Historial */}
         <div className="bg-white rounded-2xl border border-slate-200 p-6">
           <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide mb-4 flex items-center gap-2">
-            <Clock className="h-4 w-4 text-indigo-600" /> Historial de estados
+            <Clock className="h-4 w-4 text-indigo-600" /> Seguimiento del pedido
           </h2>
-          <div className="space-y-3">
-            {orden.historialEstados.map((h) => (
-              <div key={h.id} className="flex items-start gap-3">
-                <div className="w-2 h-2 rounded-full bg-indigo-400 mt-1.5 shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-slate-900">
-                    {estadoLabel[h.estadoNuevo] ?? h.estadoNuevo}
-                  </p>
-                  {h.notas && <p className="text-xs text-slate-400">{h.notas}</p>}
-                  <p className="text-xs text-slate-400">{formatFecha(h.creadoEn)}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+          <TimelineEstados historial={orden.historialEstados} estadoActual={orden.estado} />
         </div>
 
         {/* Acciones */}

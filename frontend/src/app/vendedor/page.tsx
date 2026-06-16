@@ -7,8 +7,21 @@ import { MIS_PRODUCTOS } from "@/graphql/productos/queries";
 import {
   Package, TrendingUp, Star, Plus, Loader2, Eye, EyeOff,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { Badge } from "@/components/ui/Badge";
 import type { ProductoCardData } from "@/components/productos/ProductoCard";
+
+// Code-split: recharts (~70kB) solo se descarga al montar el dashboard del
+// vendedor, no en el bundle inicial. Mejora el tiempo de carga percibido.
+const VentasChart = dynamic(
+  () => import("@/components/vendedor/VentasChart").then((m) => m.VentasChart),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="bg-white rounded-2xl border border-slate-200 p-5 mb-8 h-[332px] animate-pulse" />
+    ),
+  },
+);
 
 interface ProductoConVentas extends ProductoCardData {
   totalVendido: number;
@@ -34,6 +47,9 @@ export default function VendedorDashboard() {
         </h1>
         <p className="text-slate-500 mt-1 text-sm">Resumen de tu tienda</p>
       </div>
+
+      {/* Gráfico de ventas */}
+      <VentasChart />
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
