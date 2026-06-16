@@ -22,7 +22,10 @@ export default function ProductosPage() {
 
   const { data, loading } = useQuery<{ productos: PaginatedProductos }>(PRODUCTOS, {
     variables: { pagina, limite: LIMITE, categoriaId, soloActivos: true },
-    fetchPolicy: "cache-and-network",
+    // cache-first: el catálogo es dato público estable y el backend ya garantiza
+    // frescura con TTL en Redis. Evita round-trips redundantes al navegar
+    // atrás/adelante o cambiar de página/categoría ya visitada.
+    fetchPolicy: "cache-first",
   });
 
   const { data: catData } = useQuery<{ categorias: { id: string; nombre: string; slug: string; hijos: { id: string; nombre: string }[] }[] }>(

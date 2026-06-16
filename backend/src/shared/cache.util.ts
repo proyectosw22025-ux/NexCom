@@ -1,4 +1,45 @@
 import redis from "./redis.client.js";
+import { acquireLock, releaseLock } from "./lock.util.js";
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Lee de caché o produce el valor, con protección contra "cache stampede".
+ *
+ * Cuando una clave caliente expira, sin protección **todos** los requests
+ * concurrentes pegan a la base de datos a la vez (lo medimos: el 1er request
+ * post-deploy tardó 2.1 s). Aquí solo el primer proceso obtiene un lock y
+ * regenera; los demás esperan brevemente y leen el valor recién poblado.
+ *
+ * Degrada con gracia: si Redis no está, simplemente produce el valor.
+ */
+export async function getOrSetCache<T>(
+  key: string,
+  ttlSeconds: number,
+  producer: () => Promise<T>,
+): Promise<T> {
+  const cached = await getFromCache<T>(key);
+  if (cached !== null) return cached;
+
+  const lockKey = `lock:cache:${key}`;
+  const gotLock = await acquireLock(lockKey, 10);
+
+  if (!gotLock) {
+    // Otro proceso está regenerando: espera corta y reintenta leer el cache
+    await sleep(120);
+    const retry = await getFromCache<T>(key);
+    if (retry !== null) return retry;
+    // Si sigue vacío, producimos igual para no dejar al usuario esperando
+  }
+
+  try {
+    const value = await producer();
+    await setCache(key, value, ttlSeconds);
+    return value;
+  } finally {
+    if (gotLock) await releaseLock(lockKey);
+  }
+}
 
 export async function getFromCache<T>(key: string): Promise<T | null> {
   try {

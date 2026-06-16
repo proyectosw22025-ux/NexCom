@@ -4,7 +4,7 @@ import type { PrismaClient } from "@prisma/client";
 import { productosRepository } from "./productos.repository.js";
 import { etiquetasRepository } from "../etiquetas/etiquetas.repository.js";
 import { getConfigNumber } from "../../shared/config.util.js";
-import { getFromCache, setCache, deleteCache, invalidatePattern, CacheKeys } from "../../shared/cache.util.js";
+import { getFromCache, setCache, deleteCache, invalidatePattern, getOrSetCache, CacheKeys } from "../../shared/cache.util.js";
 import { env } from "../../config/env.js";
 
 type ProductoInput = {
@@ -39,22 +39,18 @@ export const productosService = {
     // cambian poco. TTL corto (CACHE_TTL_CATALOGO) + invalidación al mutar
     // productos. Convierte el cuello de botella medido (~1-1.8s) en ~piso de red.
     const cacheKey = CacheKeys.catalogo(pagina, limite, categoriaId, soloActivos);
-    const cached   = await getFromCache<{ items: unknown[]; total: number; pagina: number; totalPaginas: number }>(cacheKey);
-    if (cached) return cached;
-
-    const { total, items } = await productosRepository.findPaginated(
-      { pagina, limite, categoriaId, soloActivos },
-      prisma,
-    );
-    const result = {
-      items,
-      total,
-      pagina,
-      totalPaginas: Math.ceil(total / limite),
-    };
-
-    await setCache(cacheKey, result, env.CACHE_TTL_CATALOGO);
-    return result;
+    return getOrSetCache(cacheKey, env.CACHE_TTL_CATALOGO, async () => {
+      const { total, items } = await productosRepository.findPaginated(
+        { pagina, limite, categoriaId, soloActivos },
+        prisma,
+      );
+      return {
+        items,
+        total,
+        pagina,
+        totalPaginas: Math.ceil(total / limite),
+      };
+    });
   },
 
   async getById(id: string, prisma: PrismaClient) {

@@ -20,6 +20,10 @@ import {
 } from "./auth.validators.js";
 import * as repo from "./auth.repository.js";
 
+// Costo de bcrypt: 10 es el estándar OWASP. Reduce el tiempo de CPU del login
+// ~2-4× frente a 12 en CPU compartida, manteniendo seguridad adecuada.
+const BCRYPT_COST = 10;
+
 // ── Helpers privados ──────────────────────────────────────────────────────────
 
 function badInput(message: string): never {
@@ -60,7 +64,7 @@ export async function register(rawInput: unknown, prisma: PrismaClient, disposit
   const existente = await repo.findUsuarioByEmail(input.email, prisma);
   if (existente) badInput("Ya existe una cuenta con ese email.");
 
-  const passwordHash = await bcrypt.hash(input.password, 12);
+  const passwordHash = await bcrypt.hash(input.password, BCRYPT_COST);
 
   const usuario = await repo.createUsuarioConPerfil(
     {
@@ -113,6 +117,14 @@ export async function login(rawInput: unknown, prisma: PrismaClient, dispositivo
     throw new GraphQLError("Debes verificar tu email antes de iniciar sesión.", {
       extensions: { code: "UNVERIFIED_EMAIL" },
     });
+  }
+
+  // Rehash progresivo: si el hash guardado usa un costo distinto al objetivo
+  // (p. ej. cuentas viejas con cost 12), se recalcula con BCRYPT_COST al iniciar
+  // sesión. Migra el parque de hashes sin pedir reset de contraseña.
+  if (bcrypt.getRounds(usuario.passwordHash) !== BCRYPT_COST) {
+    const nuevoHash = await bcrypt.hash(input.password, BCRYPT_COST);
+    await repo.updatePasswordHash(usuario.id, nuevoHash, prisma);
   }
 
   return buildAuthPayload(usuario, prisma, dispositivo);
@@ -203,7 +215,7 @@ export async function resetPassword(
   if (!record) badInput("Token inválido o ya usado.");
   if (record.expiraEn < new Date()) badInput("El enlace de restablecimiento ha expirado.");
 
-  const passwordHash = await bcrypt.hash(nuevaPassword, 12);
+  const passwordHash = await bcrypt.hash(nuevaPassword, BCRYPT_COST);
 
   await prisma.$transaction([
     prisma.tokenVerificacion.update({ where: { id: record.id }, data: { usado: true } }),
@@ -233,7 +245,7 @@ export async function updatePassword(
   const passwordOk = await bcrypt.compare(passwordActual, usuario.passwordHash);
   if (!passwordOk) badInput("La contraseña actual es incorrecta.");
 
-  const passwordHash = await bcrypt.hash(nuevaPassword, 12);
+  const passwordHash = await bcrypt.hash(nuevaPassword, BCRYPT_COST);
   await repo.updatePasswordHash(usuarioId, passwordHash, prisma);
 
   // Revocar otras sesiones (la actual sigue válida hasta que expire el accessToken)

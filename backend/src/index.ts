@@ -16,6 +16,7 @@ import prisma from "./shared/prisma.client.js";
 import redis from "./shared/redis.client.js";
 import { extractBearerToken, verifyAccessToken } from "./shared/jwt.util.js";
 import { publishNotificacion } from "./shared/pubsub.js";
+import { runWithLock } from "./shared/lock.util.js";
 import type { NexComContext, UsuarioJWT } from "./shared/types/context.type.js";
 
 interface WSExtra {
@@ -250,9 +251,13 @@ async function bootstrap() {
     reply.status(200).send({ received: true });
   });
 
-  // Cron: actualizar estado de ofertas cada hora
+  // Cron: actualizar estado de ofertas cada hora.
+  // Con lock distribuido: aunque haya N instancias del backend, solo una corre
+  // el job en cada ciclo (evita actualizaciones duplicadas al escalar horizontal).
   setInterval(
-    () => ofertasRepository.actualizarEstadosAutomaticos(prisma).catch(console.error),
+    () => runWithLock("cron:ofertas:estados", 55 * 60, () =>
+      ofertasRepository.actualizarEstadosAutomaticos(prisma),
+    ).catch(console.error),
     60 * 60 * 1000,
   );
 

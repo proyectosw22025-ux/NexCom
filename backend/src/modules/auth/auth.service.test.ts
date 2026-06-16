@@ -9,8 +9,9 @@ import { login } from "./auth.service.js";
 vi.mock("./auth.repository.js");
 vi.mock("bcryptjs", () => ({
   default: {
-    compare: vi.fn(),
-    hash: vi.fn(),
+    compare:   vi.fn(),
+    hash:      vi.fn(),
+    getRounds: vi.fn(() => 10), // por defecto: hash ya en el costo objetivo
   },
 }));
 
@@ -47,6 +48,26 @@ describe("auth.service.login", () => {
     expect(result.accessToken).toEqual(expect.any(String));
     expect(result.refreshToken).toEqual(expect.any(String));
     expect(repo.saveRefreshToken).toHaveBeenCalledTimes(1);
+    // hash ya está en el costo objetivo → no se re-hashea
+    expect(repo.updatePasswordHash).not.toHaveBeenCalled();
+  });
+
+  it("re-hashea la contraseña al iniciar sesión si el hash usa un costo viejo", async () => {
+    vi.mocked(repo.findUsuarioByEmailConPerfil).mockResolvedValue({
+      ...usuarioBase,
+      perfilVendedor: null,
+      perfilComprador: { id: "perfil-1" },
+    } as never);
+    vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
+    vi.mocked(bcrypt.getRounds).mockReturnValue(12); // hash viejo (cost 12)
+    vi.mocked(bcrypt.hash).mockResolvedValue("hash-nuevo-cost-10" as never);
+    vi.mocked(repo.saveRefreshToken).mockResolvedValue({} as never);
+    vi.mocked(repo.updatePasswordHash).mockResolvedValue(undefined as never);
+
+    await login({ email: "comprador@nexcom.bo", password: "password123" }, prisma);
+
+    expect(bcrypt.hash).toHaveBeenCalledWith("password123", 10);
+    expect(repo.updatePasswordHash).toHaveBeenCalledWith("user-1", "hash-nuevo-cost-10", prisma);
   });
 
   it("rechaza credenciales cuando el usuario no existe", async () => {
