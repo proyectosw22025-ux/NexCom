@@ -8,6 +8,7 @@ import Stripe from "stripe";
 
 import { env } from "./config/env.js";
 import { corsPlugin } from "./plugins/cors.plugin.js";
+import { rateLimitPlugin } from "./plugins/rate-limit.plugin.js";
 import { ofertasRepository } from "./modules/ofertas/ofertas.repository.js";
 import { schema as typeDefs } from "./graphql/schema.js";
 import { resolvers } from "./graphql/resolvers.js";
@@ -28,6 +29,7 @@ async function bootstrap() {
   const app = Fastify({ logger: env.NODE_ENV === "development" });
 
   await app.register(corsPlugin);
+  await app.register(rateLimitPlugin);
 
   app.get("/health", async (_req, reply) => {
     try {
