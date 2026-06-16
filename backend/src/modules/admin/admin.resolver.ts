@@ -17,6 +17,11 @@ export const adminResolvers = {
       requireRole(ctx, "ADMIN");
       return adminService.getUsuarioDetalle(id, ctx.prisma);
     },
+
+    estadisticasAdmin: (_: unknown, { dias }: { dias?: number }, ctx: NexComContext) => {
+      requireRole(ctx, "ADMIN");
+      return adminService.getEstadisticas(dias ?? 7, ctx.prisma);
+    },
   },
 
   Mutation: {

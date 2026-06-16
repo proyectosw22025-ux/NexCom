@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
+import { rangoDesde, rellenarSerieDiaria } from "../../shared/series-diaria.util.js";
 
 const ordenInclude = {
   items:            true,
@@ -134,10 +135,7 @@ export const ordenesRepository = {
    * una serie continua, manteniendo el cálculo pesado en la base de datos.
    */
   async ventasPorDia(vendedorId: string, dias: number, prisma: PrismaClient) {
-    const now = new Date();
-    const desde = new Date(Date.UTC(
-      now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - (dias - 1),
-    ));
+    const desde = rangoDesde(dias);
 
     const rows = await prisma.$queryRaw<Array<{ fecha: string; ordenes: number; total: string }>>`
       SELECT
@@ -152,17 +150,7 @@ export const ordenesRepository = {
       ORDER BY 1 ASC
     `;
 
-    const porFecha = new Map(rows.map((r) => [r.fecha, r]));
-    const serie: Array<{ fecha: string; total: string; ordenes: number }> = [];
-    for (let i = 0; i < dias; i++) {
-      const d = new Date(Date.UTC(
-        desde.getUTCFullYear(), desde.getUTCMonth(), desde.getUTCDate() + i,
-      ));
-      const key = d.toISOString().slice(0, 10);
-      const found = porFecha.get(key);
-      serie.push({ fecha: key, total: found?.total ?? "0", ordenes: found?.ordenes ?? 0 });
-    }
-    return serie;
+    return rellenarSerieDiaria(rows, dias);
   },
 
   async marcarEntregada(id: string, usuarioId: string, prisma: PrismaClient) {

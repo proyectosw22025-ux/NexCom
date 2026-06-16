@@ -6,6 +6,7 @@ import { LISTAR_USUARIOS } from "@/graphql/admin/queries";
 import { TOGGLE_ACTIVO_USUARIO, CAMBIAR_ROL_USUARIO } from "@/graphql/admin/mutations";
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { FilterPills } from "@/components/ui/FilterPills";
 import { Users, Search, Loader2, CheckCircle, XCircle, ToggleLeft, ToggleRight } from "lucide-react";
 import { toast } from "sonner";
 import { ApolloError } from "@apollo/client";
@@ -98,19 +99,19 @@ export default function AdminUsuariosPage() {
                        focus:outline-none focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400 transition-all"
           />
         </div>
-        {(["TODOS", "ADMIN", "VENDEDOR", "COMPRADOR"] as const).map((rol) => (
-          <button
-            key={rol}
-            onClick={() => { setRolFiltro(rol); setPagina(1); }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors ${
-              rolFiltro === rol
-                ? "bg-slate-800 text-white border-slate-800"
-                : "border-slate-200 text-slate-600 hover:bg-slate-50"
-            }`}
-          >
-            {rol === "TODOS" ? "Todos" : rol.charAt(0) + rol.slice(1).toLowerCase()}
-          </button>
-        ))}
+        <FilterPills
+          ariaLabel="Filtrar por rol"
+          accent="slate"
+          value={rolFiltro}
+          onChange={(rol) => { setRolFiltro(rol); setPagina(1); }}
+          options={(["TODOS", "ADMIN", "VENDEDOR", "COMPRADOR"] as const).map((rol) => ({
+            value: rol,
+            label: rol === "TODOS" ? "Todos" : rol.charAt(0) + rol.slice(1).toLowerCase(),
+            count: rol === "TODOS"
+              ? todos.length
+              : todos.filter((u) => u.rol === rol).length,
+          }))}
+        />
       </div>
 
       {loading ? (

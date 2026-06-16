@@ -21,12 +21,23 @@ function ConfigRow({ config, onSave }: { config: ConfigSistema; onSave: (clave: 
   const [valor, setValor]     = useState(config.valor);
   const [saving, setSaving]   = useState(false);
 
-  async function handleSave() {
-    if (valor === config.valor) { setEditing(false); return; }
+  const esBoolean = config.tipo === "BOOLEAN";
+  const esNumber  = config.tipo === "NUMBER";
+
+  async function persist(nuevoValor: string) {
+    if (nuevoValor === config.valor) { setEditing(false); return; }
     setSaving(true);
-    await onSave(config.clave, valor);
+    await onSave(config.clave, nuevoValor);
     setSaving(false);
     setEditing(false);
+  }
+
+  // BOOLEAN: toggle siempre visible que guarda al instante (sin modo edición)
+  async function handleToggle() {
+    const next = config.valor === "true" ? "false" : "true";
+    setSaving(true);
+    await onSave(config.clave, next);
+    setSaving(false);
   }
 
   return (
@@ -41,10 +52,29 @@ function ConfigRow({ config, onSave }: { config: ConfigSistema; onSave: (clave: 
         </span>
       </td>
       <td className="px-5 py-3.5">
-        {editing ? (
+        {esBoolean ? (
+          <button
+            type="button"
+            role="switch"
+            aria-checked={config.valor === "true"}
+            disabled={saving}
+            onClick={handleToggle}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${
+              config.valor === "true" ? "bg-emerald-500" : "bg-slate-300"
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                config.valor === "true" ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </button>
+        ) : editing ? (
           <input
+            type={esNumber ? "number" : "text"}
             value={valor}
             onChange={(e) => setValor(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") persist(valor); if (e.key === "Escape") { setValor(config.valor); setEditing(false); } }}
             autoFocus
             className="w-full px-2.5 py-1.5 bg-white border border-indigo-300 rounded-lg text-sm
                        focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
@@ -57,10 +87,12 @@ function ConfigRow({ config, onSave }: { config: ConfigSistema; onSave: (clave: 
         {formatFecha(config.actualizadoEn)}
       </td>
       <td className="px-5 py-3.5 text-right">
-        {editing ? (
+        {esBoolean ? (
+          saving ? <Loader2 className="h-3.5 w-3.5 text-slate-400 animate-spin ml-auto" /> : null
+        ) : editing ? (
           <div className="flex items-center gap-1.5 justify-end">
             <button
-              onClick={handleSave}
+              onClick={() => persist(valor)}
               disabled={saving}
               className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 transition-colors disabled:opacity-40"
             >

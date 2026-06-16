@@ -32,9 +32,18 @@ export const adminTypeDefs = /* GraphQL */ `
     totalPaginas: Int!
   }
 
+  # Reutiliza el tipo VentaDia definido en el módulo de ordenes
+  type EstadisticasAdmin {
+    ventasPorDia:       [VentaDia!]!
+    reportesPendientes: Int!
+    ingresosPeriodo:    String!
+    ordenesPeriodo:     Int!
+  }
+
   extend type Query {
     listarUsuarios(rol: String, activo: Boolean, pagina: Int, limite: Int): PaginatedUsuarios!
     usuarioDetalle(id: ID!): UsuarioAdmin
+    estadisticasAdmin(dias: Int): EstadisticasAdmin!
   }
 
   extend type Mutation {

@@ -58,6 +58,17 @@ export const LISTAR_REPORTES = gql`
   }
 `;
 
+export const ESTADISTICAS_ADMIN = gql`
+  query EstadisticasAdmin($dias: Int) {
+    estadisticasAdmin(dias: $dias) {
+      ventasPorDia { fecha total ordenes }
+      reportesPendientes
+      ingresosPeriodo
+      ordenesPeriodo
+    }
+  }
+`;
+
 export const CONFIGURACION_SISTEMA = gql`
   query ConfiguracionSistema {
     configuracionSistema {

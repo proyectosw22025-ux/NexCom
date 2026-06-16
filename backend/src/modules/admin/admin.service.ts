@@ -21,6 +21,11 @@ export const adminService = {
     return usuario;
   },
 
+  async getEstadisticas(dias: number, prisma: PrismaClient) {
+    const rango = Math.min(Math.max(dias, 1), 90);
+    return adminRepository.estadisticas(rango, prisma);
+  },
+
   async toggleActivo(id: string, requesterId: string, prisma: PrismaClient) {
     if (id === requesterId) {
       throw new GraphQLError("No puedes desactivar tu propia cuenta.", { extensions: { code: "FORBIDDEN" } });

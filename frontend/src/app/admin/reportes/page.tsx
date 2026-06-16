@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@apollo/client";
 import { LISTAR_REPORTES } from "@/graphql/admin/queries";
 import { Badge } from "@/components/ui/Badge";
+import { FilterPills } from "@/components/ui/FilterPills";
 import { BarChart2, Loader2, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
@@ -59,36 +60,26 @@ export default function AdminReportesPage() {
 
       {/* Filtros */}
       <div className="flex gap-3 mb-5 flex-wrap">
-        <div className="flex gap-1.5">
-          {(["TODOS", "PENDIENTE", "REVISANDO", "RESUELTO", "RECHAZADO"] as EstadoFilter[]).map((e) => (
-            <button
-              key={e}
-              onClick={() => { setEstadoFiltro(e); setPagina(1); }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors ${
-                estadoFiltro === e
-                  ? "bg-slate-800 text-white border-slate-800"
-                  : "border-slate-200 text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              {e === "TODOS" ? "Todos" : e.charAt(0) + e.slice(1).toLowerCase()}
-            </button>
-          ))}
-        </div>
-        <div className="flex gap-1.5">
-          {(["TODOS", "PRODUCTO", "VENDEDOR", "VALORACION"] as TipoFilter[]).map((t) => (
-            <button
-              key={t}
-              onClick={() => { setTipoFiltro(t); setPagina(1); }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors ${
-                tipoFiltro === t
-                  ? "bg-indigo-600 text-white border-indigo-600"
-                  : "border-slate-200 text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              {t === "TODOS" ? "Tipo: todos" : t.charAt(0) + t.slice(1).toLowerCase()}
-            </button>
-          ))}
-        </div>
+        <FilterPills
+          ariaLabel="Filtrar por estado"
+          accent="slate"
+          value={estadoFiltro}
+          onChange={(e) => { setEstadoFiltro(e); setPagina(1); }}
+          options={(["TODOS", "PENDIENTE", "REVISANDO", "RESUELTO", "RECHAZADO"] as EstadoFilter[]).map((e) => ({
+            value: e,
+            label: e === "TODOS" ? "Todos" : e.charAt(0) + e.slice(1).toLowerCase(),
+          }))}
+        />
+        <FilterPills
+          ariaLabel="Filtrar por tipo"
+          accent="indigo"
+          value={tipoFiltro}
+          onChange={(t) => { setTipoFiltro(t); setPagina(1); }}
+          options={(["TODOS", "PRODUCTO", "VENDEDOR", "VALORACION"] as TipoFilter[]).map((t) => ({
+            value: t,
+            label: t === "TODOS" ? "Tipo: todos" : t.charAt(0) + t.slice(1).toLowerCase(),
+          }))}
+        />
       </div>
 
       {loading ? (
