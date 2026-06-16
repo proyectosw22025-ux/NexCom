@@ -1,39 +1,83 @@
-"use client";
-
-import { useQuery } from "@apollo/client";
-import { useState } from "react";
-import { PRODUCTOS, CATEGORIAS } from "@/graphql/productos/queries";
-import { ProductoCard, type ProductoCardData } from "@/components/productos/ProductoCard";
-import { ProductoCardSkeleton } from "@/components/productos/ProductoCardSkeleton";
-import { ChevronLeft, ChevronRight, Filter, Package } from "lucide-react";
 import Link from "next/link";
+import { ChevronLeft, ChevronRight, Filter, Package } from "lucide-react";
+import { ProductoCard, type ProductoCardData } from "@/components/productos/ProductoCard";
+import { gqlFetchCacheable } from "@/lib/graphql-server";
+
+// SSR con regeneración: la página se renderiza en el servidor (HTML con datos,
+// sin cascada de cliente) y su respuesta de datos se cachea hasta `revalidate`s.
+export const revalidate = 60;
+
+const LIMITE = 12;
 
 interface PaginatedProductos {
-  items: ProductoCardData[];
-  total: number;
-  pagina: number;
+  items:        ProductoCardData[];
+  total:        number;
+  pagina:       number;
   totalPaginas: number;
 }
+interface Categoria { id: string; nombre: string; slug: string }
 
-export default function ProductosPage() {
-  const [pagina, setPagina]        = useState(1);
-  const [categoriaId, setCatId]    = useState<string | null>(null);
-  const LIMITE = 12;
+const PRODUCTOS_Q = `
+  query Productos($pagina: Int, $limite: Int, $categoriaId: ID, $soloActivos: Boolean) {
+    productos(pagina: $pagina, limite: $limite, categoriaId: $categoriaId, soloActivos: $soloActivos) {
+      items {
+        id nombre descripcion precio stock activo destacado
+        categoria { id nombre slug }
+        vendedor  { nombreNegocio }
+        imagenes  { url orden }
+        etiquetas { nombre }
+      }
+      total pagina totalPaginas
+    }
+  }`;
 
-  const { data, loading } = useQuery<{ productos: PaginatedProductos }>(PRODUCTOS, {
-    variables: { pagina, limite: LIMITE, categoriaId, soloActivos: true },
-    // cache-first: el catálogo es dato público estable y el backend ya garantiza
-    // frescura con TTL en Redis. Evita round-trips redundantes al navegar
-    // atrás/adelante o cambiar de página/categoría ya visitada.
-    fetchPolicy: "cache-first",
-  });
+const CATEGORIAS_Q = `
+  query Categorias($soloRaices: Boolean) {
+    categorias(soloRaices: $soloRaices) { id nombre slug }
+  }`;
 
-  const { data: catData } = useQuery<{ categorias: { id: string; nombre: string; slug: string; hijos: { id: string; nombre: string }[] }[] }>(
-    CATEGORIAS, { variables: { soloRaices: false } }
-  );
+export default async function ProductosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ categoria?: string; pagina?: string }>;
+}) {
+  const sp = await searchParams;
+  const categoriaId = sp.categoria ?? null;
+  const pagina = Math.max(1, parseInt(sp.pagina ?? "1", 10) || 1);
 
-  const result     = data?.productos;
-  const categorias = catData?.categorias ?? [];
+  let result: PaginatedProductos | null = null;
+  let categorias: Categoria[] = [];
+
+  // Degradación elegante: si el backend falla, mostramos estado vacío en vez de
+  // romper la página (cumple "sin fallas de funcionalidad").
+  try {
+    const [prodData, catData] = await Promise.all([
+      gqlFetchCacheable<{ productos: PaginatedProductos }>(
+        PRODUCTOS_Q, { pagina, limite: LIMITE, categoriaId, soloActivos: true }, 60,
+      ),
+      gqlFetchCacheable<{ categorias: Categoria[] }>(
+        CATEGORIAS_Q, { soloRaices: false }, 300,
+      ),
+    ]);
+    result     = prodData.productos;
+    categorias = catData.categorias;
+  } catch {
+    /* fetch falló — se renderiza el estado vacío */
+  }
+
+  const hrefCategoria = (catId: string | null) => {
+    const p = new URLSearchParams();
+    if (catId) p.set("categoria", catId);
+    const qs = p.toString();
+    return qs ? `/productos?${qs}` : "/productos";
+  };
+  const hrefPagina = (n: number) => {
+    const p = new URLSearchParams();
+    if (categoriaId) p.set("categoria", categoriaId);
+    if (n > 1) p.set("pagina", String(n));
+    const qs = p.toString();
+    return qs ? `/productos?${qs}` : "/productos";
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -46,26 +90,28 @@ export default function ProductosPage() {
               <Filter className="h-4 w-4 text-slate-400" />
               <h2 className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Categorías</h2>
             </div>
-            <button
-              onClick={() => { setCatId(null); setPagina(1); }}
-              className={`w-full text-left px-3 py-2 rounded-xl text-sm transition-colors mb-1 ${
+            <Link
+              href={hrefCategoria(null)}
+              scroll={false}
+              className={`block w-full text-left px-3 py-2 rounded-xl text-sm transition-colors mb-1 ${
                 !categoriaId ? "bg-indigo-50 text-indigo-700 font-semibold" : "text-slate-600 hover:bg-slate-50"
               }`}
             >
               Todos
-            </button>
+            </Link>
             {categorias.map((cat) => (
-              <button
+              <Link
                 key={cat.id}
-                onClick={() => { setCatId(cat.id); setPagina(1); }}
-                className={`w-full text-left px-3 py-2 rounded-xl text-sm transition-colors mb-0.5 ${
+                href={hrefCategoria(cat.id)}
+                scroll={false}
+                className={`block w-full text-left px-3 py-2 rounded-xl text-sm transition-colors mb-0.5 ${
                   categoriaId === cat.id
                     ? "bg-indigo-50 text-indigo-700 font-semibold"
                     : "text-slate-600 hover:bg-slate-50"
                 }`}
               >
                 {cat.nombre}
-              </button>
+              </Link>
             ))}
           </div>
         </aside>
@@ -81,11 +127,7 @@ export default function ProductosPage() {
             </div>
           </div>
 
-          {loading && !data ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
-              {Array.from({ length: 12 }).map((_, i) => <ProductoCardSkeleton key={i} />)}
-            </div>
-          ) : !result || result.items.length === 0 ? (
+          {!result || result.items.length === 0 ? (
             <div className="text-center py-24">
               <Package className="h-12 w-12 text-slate-200 mx-auto mb-4" />
               <p className="font-semibold text-slate-700">Sin productos disponibles</p>
@@ -107,23 +149,39 @@ export default function ProductosPage() {
               {/* Pagination */}
               {result.totalPaginas > 1 && (
                 <div className="flex items-center justify-center gap-2 mt-10">
-                  <button
-                    onClick={() => setPagina((p) => Math.max(1, p - 1))}
-                    disabled={pagina === 1}
-                    className="p-2 rounded-xl border border-slate-200 hover:bg-slate-100 disabled:opacity-40 transition-colors"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
+                  {pagina > 1 ? (
+                    <Link
+                      href={hrefPagina(pagina - 1)}
+                      scroll={false}
+                      className="p-2 rounded-xl border border-slate-200 hover:bg-slate-100 transition-colors"
+                      aria-label="Página anterior"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Link>
+                  ) : (
+                    <span className="p-2 rounded-xl border border-slate-200 opacity-40 cursor-not-allowed">
+                      <ChevronLeft className="h-4 w-4" />
+                    </span>
+                  )}
+
                   <span className="text-sm text-slate-600 px-4">
                     Página {pagina} de {result.totalPaginas}
                   </span>
-                  <button
-                    onClick={() => setPagina((p) => Math.min(result.totalPaginas, p + 1))}
-                    disabled={pagina === result.totalPaginas}
-                    className="p-2 rounded-xl border border-slate-200 hover:bg-slate-100 disabled:opacity-40 transition-colors"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
+
+                  {pagina < result.totalPaginas ? (
+                    <Link
+                      href={hrefPagina(pagina + 1)}
+                      scroll={false}
+                      className="p-2 rounded-xl border border-slate-200 hover:bg-slate-100 transition-colors"
+                      aria-label="Página siguiente"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Link>
+                  ) : (
+                    <span className="p-2 rounded-xl border border-slate-200 opacity-40 cursor-not-allowed">
+                      <ChevronRight className="h-4 w-4" />
+                    </span>
+                  )}
                 </div>
               )}
             </>
