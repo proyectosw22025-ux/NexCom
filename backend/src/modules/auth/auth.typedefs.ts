@@ -13,6 +13,7 @@ export const authTypeDefs = /* GraphQL */ `
     logoUrl:       String
     ratingPromedio: String!
     totalVentas:   Int!
+    totalResenias: Int!
   }
 
   type PerfilCompradorPublico {

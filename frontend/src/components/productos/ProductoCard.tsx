@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { ShoppingCart, Heart, Package, CheckCircle } from "lucide-react";
+import { ShoppingCart, Heart, Package, CheckCircle, Star } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { useCart } from "@/context/cart-context";
 import { useMutation } from "@apollo/client";
@@ -21,17 +21,17 @@ export interface ProductoCardData {
   destacado:   boolean;
   descripcion?: string | null;
   categoria:   { id: string; nombre: string; slug: string };
-  vendedor:    { nombreNegocio: string };
+  vendedor:    { id?: string; nombreNegocio: string; ratingPromedio?: string; totalResenias?: number };
   imagenes:    { url: string; orden: number }[];
   etiquetas:   { nombre: string }[];
 }
 
-export function ProductoCard({ producto, index }: { producto: ProductoCardData; index?: number }) {
+export function ProductoCard({ producto, index, initialFavorito = false }: { producto: ProductoCardData; index?: number; initialFavorito?: boolean }) {
   const { user } = useAuth();
   const { agregar } = useCart();
   const [adding, setAdding]         = useState(false);
   const [added, setAdded]           = useState(false);
-  const [favorito, setFavorito]     = useState(false);
+  const [favorito, setFavorito]     = useState(initialFavorito);
   const [imgLoaded, setImgLoaded]   = useState(false);
 
   const [toggleFavorito] = useMutation(TOGGLE_FAVORITO);
@@ -118,7 +118,16 @@ export function ProductoCard({ producto, index }: { producto: ProductoCardData; 
         <h3 className="text-sm font-semibold text-slate-900 line-clamp-2 leading-snug">
           {producto.nombre}
         </h3>
-        <p className="text-[11px] text-slate-400 truncate">{producto.vendedor.nombreNegocio}</p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[11px] text-slate-400 truncate">{producto.vendedor.nombreNegocio}</p>
+          {(producto.vendedor.totalResenias ?? 0) > 0 && producto.vendedor.ratingPromedio && (
+            <span className="flex items-center gap-0.5 text-[11px] font-semibold text-slate-500 shrink-0">
+              <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
+              {parseFloat(producto.vendedor.ratingPromedio).toFixed(1)}
+              <span className="text-slate-300 font-normal">({producto.vendedor.totalResenias})</span>
+            </span>
+          )}
+        </div>
 
         <div className="mt-auto pt-2 flex items-center justify-between gap-2">
           <div>

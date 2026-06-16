@@ -23,7 +23,7 @@ const PRODUCTOS_Q = `
       items {
         id nombre descripcion precio stock activo destacado
         categoria { id nombre slug }
-        vendedor  { nombreNegocio }
+        vendedor  { id nombreNegocio ratingPromedio totalResenias }
         imagenes  { url orden }
         etiquetas { nombre }
       }

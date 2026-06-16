@@ -10,9 +10,11 @@ import { useCart } from "@/context/cart-context";
 import { useAuth } from "@/context/auth-context";
 import {
   ShoppingCart, Package, Store, Tag,
-  Minus, Plus, Loader2, CheckCircle, ChevronRight,
+  Minus, Plus, Loader2, CheckCircle, ChevronRight, Flag,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
+import { ProductoResenias } from "@/components/productos/ProductoResenias";
+import { ReportarDialog } from "@/components/reportes/ReportarDialog";
 import { toast } from "sonner";
 import type { ProductoCardData } from "@/components/productos/ProductoCard";
 
@@ -203,9 +205,32 @@ export default function ProductoDetailPage() {
                 Inicia sesión para comprar
               </Link>
             )}
+
+            {user && (
+              <ReportarDialog
+                tipo="PRODUCTO"
+                referenciaId={p.id}
+                trigger={
+                  <button
+                    className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-red-500 transition-colors"
+                  >
+                    <Flag className="h-3.5 w-3.5" /> Reportar este producto
+                  </button>
+                }
+              />
+            )}
           </div>
         </div>
       </div>
+
+      {/* Reseñas del vendedor */}
+      {p.vendedor.id && (
+        <ProductoResenias
+          vendedorId={p.vendedor.id}
+          ratingPromedio={p.vendedor.ratingPromedio}
+          totalResenias={p.vendedor.totalResenias}
+        />
+      )}
     </div>
   );
 }
