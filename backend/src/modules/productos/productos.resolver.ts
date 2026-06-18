@@ -11,8 +11,14 @@ type ProductoUpdateInput = Omit<ProductoInput, "imagenesUrl">;
 
 export const productosResolvers = {
   Query: {
-    productos: (_: unknown, args: { pagina?: number; limite?: number; categoriaId?: string; soloActivos?: boolean }, ctx: NexComContext) =>
-      productosService.getAll(args, ctx.prisma),
+    productos: (
+      _: unknown,
+      args: {
+        pagina?: number; limite?: number; categoriaId?: string; soloActivos?: boolean;
+        orden?: string; precioMin?: number; precioMax?: number;
+      },
+      ctx: NexComContext,
+    ) => productosService.getAll(args, ctx.prisma),
 
     producto: (_: unknown, { id }: { id: string }, ctx: NexComContext) =>
       productosService.getById(id, ctx.prisma),

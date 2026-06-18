@@ -60,20 +60,44 @@ export const productosRepository = {
   },
 
   async findPaginated(
-    { pagina, limite, categoriaId, soloActivos }:
-      { pagina: number; limite: number; categoriaId?: string | null; soloActivos?: boolean | null },
+    { pagina, limite, categoriaId, soloActivos, orden, precioMin, precioMax }:
+      {
+        pagina: number; limite: number; categoriaId?: string | null; soloActivos?: boolean | null;
+        orden?: string | null; precioMin?: number | null; precioMax?: number | null;
+      },
     prisma: PrismaClient,
   ) {
+    // Filtro de rango de precio aplicado en SQL (no en memoria)
+    const precioFilter =
+      precioMin != null || precioMax != null
+        ? {
+            precio: {
+              ...(precioMin != null ? { gte: precioMin } : {}),
+              ...(precioMax != null ? { lte: precioMax } : {}),
+            },
+          }
+        : {};
+
     const where = {
       ...(soloActivos !== false ? { activo: true } : {}),
       ...(categoriaId ? { categoriaId } : {}),
+      ...precioFilter,
     };
+
+    // Orden traducido a ORDER BY de Postgres. "MEJOR_VALORADOS" ordena por el
+    // rating del vendedor (relación) — Prisma lo resuelve con un JOIN, no N+1.
+    const orderBy: Record<string, unknown>[] =
+      orden === "PRECIO_ASC"      ? [{ precio: "asc" }]
+      : orden === "PRECIO_DESC"   ? [{ precio: "desc" }]
+      : orden === "MEJOR_VALORADOS" ? [{ vendedor: { ratingPromedio: "desc" } }, { creadoEn: "desc" }]
+      : [{ destacado: "desc" }, { creadoEn: "desc" }]; // RECIENTES (default)
+
     const [total, rows] = await prisma.$transaction([
       prisma.producto.count({ where }),
       prisma.producto.findMany({
         where,
         include,
-        orderBy: [{ destacado: "desc" }, { creadoEn: "desc" }],
+        orderBy,
         skip:    (pagina - 1) * limite,
         take:    limite,
       }),

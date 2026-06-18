@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Filter, Package } from "lucide-react";
 import { ProductoCard, type ProductoCardData } from "@/components/productos/ProductoCard";
+import { CatalogoToolbar } from "@/components/productos/CatalogoToolbar";
 import { gqlFetchCacheable } from "@/lib/graphql-server";
 
 // SSR con regeneración: la página se renderiza en el servidor (HTML con datos,
@@ -18,8 +19,8 @@ interface PaginatedProductos {
 interface Categoria { id: string; nombre: string; slug: string }
 
 const PRODUCTOS_Q = `
-  query Productos($pagina: Int, $limite: Int, $categoriaId: ID, $soloActivos: Boolean) {
-    productos(pagina: $pagina, limite: $limite, categoriaId: $categoriaId, soloActivos: $soloActivos) {
+  query Productos($pagina: Int, $limite: Int, $categoriaId: ID, $soloActivos: Boolean, $orden: OrdenProducto, $precioMin: Float, $precioMax: Float) {
+    productos(pagina: $pagina, limite: $limite, categoriaId: $categoriaId, soloActivos: $soloActivos, orden: $orden, precioMin: $precioMin, precioMax: $precioMax) {
       items {
         id nombre descripcion precio stock activo destacado
         categoria { id nombre slug }
@@ -39,11 +40,14 @@ const CATEGORIAS_Q = `
 export default async function ProductosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ categoria?: string; pagina?: string }>;
+  searchParams: Promise<{ categoria?: string; pagina?: string; orden?: string; precioMin?: string; precioMax?: string }>;
 }) {
   const sp = await searchParams;
   const categoriaId = sp.categoria ?? null;
   const pagina = Math.max(1, parseInt(sp.pagina ?? "1", 10) || 1);
+  const orden  = sp.orden ?? "RECIENTES";
+  const precioMin = sp.precioMin && !isNaN(Number(sp.precioMin)) ? Number(sp.precioMin) : null;
+  const precioMax = sp.precioMax && !isNaN(Number(sp.precioMax)) ? Number(sp.precioMax) : null;
 
   let result: PaginatedProductos | null = null;
   let categorias: Categoria[] = [];
@@ -53,7 +57,7 @@ export default async function ProductosPage({
   try {
     const [prodData, catData] = await Promise.all([
       gqlFetchCacheable<{ productos: PaginatedProductos }>(
-        PRODUCTOS_Q, { pagina, limite: LIMITE, categoriaId, soloActivos: true }, 60,
+        PRODUCTOS_Q, { pagina, limite: LIMITE, categoriaId, soloActivos: true, orden, precioMin, precioMax }, 60,
       ),
       gqlFetchCacheable<{ categorias: Categoria[] }>(
         CATEGORIAS_Q, { soloRaices: false }, 300,
@@ -65,14 +69,22 @@ export default async function ProductosPage({
     /* fetch falló — se renderiza el estado vacío */
   }
 
-  const hrefCategoria = (catId: string | null) => {
+  // Preserva orden y rango de precio al cambiar de categoría/página
+  const filtrosBase = () => {
     const p = new URLSearchParams();
+    if (orden && orden !== "RECIENTES") p.set("orden", orden);
+    if (precioMin != null) p.set("precioMin", String(precioMin));
+    if (precioMax != null) p.set("precioMax", String(precioMax));
+    return p;
+  };
+  const hrefCategoria = (catId: string | null) => {
+    const p = filtrosBase();
     if (catId) p.set("categoria", catId);
     const qs = p.toString();
     return qs ? `/productos?${qs}` : "/productos";
   };
   const hrefPagina = (n: number) => {
-    const p = new URLSearchParams();
+    const p = filtrosBase();
     if (categoriaId) p.set("categoria", categoriaId);
     if (n > 1) p.set("pagina", String(n));
     const qs = p.toString();
@@ -118,26 +130,31 @@ export default async function ProductosPage({
 
         {/* Products grid */}
         <div className="flex-1">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-xl font-bold text-slate-900">Catálogo</h1>
-              {result && (
-                <p className="text-sm text-slate-400 mt-0.5">{result.total} productos</p>
-              )}
-            </div>
+          <div className="mb-4">
+            <h1 className="text-xl font-bold text-slate-900">Catálogo</h1>
+            {result && (
+              <p className="text-sm text-slate-400 mt-0.5">{result.total} productos</p>
+            )}
           </div>
+
+          {/* Filtros (orden + precio) */}
+          <CatalogoToolbar
+            orden={orden}
+            precioMin={precioMin != null ? String(precioMin) : undefined}
+            precioMax={precioMax != null ? String(precioMax) : undefined}
+          />
 
           {!result || result.items.length === 0 ? (
             <div className="text-center py-24">
               <Package className="h-12 w-12 text-slate-200 mx-auto mb-4" />
-              <p className="font-semibold text-slate-700">Sin productos disponibles</p>
-              <p className="text-sm text-slate-400 mt-1">Intenta con otra categoría o vuelve pronto</p>
+              <p className="font-semibold text-slate-700">Sin productos con esos filtros</p>
+              <p className="text-sm text-slate-400 mt-1">Prueba ampliando el rango de precio o cambiando de categoría</p>
               <Link
-                href="/buscar"
+                href="/productos"
                 className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-indigo-600
                            hover:text-indigo-700 transition-colors"
               >
-                Buscar un producto específico →
+                Limpiar filtros →
               </Link>
             </div>
           ) : (

@@ -31,17 +31,26 @@ async function invalidarCaches(vendedorId?: string) {
 
 export const productosService = {
   async getAll(
-    { pagina = 1, limite = 20, categoriaId, soloActivos = true }:
-      { pagina?: number; limite?: number; categoriaId?: string | null; soloActivos?: boolean | null },
+    { pagina = 1, limite = 20, categoriaId, soloActivos = true, orden, precioMin, precioMax }:
+      {
+        pagina?: number; limite?: number; categoriaId?: string | null; soloActivos?: boolean | null;
+        orden?: string | null; precioMin?: number | null; precioMax?: number | null;
+      },
     prisma: PrismaClient,
   ) {
+    // Saneamiento de filtros (defensa contra valores inválidos)
+    const ordenValido = ["RECIENTES", "PRECIO_ASC", "PRECIO_DESC", "MEJOR_VALORADOS"].includes(orden ?? "")
+      ? (orden as string) : "RECIENTES";
+    const min = typeof precioMin === "number" && precioMin >= 0 ? precioMin : null;
+    const max = typeof precioMax === "number" && precioMax >= 0 ? precioMax : null;
+
     // Caché de catálogo: lectura pública y de altísima frecuencia, datos que
     // cambian poco. TTL corto (CACHE_TTL_CATALOGO) + invalidación al mutar
     // productos. Convierte el cuello de botella medido (~1-1.8s) en ~piso de red.
-    const cacheKey = CacheKeys.catalogo(pagina, limite, categoriaId, soloActivos);
+    const cacheKey = CacheKeys.catalogo(pagina, limite, categoriaId, soloActivos, ordenValido, min, max);
     return getOrSetCache(cacheKey, env.CACHE_TTL_CATALOGO, async () => {
       const { total, items } = await productosRepository.findPaginated(
-        { pagina, limite, categoriaId, soloActivos },
+        { pagina, limite, categoriaId, soloActivos, orden: ordenValido, precioMin: min, precioMax: max },
         prisma,
       );
       return {

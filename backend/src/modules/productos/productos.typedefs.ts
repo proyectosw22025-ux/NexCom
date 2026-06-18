@@ -47,8 +47,23 @@ export const productosTypeDefs = /* GraphQL */ `
     etiquetas:   [String!]
   }
 
+  enum OrdenProducto {
+    RECIENTES
+    PRECIO_ASC
+    PRECIO_DESC
+    MEJOR_VALORADOS
+  }
+
   extend type Query {
-    productos(pagina: Int, limite: Int, categoriaId: ID, soloActivos: Boolean): PaginatedProductos!
+    productos(
+      pagina:      Int
+      limite:      Int
+      categoriaId: ID
+      soloActivos: Boolean
+      orden:       OrdenProducto
+      precioMin:   Float
+      precioMax:   Float
+    ): PaginatedProductos!
     producto(id: ID!):    Producto
     misProductos:         [Producto!]!
   }
