@@ -65,6 +65,8 @@ export const ESTADISTICAS_ADMIN = gql`
       reportesPendientes
       ingresosPeriodo
       ordenesPeriodo
+      comisionPorcentaje
+      comisionPeriodo
     }
   }
 `;

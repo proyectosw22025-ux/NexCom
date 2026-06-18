@@ -8,9 +8,30 @@ import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
+// metadataBase: dominio de producción (configurable por env). Permite que las
+// URLs de Open Graph / imágenes compartidas sean absolutas. Fallback a local.
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 export const metadata: Metadata = {
-  title: "NexCom — Marketplace Local Boliviano",
-  description: "Conectamos compradores y vendedores de Santa Cruz, Bolivia.",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default:  "NexCom — Marketplace Local Boliviano",
+    template: "%s · NexCom",
+  },
+  description: "Conectamos compradores y vendedores de Santa Cruz, Bolivia. Compra y vende productos de microempresas locales.",
+  applicationName: "NexCom",
+  openGraph: {
+    type:        "website",
+    siteName:    "NexCom",
+    title:       "NexCom — Marketplace Local Boliviano",
+    description: "Compra y vende productos de microempresas de Santa Cruz, Bolivia.",
+    locale:      "es_BO",
+  },
+  twitter: { card: "summary_large_image" },
+};
+
+export const viewport = {
+  themeColor: "#4f46e5",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -38,6 +38,8 @@ export const adminTypeDefs = /* GraphQL */ `
     reportesPendientes: Int!
     ingresosPeriodo:    String!
     ordenesPeriodo:     Int!
+    comisionPorcentaje: Float!
+    comisionPeriodo:    String!
   }
 
   type MetricaOperacion {

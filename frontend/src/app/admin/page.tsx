@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { useQuery } from "@apollo/client";
 import { useAuth } from "@/context/auth-context";
 import Link from "next/link";
-import { Users, Package, ShoppingBag, Star, ChevronRight, Loader2, TrendingUp, ShieldAlert } from "lucide-react";
+import { Users, Package, ShoppingBag, Star, ChevronRight, Loader2, TrendingUp, ShieldAlert, Coins } from "lucide-react";
 import { LISTAR_USUARIOS, TODOS_PRODUCTOS, ESTADISTICAS_ADMIN } from "@/graphql/admin/queries";
 import { Badge } from "@/components/ui/Badge";
 import { PanelRendimiento } from "@/components/admin/PanelRendimiento";
@@ -31,6 +31,7 @@ interface ProductoAdmin {
 interface VentaDia { fecha: string; total: string; ordenes: number }
 interface EstadisticasAdmin {
   ventasPorDia: VentaDia[]; reportesPendientes: number; ingresosPeriodo: string; ordenesPeriodo: number;
+  comisionPorcentaje: number; comisionPeriodo: string;
 }
 
 const RANGOS = [
@@ -151,10 +152,29 @@ export default function AdminPage() {
           </div>
         </div>
 
+        {/* Columna derecha: comisión + reportes */}
+        <div className="flex flex-col gap-6">
+
+        {/* Comisión del marketplace (modelo de negocio) */}
+        <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5">
+          <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center mb-3">
+            <Coins className="h-5 w-5 text-emerald-600" />
+          </div>
+          <p className="text-2xl font-bold text-slate-900">
+            Bs. {loadingS && !estadisticas ? "…" : (estadisticas?.comisionPeriodo ?? "0.00")}
+          </p>
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mt-0.5">
+            Comisión del marketplace
+          </p>
+          <p className="text-xs text-emerald-700 mt-1.5">
+            {estadisticas?.comisionPorcentaje ?? 0}% sobre Bs. {estadisticas?.ingresosPeriodo ?? "0.00"} en {dias} días
+          </p>
+        </div>
+
         {/* Reportes pendientes */}
         <Link
           href="/admin/reportes"
-          className={`rounded-2xl border p-5 flex flex-col justify-between transition-all hover:shadow-md ${
+          className={`rounded-2xl border p-5 flex flex-col justify-between transition-all hover:shadow-md flex-1 ${
             reportesPend > 0
               ? "bg-amber-50 border-amber-200 hover:shadow-amber-100"
               : "bg-white border-slate-200 hover:shadow-slate-200/50"
@@ -178,6 +198,7 @@ export default function AdminPage() {
             <ChevronRight className="h-3.5 w-3.5" />
           </p>
         </Link>
+        </div>
       </div>
 
       {/* Rendimiento del sistema (observabilidad) */}
