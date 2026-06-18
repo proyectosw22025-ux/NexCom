@@ -57,19 +57,25 @@ export const pagosService = {
       new Decimal(0),
     );
 
+    // Vendedor principal (primer item) — necesario para validar el scope del cupón
+    const vendedorId = carrito.items[0]!.producto.vendedorId;
+
     // 5. Validar y aplicar cupón si se provee
     let descuentoCupon = new Decimal(0);
     let cuponId: string | null = null;
     if (cuponCodigo) {
       const validacion = await cuponesService.validar(cuponCodigo, subtotal.toString(), usuarioId, prisma);
+      // Scope: un cupón de vendedor solo aplica a órdenes de su tienda
+      if (validacion.vendedorIdCupon && validacion.vendedorIdCupon !== vendedorId) {
+        throw new GraphQLError("Este cupón solo aplica a productos de la tienda que lo emitió.", {
+          extensions: { code: "BAD_USER_INPUT" },
+        });
+      }
       descuentoCupon = new Decimal(validacion.descuento);
       cuponId = validacion.cuponId;
     }
 
     const total = subtotal.minus(descuentoCupon);
-
-    // 6. Determinar vendedor principal (primer item)
-    const vendedorId = carrito.items[0]!.producto.vendedorId;
 
     // 7. Crear orden + items + descontar stock en una transacción
     const orden = await pagosRepository.crearOrdenConItems(

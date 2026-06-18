@@ -8,6 +8,10 @@ export const cuponesService = {
     return cuponesRepository.findAll(prisma);
   },
 
+  async getCuponesVendedor(vendedorId: string, prisma: PrismaClient) {
+    return cuponesRepository.findByVendedor(vendedorId, prisma);
+  },
+
   async crear(
     input: {
       codigo: string;
@@ -19,6 +23,7 @@ export const cuponesService = {
       fechaFin: string;
     },
     prisma: PrismaClient,
+    vendedorId?: string | null,
   ) {
     if (input.tipo !== "PORCENTAJE" && input.tipo !== "MONTO_FIJO") {
       throw new GraphQLError("El tipo debe ser PORCENTAJE o MONTO_FIJO.", {
@@ -60,6 +65,7 @@ export const cuponesService = {
         valor:       input.valor,
         montoMinimo: input.montoMinimo,
         maxUsos:     input.maxUsos,
+        vendedorId:  vendedorId ?? null,
         fechaInicio: inicio,
         fechaFin:    fin,
       },
@@ -122,6 +128,9 @@ export const cuponesService = {
       valor:             valor.toString(),
       descuento:         descuento.toString(),
       totalConDescuento: totalConDescuento.toString(),
+      // Uso interno (no expuesto en GraphQL): scope del cupón para que el
+      // checkout verifique que aplica al vendedor de la orden. null = global.
+      vendedorIdCupon:   cupon.vendedorId ?? null,
     };
   },
 };

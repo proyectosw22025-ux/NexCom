@@ -7,6 +7,7 @@ export const cuponesTypeDefs = /* GraphQL */ `
     montoMinimo:  String
     maxUsos:      Int
     usosActuales: Int!
+    vendedorId:   ID
     fechaInicio:  String!
     fechaFin:     String!
     activo:       Boolean!
@@ -34,6 +35,7 @@ export const cuponesTypeDefs = /* GraphQL */ `
 
   extend type Query {
     cupones: [Cupon!]!
+    misCupones: [Cupon!]!
   }
 
   extend type Mutation {
