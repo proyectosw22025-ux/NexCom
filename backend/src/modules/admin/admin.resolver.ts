@@ -1,6 +1,7 @@
 import { requireRole } from "../../shared/guards.js";
 import type { NexComContext } from "../../shared/types/context.type.js";
 import { adminService } from "./admin.service.js";
+import { snapshotMetricas } from "../../shared/metrics.js";
 
 export const adminResolvers = {
   Query: {
@@ -21,6 +22,11 @@ export const adminResolvers = {
     estadisticasAdmin: (_: unknown, { dias }: { dias?: number }, ctx: NexComContext) => {
       requireRole(ctx, "ADMIN");
       return adminService.getEstadisticas(dias ?? 7, ctx.prisma);
+    },
+
+    metricasRendimiento: (_: unknown, __: unknown, ctx: NexComContext) => {
+      requireRole(ctx, "ADMIN");
+      return snapshotMetricas();
     },
   },
 

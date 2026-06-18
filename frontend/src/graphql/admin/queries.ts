@@ -69,6 +69,15 @@ export const ESTADISTICAS_ADMIN = gql`
   }
 `;
 
+export const METRICAS_RENDIMIENTO = gql`
+  query MetricasRendimiento {
+    metricasRendimiento {
+      uptimeSegundos
+      operaciones { operacion count errores promedioMs p50 p95 p99 }
+    }
+  }
+`;
+
 export const CONFIGURACION_SISTEMA = gql`
   query ConfiguracionSistema {
     configuracionSistema {

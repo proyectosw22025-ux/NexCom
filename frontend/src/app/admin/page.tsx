@@ -8,6 +8,7 @@ import Link from "next/link";
 import { Users, Package, ShoppingBag, Star, ChevronRight, Loader2, TrendingUp, ShieldAlert } from "lucide-react";
 import { LISTAR_USUARIOS, TODOS_PRODUCTOS, ESTADISTICAS_ADMIN } from "@/graphql/admin/queries";
 import { Badge } from "@/components/ui/Badge";
+import { PanelRendimiento } from "@/components/admin/PanelRendimiento";
 
 // Code-split: recharts solo se descarga al montar el dashboard admin.
 const VentasBarChart = dynamic(
@@ -178,6 +179,9 @@ export default function AdminPage() {
           </p>
         </Link>
       </div>
+
+      {/* Rendimiento del sistema (observabilidad) */}
+      <PanelRendimiento />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Últimos usuarios */}

@@ -40,10 +40,26 @@ export const adminTypeDefs = /* GraphQL */ `
     ordenesPeriodo:     Int!
   }
 
+  type MetricaOperacion {
+    operacion:  String!
+    count:      Int!
+    errores:    Int!
+    promedioMs: Int!
+    p50:        Int!
+    p95:        Int!
+    p99:        Int!
+  }
+
+  type MetricasRendimiento {
+    uptimeSegundos: Int!
+    operaciones:    [MetricaOperacion!]!
+  }
+
   extend type Query {
     listarUsuarios(rol: String, activo: Boolean, pagina: Int, limite: Int): PaginatedUsuarios!
     usuarioDetalle(id: ID!): UsuarioAdmin
     estadisticasAdmin(dias: Int): EstadisticasAdmin!
+    metricasRendimiento: MetricasRendimiento!
   }
 
   extend type Mutation {

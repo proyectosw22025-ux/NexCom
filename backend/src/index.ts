@@ -17,6 +17,7 @@ import redis from "./shared/redis.client.js";
 import { extractBearerToken, verifyAccessToken } from "./shared/jwt.util.js";
 import { publishNotificacion } from "./shared/pubsub.js";
 import { runWithLock } from "./shared/lock.util.js";
+import { registrarOperacion } from "./shared/metrics.js";
 import type { NexComContext, UsuarioJWT } from "./shared/types/context.type.js";
 
 interface WSExtra {
@@ -27,7 +28,14 @@ interface WSExtra {
 const stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: "2024-04-10" });
 
 async function bootstrap() {
-  const app = Fastify({ logger: env.NODE_ENV === "development" });
+  // Logging estructurado (Pino) con request-id automático por petición.
+  // En producción registra cada request (método, url, status, tiempo, reqId)
+  // como JSON — base de observabilidad. En dev, nivel más verboso.
+  const app = Fastify({
+    logger: {
+      level: env.NODE_ENV === "production" ? "info" : "debug",
+    },
+  });
 
   await app.register(corsPlugin);
   await app.register(rateLimitPlugin);
@@ -43,10 +51,25 @@ async function bootstrap() {
 
   const executableSchema = makeExecutableSchema({ typeDefs, resolvers });
 
+  // Plugin de observabilidad: mide la latencia de cada operación GraphQL
+  const metricsPlugin = {
+    onExecute({ args }: { args: { operationName?: string | null } }) {
+      const inicio = Date.now();
+      const operacion = args.operationName ?? "anónima";
+      return {
+        onExecuteDone({ result }: { result: unknown }) {
+          const conError = Boolean((result as { errors?: unknown[] })?.errors?.length);
+          registrarOperacion(operacion, Date.now() - inicio, conError);
+        },
+      };
+    },
+  };
+
   const yoga = createYoga<{ req: any; reply: any; extra?: WSExtra }>({
     schema:          executableSchema,
     graphiql:        env.NODE_ENV === "development",
     graphqlEndpoint: env.GRAPHQL_PATH,
+    plugins:         [metricsPlugin],
     context: ({ req, extra }): NexComContext => {
       // Conexión WebSocket (subscriptions): el usuario ya fue resuelto en onConnect
       if (extra?.user !== undefined) {

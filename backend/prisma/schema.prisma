@@ -246,7 +246,8 @@ model Producto {
 
   @@index([vendedorId, activo])
   @@index([categoriaId, activo])
-  @@index([activo, destacado])
+  // Cubre el orden por defecto del catálogo: WHERE activo ORDER BY destacado DESC, creado_en DESC
+  @@index([activo, destacado, creadoEn])
   @@index([precio])
   @@map("productos")
 }
