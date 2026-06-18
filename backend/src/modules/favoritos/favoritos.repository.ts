@@ -39,4 +39,13 @@ export const favoritosRepository = {
     await prisma.favorito.deleteMany({ where: { compradorId, productoId } });
     return false;
   },
+
+  /** usuarioIds de los compradores que tienen este producto en favoritos */
+  async findUsuariosQueFavoritearon(productoId: string, prisma: PrismaClient): Promise<string[]> {
+    const favs = await prisma.favorito.findMany({
+      where:  { productoId },
+      select: { comprador: { select: { usuarioId: true } } },
+    });
+    return favs.map((f) => f.comprador.usuarioId);
+  },
 };

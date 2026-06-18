@@ -3,6 +3,8 @@ import { Decimal } from "decimal.js";
 import type { PrismaClient } from "@prisma/client";
 import { productosRepository } from "./productos.repository.js";
 import { etiquetasRepository } from "../etiquetas/etiquetas.repository.js";
+import { favoritosRepository } from "../favoritos/favoritos.repository.js";
+import { publishNotificacion } from "../../shared/pubsub.js";
 import { getConfigNumber } from "../../shared/config.util.js";
 import { getFromCache, setCache, deleteCache, invalidatePattern, getOrSetCache, CacheKeys } from "../../shared/cache.util.js";
 import { env } from "../../config/env.js";
@@ -20,6 +22,38 @@ type ProductoInput = {
 async function resolveEtiquetaIds(nombres: string[], prisma: PrismaClient): Promise<string[]> {
   const tags = await Promise.all(nombres.map((n) => etiquetasRepository.findOrCreate(n, prisma)));
   return tags.map((t) => t.id);
+}
+
+/**
+ * Notifica a quienes tienen el producto en favoritos que bajó de precio.
+ * Persiste + publica en tiempo real (infra de notificaciones existente).
+ * Best-effort: un fallo aquí no debe romper la actualización del producto.
+ */
+async function notificarBajadaPrecio(
+  productoId: string, nombre: string, precioAnterior: string, precioNuevo: string, prisma: PrismaClient,
+) {
+  const usuarioIds = await favoritosRepository.findUsuariosQueFavoritearon(productoId, prisma);
+  for (const usuarioId of usuarioIds) {
+    const notif = await prisma.notificacion.create({
+      data: {
+        usuarioId,
+        tipo:    "BAJADA_PRECIO",
+        titulo:  "¡Bajó un producto que te gusta!",
+        mensaje: `${nombre} ahora cuesta Bs. ${precioNuevo} (antes Bs. ${precioAnterior}).`,
+        url:     `/productos/${productoId}`,
+      },
+    });
+    publishNotificacion(usuarioId, {
+      id:       notif.id,
+      tipo:     notif.tipo,
+      titulo:   notif.titulo,
+      mensaje:  notif.mensaje,
+      leido:    notif.leido,
+      url:      notif.url,
+      ordenId:  notif.ordenId,
+      creadoEn: notif.creadoEn.toISOString(),
+    });
+  }
 }
 
 async function invalidarCaches(vendedorId?: string) {
@@ -173,6 +207,8 @@ export const productosService = {
       ? (input.etiquetas.length ? await resolveEtiquetaIds(input.etiquetas, prisma) : [])
       : undefined;
 
+    const precioAnterior = new Decimal(existente.precio.toString());
+
     const p = await productosRepository.update(id, {
       nombre: input.nombre, descripcion: input.descripcion, precio,
       stock: input.stock, categoriaId: input.categoriaId, etiquetaIds,
@@ -180,6 +216,13 @@ export const productosService = {
 
     await deleteCache(CacheKeys.producto(id));
     await invalidarCaches(vendedorId);
+
+    // D.5 — Alerta de bajada de precio a quienes lo tienen en favoritos
+    if (precio && precio.lt(precioAnterior)) {
+      await notificarBajadaPrecio(id, p.nombre, precio.toString(), precioAnterior.toString(), prisma)
+        .catch((err) => console.error("[BajadaPrecio] no se pudo notificar:", err?.message));
+    }
+
     return p;
   },
 
