@@ -84,10 +84,10 @@ export const CacheKeys = {
   producto:        (id: string)                     => `producto:${id}`,
   catalogo:        (
     pagina: number, limite: number, categoriaId?: string | null, soloActivos?: boolean | null,
-    orden?: string | null, precioMin?: number | null, precioMax?: number | null,
+    orden?: string | null, precioMin?: number | null, precioMax?: number | null, vendedorId?: string | null,
   ) =>
     `catalogo:list:${pagina}:${limite}:${categoriaId ?? "all"}:${soloActivos !== false ? "act" : "todos"}` +
-    `:${orden ?? "RECIENTES"}:${precioMin ?? "_"}:${precioMax ?? "_"}`,
+    `:${orden ?? "RECIENTES"}:${precioMin ?? "_"}:${precioMax ?? "_"}:${vendedorId ?? "all"}`,
   catalogoVendedor:(vendedorId: string, page: number) => `catalogo:v:${vendedorId}:p:${page}`,
   busqueda:        (hash: string)                   => `busqueda:${hash}`,
   categorias:      ()                               => `categorias:todas`,

@@ -132,15 +132,31 @@ export default function ProductoDetailPage() {
             <p className="text-sm text-slate-600 leading-relaxed">{p.descripcion}</p>
           )}
 
-          <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
-            <div className="w-9 h-9 bg-violet-100 rounded-full flex items-center justify-center shrink-0">
-              <Store className="h-4 w-4 text-violet-600" />
+          {p.vendedor.id ? (
+            <Link
+              href={`/tienda/${p.vendedor.id}`}
+              className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200 hover:border-violet-300 hover:bg-violet-50/40 transition-colors group"
+            >
+              <div className="w-9 h-9 bg-violet-100 rounded-full flex items-center justify-center shrink-0">
+                <Store className="h-4 w-4 text-violet-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-slate-400">Vendido por</p>
+                <p className="text-sm font-semibold text-slate-900 group-hover:text-violet-700 transition-colors">{p.vendedor.nombreNegocio}</p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-violet-500 transition-colors" />
+            </Link>
+          ) : (
+            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+              <div className="w-9 h-9 bg-violet-100 rounded-full flex items-center justify-center shrink-0">
+                <Store className="h-4 w-4 text-violet-600" />
+              </div>
+              <div>
+                <p className="text-xs text-slate-400">Vendido por</p>
+                <p className="text-sm font-semibold text-slate-900">{p.vendedor.nombreNegocio}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-slate-400">Vendido por</p>
-              <p className="text-sm font-semibold text-slate-900">{p.vendedor.nombreNegocio}</p>
-            </div>
-          </div>
+          )}
 
           {p.etiquetas.length > 0 && (
             <div className="flex items-center gap-2 flex-wrap">

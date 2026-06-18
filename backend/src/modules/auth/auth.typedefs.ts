@@ -61,6 +61,7 @@ export const authTypeDefs = /* GraphQL */ `
 
   extend type Query {
     me: UsuarioPublico
+    vendedorPublico(id: ID!): PerfilVendedorPublico
   }
 
   extend type Mutation {

@@ -10,6 +10,9 @@ export const authResolvers = {
       return service.getMe(user.id, ctx.prisma);
     },
 
+    // Perfil público de un vendedor (tienda) — sin auth
+    vendedorPublico: (_: unknown, { id }: { id: string }, ctx: NexComContext) =>
+      service.getVendedorPublico(id, ctx.prisma),
   },
 
   Mutation: {

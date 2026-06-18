@@ -260,6 +260,18 @@ export async function getMe(usuarioId: string, prisma: PrismaClient) {
   return repo.findUsuarioConPerfil(usuarioId, prisma);
 }
 
+// ── vendedor público (tienda) ───────────────────────────────────────────────────
+
+export async function getVendedorPublico(id: string, prisma: PrismaClient) {
+  return prisma.perfilVendedor.findUnique({
+    where:  { id },
+    select: {
+      id: true, nombreNegocio: true, descripcion: true, ciudad: true,
+      logoUrl: true, ratingPromedio: true, totalVentas: true, totalResenias: true,
+    },
+  });
+}
+
 // ── listarUsuarios (admin) ────────────────────────────────────────────────────
 
 export async function listarUsuarios(prisma: PrismaClient) {

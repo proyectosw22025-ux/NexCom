@@ -14,7 +14,7 @@ export const productosResolvers = {
     productos: (
       _: unknown,
       args: {
-        pagina?: number; limite?: number; categoriaId?: string; soloActivos?: boolean;
+        pagina?: number; limite?: number; categoriaId?: string; vendedorId?: string; soloActivos?: boolean;
         orden?: string; precioMin?: number; precioMax?: number;
       },
       ctx: NexComContext,

@@ -59,6 +59,7 @@ export const productosTypeDefs = /* GraphQL */ `
       pagina:      Int
       limite:      Int
       categoriaId: ID
+      vendedorId:  ID
       soloActivos: Boolean
       orden:       OrdenProducto
       precioMin:   Float
