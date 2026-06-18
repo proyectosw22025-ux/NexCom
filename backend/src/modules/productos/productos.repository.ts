@@ -50,6 +50,14 @@ export const productosRepository = {
     return p ? mapEtiquetas(p) : null;
   },
 
+  async findByIds(ids: string[], prisma: PrismaClient) {
+    if (ids.length === 0) return [];
+    const rows = await prisma.producto.findMany({ where: { id: { in: ids } }, include });
+    const byId = new Map(rows.map((r) => [r.id, mapEtiquetas(r)]));
+    // Preserva el orden de `ids` (relevancia), que findMany no garantiza
+    return ids.map((id) => byId.get(id)).filter((p): p is NonNullable<typeof p> => Boolean(p));
+  },
+
   async findByVendedor(vendedorId: string, prisma: PrismaClient) {
     const rows = await prisma.producto.findMany({
       where:   { vendedorId },

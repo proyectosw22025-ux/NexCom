@@ -67,6 +67,7 @@ export const productosTypeDefs = /* GraphQL */ `
     ): PaginatedProductos!
     producto(id: ID!):    Producto
     misProductos:         [Producto!]!
+    productosRecomendados(productoId: ID!, limite: Int): [Producto!]!
   }
 
   extend type Mutation {

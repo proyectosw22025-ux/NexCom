@@ -23,6 +23,12 @@ export const productosResolvers = {
     producto: (_: unknown, { id }: { id: string }, ctx: NexComContext) =>
       productosService.getById(id, ctx.prisma),
 
+    productosRecomendados: (
+      _: unknown,
+      { productoId, limite }: { productoId: string; limite?: number },
+      ctx: NexComContext,
+    ) => productosService.getRecomendados(productoId, limite ?? 4, ctx.prisma),
+
     misProductos: (_: unknown, __: unknown, ctx: NexComContext) => {
       const user = requireRole(ctx, "VENDEDOR", "ADMIN");
       if (!ctx.user?.perfilVendedorId) {

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { ProductoResenias } from "@/components/productos/ProductoResenias";
+import { ProductosRecomendados } from "@/components/productos/ProductosRecomendados";
 import { ReportarDialog } from "@/components/reportes/ReportarDialog";
 import { toast } from "sonner";
 import type { ProductoCardData } from "@/components/productos/ProductoCard";
@@ -238,6 +239,9 @@ export default function ProductoDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Recomendaciones */}
+      <ProductosRecomendados productoId={p.id} />
 
       {/* Reseñas del vendedor */}
       {p.vendedor.id && (

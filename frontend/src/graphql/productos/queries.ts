@@ -37,6 +37,13 @@ export const PRODUCTO = gql`
   }
 `;
 
+export const PRODUCTOS_RECOMENDADOS = gql`
+  ${PRODUCTO_FIELDS}
+  query ProductosRecomendados($productoId: ID!, $limite: Int) {
+    productosRecomendados(productoId: $productoId, limite: $limite) { ...ProductoFields }
+  }
+`;
+
 export const MIS_PRODUCTOS = gql`
   ${PRODUCTO_FIELDS}
   query MisProductos {

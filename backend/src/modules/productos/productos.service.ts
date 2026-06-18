@@ -78,6 +78,48 @@ export const productosService = {
     return productosRepository.findByVendedor(vendedorId, prisma);
   },
 
+  /**
+   * Recomendaciones "También te puede interesar".
+   * Estrategia: co-ocurrencia en órdenes (productos comprados junto al actual),
+   * calculada en SQL. Si no hay suficientes datos, completa con productos
+   * activos de la misma categoría. Cacheado en Redis.
+   */
+  async getRecomendados(productoId: string, limite: number, prisma: PrismaClient) {
+    const max = Math.min(Math.max(limite, 1), 12);
+    return getOrSetCache(`recomendados:${productoId}:${max}`, env.CACHE_TTL_PRODUCTO, async () => {
+      const filas = await prisma.$queryRaw<Array<{ id: string }>>`
+        SELECT io2.producto_id AS id, COUNT(*)::int AS freq
+        FROM items_orden io1
+        JOIN items_orden io2
+          ON io1.orden_id = io2.orden_id AND io2.producto_id <> io1.producto_id
+        JOIN productos p ON p.id = io2.producto_id AND p.activo = true
+        WHERE io1.producto_id = ${productoId}
+        GROUP BY io2.producto_id
+        ORDER BY freq DESC
+        LIMIT ${max}
+      `;
+      let ids = filas.map((f) => f.id);
+
+      // Fallback: completar con productos de la misma categoría
+      if (ids.length < max) {
+        const base = await prisma.producto.findUnique({
+          where: { id: productoId }, select: { categoriaId: true },
+        });
+        if (base) {
+          const relleno = await prisma.producto.findMany({
+            where:   { categoriaId: base.categoriaId, activo: true, id: { notIn: [productoId, ...ids] } },
+            orderBy: [{ destacado: "desc" }, { creadoEn: "desc" }],
+            take:    max - ids.length,
+            select:  { id: true },
+          });
+          ids = [...ids, ...relleno.map((r) => r.id)];
+        }
+      }
+
+      return productosRepository.findByIds(ids, prisma);
+    });
+  },
+
   async crear(input: ProductoInput, vendedorId: string, prisma: PrismaClient) {
     const precio = new Decimal(input.precio);
     if (precio.lte(0)) {

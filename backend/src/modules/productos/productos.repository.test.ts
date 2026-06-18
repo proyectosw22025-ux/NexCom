@@ -73,3 +73,34 @@ describe("productosRepository.findPaginated — filtros y orden (SQL)", () => {
     expect(args).toMatchObject({ skip: 24, take: 12 });
   });
 });
+
+describe("productosRepository.findByIds — preserva orden de relevancia", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    count.mockResolvedValue(0);
+  });
+
+  it("devuelve los productos en el mismo orden que los ids solicitados", async () => {
+    // findMany puede devolver en cualquier orden; el repo debe reordenar
+    findMany.mockResolvedValue([
+      { id: "c", etiquetas: [] },
+      { id: "a", etiquetas: [] },
+      { id: "b", etiquetas: [] },
+    ]);
+
+    const result = await productosRepository.findByIds(["a", "b", "c"], prisma);
+    expect(result.map((p) => p.id)).toEqual(["a", "b", "c"]);
+  });
+
+  it("ignora ids inexistentes sin romper el orden", async () => {
+    findMany.mockResolvedValue([{ id: "a", etiquetas: [] }]);
+    const result = await productosRepository.findByIds(["a", "zzz"], prisma);
+    expect(result.map((p) => p.id)).toEqual(["a"]);
+  });
+
+  it("no consulta la base si la lista de ids está vacía", async () => {
+    const result = await productosRepository.findByIds([], prisma);
+    expect(result).toEqual([]);
+    expect(findMany).not.toHaveBeenCalled();
+  });
+});
