@@ -81,6 +81,7 @@ model Usuario {
   notificaciones    Notificacion[]
   reportesHechos    Reporte[]           @relation("ReportesHechos")
   reportesResueltos Reporte[]           @relation("ReportesResueltos")
+  preguntas         PreguntaProducto[]
 
   @@map("usuarios")
 }
@@ -241,12 +242,29 @@ model Producto {
   itemsCarrito    ItemCarrito[]
   favoritos       Favorito[]
   ofertaProductos OfertaProducto[]
+  preguntas       PreguntaProducto[]
 
   @@index([vendedorId, activo])
   @@index([categoriaId, activo])
   @@index([activo, destacado])
   @@index([precio])
   @@map("productos")
+}
+
+model PreguntaProducto {
+  id           String    @id @default(cuid())
+  productoId   String    @map("producto_id")
+  usuarioId    String    @map("usuario_id")
+  pregunta     String
+  respuesta    String?
+  respondidoEn DateTime? @map("respondido_en")
+  creadoEn     DateTime  @default(now()) @map("creado_en")
+
+  producto Producto @relation(fields: [productoId], references: [id], onDelete: Cascade)
+  usuario  Usuario  @relation(fields: [usuarioId],  references: [id])
+
+  @@index([productoId, creadoEn])
+  @@map("preguntas_producto")
 }
 
 // ══════════════════════════════════════════════════════════════

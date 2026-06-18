@@ -15,6 +15,7 @@ import {
 import { Badge } from "@/components/ui/Badge";
 import { ProductoResenias } from "@/components/productos/ProductoResenias";
 import { ProductosRecomendados } from "@/components/productos/ProductosRecomendados";
+import { ProductoPreguntas } from "@/components/productos/ProductoPreguntas";
 import { ReportarDialog } from "@/components/reportes/ReportarDialog";
 import { toast } from "sonner";
 import type { ProductoCardData } from "@/components/productos/ProductoCard";
@@ -239,6 +240,12 @@ export default function ProductoDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Preguntas y respuestas */}
+      <ProductoPreguntas
+        productoId={p.id}
+        esVendedorDueno={Boolean(user?.rol === "VENDEDOR" && user.perfilVendedor?.id === p.vendedor.id)}
+      />
 
       {/* Recomendaciones */}
       <ProductosRecomendados productoId={p.id} />

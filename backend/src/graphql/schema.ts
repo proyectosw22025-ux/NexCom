@@ -3,6 +3,7 @@ import { authTypeDefs }        from "../modules/auth/auth.typedefs.js";
 import { categoriasTypeDefs }  from "../modules/categorias/categorias.typedefs.js";
 import { etiquetasTypeDefs }   from "../modules/etiquetas/etiquetas.typedefs.js";
 import { productosTypeDefs }   from "../modules/productos/productos.typedefs.js";
+import { preguntasTypeDefs }   from "../modules/preguntas/preguntas.typedefs.js";
 import { busquedaTypeDefs }    from "../modules/busqueda/busqueda.typedefs.js";
 import { favoritosTypeDefs }   from "../modules/favoritos/favoritos.typedefs.js";
 import { carritoTypeDefs }     from "../modules/carrito/carrito.typedefs.js";
@@ -37,6 +38,7 @@ export const schema = mergeTypeDefs([
   categoriasTypeDefs,
   etiquetasTypeDefs,
   productosTypeDefs,
+  preguntasTypeDefs,
   busquedaTypeDefs,
   favoritosTypeDefs,
   carritoTypeDefs,

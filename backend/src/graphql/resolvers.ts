@@ -4,6 +4,7 @@ import { authResolvers }        from "../modules/auth/auth.resolver.js";
 import { categoriasResolvers }  from "../modules/categorias/categorias.resolver.js";
 import { etiquetasResolvers }   from "../modules/etiquetas/etiquetas.resolver.js";
 import { productosResolvers }   from "../modules/productos/productos.resolver.js";
+import { preguntasResolvers }   from "../modules/preguntas/preguntas.resolver.js";
 import { busquedaResolvers }    from "../modules/busqueda/busqueda.resolver.js";
 import { favoritosResolvers }   from "../modules/favoritos/favoritos.resolver.js";
 import { carritoResolvers }     from "../modules/carrito/carrito.resolver.js";
@@ -35,6 +36,7 @@ export const resolvers = mergeResolvers([
   categoriasResolvers,
   etiquetasResolvers,
   productosResolvers,
+  preguntasResolvers,
   busquedaResolvers,
   favoritosResolvers,
   carritoResolvers,
