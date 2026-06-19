@@ -75,6 +75,7 @@ export const productosTypeDefs = /* GraphQL */ `
     actualizarProducto(id: ID!, input: ProductoUpdateInput!): Producto!
     eliminarProducto(id: ID!):                              Boolean!
     toggleDestacado(id: ID!):                               Producto!
+    destacarMiProducto(id: ID!):                            Producto!
     agregarImagenes(productoId: ID!, urls: [String!]!):     Producto!
     eliminarImagen(imagenId: ID!):                          Boolean!
   }

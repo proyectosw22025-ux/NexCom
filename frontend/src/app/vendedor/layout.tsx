@@ -6,7 +6,7 @@ import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import {
-  LayoutDashboard, Package, Tag, LogOut, Store, ShoppingBag, Star, Ticket,
+  LayoutDashboard, Package, Tag, LogOut, Store, ShoppingBag, Star, Ticket, Crown,
 } from "lucide-react";
 import { DashboardTopbar } from "@/components/layout/DashboardTopbar";
 
@@ -17,6 +17,7 @@ const NAV = [
   { href: "/vendedor/cupones",      label: "Cupones",       icon: Ticket },
   { href: "/vendedor/ordenes",      label: "Órdenes",       icon: ShoppingBag },
   { href: "/vendedor/valoraciones", label: "Valoraciones",  icon: Star },
+  { href: "/vendedor/plan",         label: "Mi plan",       icon: Crown },
 ];
 
 export default function VendedorLayout({ children }: { children: React.ReactNode }) {

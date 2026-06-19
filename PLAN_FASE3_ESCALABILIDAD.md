@@ -202,4 +202,42 @@ FASE 3.5 — Negocio + Pulido
 
 ---
 
+## 12. Estado de ejecución
+
+Todo el trabajo **de código** del plan está implementado, testeado y desplegado:
+
+| Fase | Contenido | Estado |
+|------|-----------|--------|
+| 3.1 | Pilar A — favoritos, reseñas, reportar, rating | ✅ Completa |
+| 3.2 | B.1 filtros/orden, B.2 tienda pública, A.4 cupones vendedor | ✅ Completa |
+| 3.3 | D.1 recomendaciones, D.5 alerta de precio, C.1 Q&A | ✅ Completa |
+| 3.4 | F.1 logging, F.2/F.6 métricas+panel, F.5 CI, E.6.3 índice | ✅ Completa |
+| 3.5 | H.1 comisión, H.2 planes vendedor, H.3 destacados, G.1 errores, G.2 SEO | ✅ Completa |
+
+Rendimiento (Pilar E, parte de código): caché de catálogo, anti-stampede, rehash-login,
+rate-limit en Redis, cron con lock, SSR del catálogo, índice compuesto — todo aplicado.
+
+---
+
+## 13. ⚙️ Tareas de CONFIGURACIÓN EXTERNA (pendientes — requieren servicios cloud)
+
+> Estas son las **únicas** tareas que quedan. No son de código: dependen de configurar o
+> contratar servicios externos. Requieren credenciales/planes/DNS que debe hacer el dueño del
+> proyecto. Cada una incluye qué hacer y por qué.
+
+| # | Tarea | Servicio | Qué configurar | Beneficio |
+|---|-------|----------|----------------|-----------|
+| 1 | **CDN + región** (E.6.2) | Cloudflare / Railway | Poner Cloudflare delante del backend; elegir región cercana a LatAm | Ataca el piso de red ~0.5 s para todas las lecturas |
+| 2 | **Anti cold-start** (E.6.5) | UptimeRobot + Railway | Ping a `/health` cada 4 min + plan always-on (no Hobby) | Elimina el arranque en frío de ~1.7–2.1 s |
+| 3 | **Pooler de conexiones** (E.6.3) | PgBouncer / Railway | Pooler en modo *transaction* delante de Postgres | Evita agotar conexiones a miles de usuarios |
+| 4 | **Error tracking** (F.3) | Sentry | Crear proyecto, poner el DSN como env var (front y back) | Captura y alerta de errores en producción |
+| 5 | **Uptime / alertas** (F.4) | UptimeRobot / Better Stack | Monitor sobre `/health` con alertas | Disponibilidad y aviso de caídas |
+| 6 | **Dominio + SEO completo** (G.2) | Vercel / dominio | Fijar `NEXT_PUBLIC_SITE_URL` al dominio real + imagen Open Graph | URLs OG absolutas e imagen al compartir |
+
+**Nota:** el código ya está listo para todas: el backend expone `/health` con chequeo profundo,
+el `metadataBase` lee `NEXT_PUBLIC_SITE_URL`, el rate-limit y la caché usan Redis (compatibles con
+un pooler), y la degradación elegante cubre fallos de dependencias. Solo falta la configuración.
+
+---
+
 *NexCom — Plan Fase 3 | Generado tras auditoría de código y medición de rendimiento en producción | Junio 2026*

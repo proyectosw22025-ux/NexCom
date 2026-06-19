@@ -58,12 +58,14 @@ function ResponderForm({ preguntaId, onDone }: { preguntaId: string; onDone: () 
 }
 
 interface ProductoPreguntasProps {
-  productoId:      string;
-  esVendedorDueno: boolean;
+  productoId: string;
+  /** id del perfil vendedor dueño del producto (para habilitar responder) */
+  vendedorId?: string;
 }
 
-export function ProductoPreguntas({ productoId, esVendedorDueno }: ProductoPreguntasProps) {
+export function ProductoPreguntas({ productoId, vendedorId }: ProductoPreguntasProps) {
   const { user } = useAuth();
+  const esVendedorDueno = Boolean(user?.rol === "VENDEDOR" && vendedorId && user.perfilVendedor?.id === vendedorId);
   const { data, loading, refetch } = useQuery<{ preguntasProducto: Pregunta[] }>(PREGUNTAS_PRODUCTO, {
     variables: { productoId }, fetchPolicy: "cache-and-network",
   });

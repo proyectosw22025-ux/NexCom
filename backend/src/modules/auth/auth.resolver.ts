@@ -1,6 +1,6 @@
 import { GraphQLError } from "graphql";
 import type { NexComContext } from "../../shared/types/context.type.js";
-import { requireAuth } from "../../shared/guards.js";
+import { requireAuth, requireRole } from "../../shared/guards.js";
 import * as service from "./auth.service.js";
 
 export const authResolvers = {
@@ -16,6 +16,14 @@ export const authResolvers = {
   },
 
   Mutation: {
+    mejorarPlan: (_: unknown, { plan }: { plan: string }, ctx: NexComContext) => {
+      requireRole(ctx, "VENDEDOR");
+      if (!ctx.user?.perfilVendedorId) {
+        throw new GraphQLError("Perfil de vendedor no encontrado.", { extensions: { code: "NOT_FOUND" } });
+      }
+      return service.mejorarPlan(ctx.user.perfilVendedorId, plan, ctx.prisma);
+    },
+
     register: async (
       _: unknown,
       { input }: { input: Record<string, unknown> },

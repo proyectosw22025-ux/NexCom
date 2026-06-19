@@ -78,3 +78,9 @@ export const UPDATE_PASSWORD = gql`
     updatePassword(passwordActual: $passwordActual, nuevaPassword: $nuevaPassword)
   }
 `;
+
+export const MEJORAR_PLAN = gql`
+  mutation MejorarPlan($plan: String!) {
+    mejorarPlan(plan: $plan) { id plan }
+  }
+`;

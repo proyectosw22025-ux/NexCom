@@ -17,6 +17,7 @@ export const ME = gql`
         logoUrl
         ratingPromedio
         totalVentas
+        plan
       }
       perfilComprador {
         id

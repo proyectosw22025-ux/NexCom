@@ -9,6 +9,10 @@ import { getConfigNumber } from "../../shared/config.util.js";
 import { getFromCache, setCache, deleteCache, invalidatePattern, getOrSetCache, CacheKeys } from "../../shared/cache.util.js";
 import { env } from "../../config/env.js";
 
+// Planes de vendedor (H.2/H.3)
+const PRO_MAX_PRODUCTOS = 500;  // límite de productos para el plan PRO
+const PRO_MAX_DESTACADOS = 3;   // productos que un vendedor PRO puede destacar
+
 type ProductoInput = {
   nombre:      string;
   descripcion?: string | null;
@@ -163,11 +167,14 @@ export const productosService = {
       throw new GraphQLError("El stock no puede ser negativo.", { extensions: { code: "BAD_USER_INPUT" } });
     }
 
-    // Verificar límite de productos
-    const maxProductos = await getConfigNumber("max_productos_vendedor", prisma);
+    // Verificar límite de productos según el plan del vendedor (H.2)
+    const perfil = await prisma.perfilVendedor.findUnique({ where: { id: vendedorId }, select: { plan: true } });
+    const maxFree = await getConfigNumber("max_productos_vendedor", prisma);
+    const maxProductos = perfil?.plan === "PRO" ? PRO_MAX_PRODUCTOS : maxFree;
     const total = await prisma.producto.count({ where: { vendedorId, activo: true } });
     if (total >= maxProductos) {
-      throw new GraphQLError(`Has alcanzado el límite de ${maxProductos} productos activos.`, {
+      const sugerencia = perfil?.plan === "PRO" ? "" : " Mejora al plan PRO para publicar más.";
+      throw new GraphQLError(`Has alcanzado el límite de ${maxProductos} productos activos.${sugerencia}`, {
         extensions: { code: "FORBIDDEN" },
       });
     }
@@ -243,6 +250,41 @@ export const productosService = {
     await deleteCache(CacheKeys.producto(id));
     await invalidatePattern("busqueda:*");
     await invalidatePattern("catalogo:list:*"); // el orden del catálogo depende de `destacado`
+    return p;
+  },
+
+  /**
+   * H.3 — Destacar/quitar destaque de un producto propio. Beneficio del plan PRO,
+   * con tope de productos destacados. Un FREE no puede destacar.
+   */
+  async destacarMiProducto(id: string, vendedorId: string, prisma: PrismaClient) {
+    const existente = await productosRepository.findById(id, prisma);
+    if (!existente) throw new GraphQLError("Producto no encontrado.", { extensions: { code: "NOT_FOUND" } });
+    if (existente.vendedorId !== vendedorId) {
+      throw new GraphQLError("No tienes permiso sobre este producto.", { extensions: { code: "FORBIDDEN" } });
+    }
+
+    const perfil = await prisma.perfilVendedor.findUnique({ where: { id: vendedorId }, select: { plan: true } });
+    if (perfil?.plan !== "PRO") {
+      throw new GraphQLError("Destacar productos es un beneficio del plan PRO. Mejora tu plan para usarlo.", {
+        extensions: { code: "FORBIDDEN" },
+      });
+    }
+
+    // Al activar (no estaba destacado), respetar el tope de destacados
+    if (!existente.destacado) {
+      const destacados = await prisma.producto.count({ where: { vendedorId, destacado: true, activo: true } });
+      if (destacados >= PRO_MAX_DESTACADOS) {
+        throw new GraphQLError(`Solo puedes tener ${PRO_MAX_DESTACADOS} productos destacados a la vez.`, {
+          extensions: { code: "FORBIDDEN" },
+        });
+      }
+    }
+
+    const p = await productosRepository.toggleDestacado(id, prisma);
+    await deleteCache(CacheKeys.producto(id));
+    await invalidatePattern("busqueda:*");
+    await invalidatePattern("catalogo:list:*");
     return p;
   },
 

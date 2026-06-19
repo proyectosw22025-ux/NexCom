@@ -4,8 +4,8 @@ import { useQuery, useMutation } from "@apollo/client";
 import Link from "next/link";
 import { useState } from "react";
 import { MIS_PRODUCTOS } from "@/graphql/productos/queries";
-import { ELIMINAR_PRODUCTO } from "@/graphql/productos/mutations";
-import { Plus, Package, Pencil, Trash2, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { ELIMINAR_PRODUCTO, DESTACAR_MI_PRODUCTO } from "@/graphql/productos/mutations";
+import { Plus, Package, Pencil, Trash2, Loader2, ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { toast } from "sonner";
@@ -19,6 +19,7 @@ export default function VendedorProductosPage() {
     fetchPolicy: "cache-and-network",
   });
   const [eliminarProducto, { loading: deleting }] = useMutation(ELIMINAR_PRODUCTO);
+  const [destacarMiProducto, { loading: destacando }] = useMutation(DESTACAR_MI_PRODUCTO);
   const [paginaTabla, setPaginaTabla] = useState(1);
 
   const productos = data?.misProductos ?? [];
@@ -38,6 +39,19 @@ export default function VendedorProductosPage() {
         ? (err.graphQLErrors[0]?.message ?? "Error al eliminar.")
         : "Error al eliminar.";
       toast.error(msg);
+    }
+  }
+
+  async function handleDestacar(id: string, destacado: boolean) {
+    try {
+      await destacarMiProducto({ variables: { id } });
+      toast.success(destacado ? "Producto sin destacar." : "¡Producto destacado!");
+      await refetch();
+    } catch (err: unknown) {
+      const msg = err instanceof ApolloError
+        ? (err.graphQLErrors[0]?.message ?? "Error.")
+        : "Error.";
+      toast.error(msg); // p.ej. "Destacar es un beneficio del plan PRO…"
     }
   }
 
@@ -109,6 +123,14 @@ export default function VendedorProductosPage() {
                   </td>
                   <td className="px-4 py-3.5">
                     <div className="flex items-center gap-1 justify-end">
+                      <button
+                        onClick={() => handleDestacar(p.id, p.destacado)}
+                        disabled={destacando}
+                        title={p.destacado ? "Quitar destaque" : "Destacar (plan PRO)"}
+                        className="p-1.5 rounded-lg hover:bg-amber-50 transition-colors disabled:opacity-40"
+                      >
+                        <Star className={`h-4 w-4 ${p.destacado ? "text-amber-400 fill-amber-400" : "text-slate-300"}`} />
+                      </button>
                       <Link
                         href={`/vendedor/productos/${p.id}/editar`}
                         className="p-1.5 rounded-lg hover:bg-indigo-50 transition-colors"

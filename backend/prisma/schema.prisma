@@ -138,6 +138,7 @@ model PerfilVendedor {
   ratingPromedio Decimal  @default(0) @db.Decimal(3, 2) @map("rating_promedio")
   totalVentas    Int      @default(0) @map("total_ventas")
   totalResenias  Int      @default(0) @map("total_resenias")
+  plan           String   @default("FREE") // "FREE" | "PRO"
   creadoEn       DateTime @default(now()) @map("creado_en")
 
   usuario               Usuario        @relation(fields: [usuarioId], references: [id], onDelete: Cascade)

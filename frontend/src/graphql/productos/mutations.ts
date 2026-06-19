@@ -30,6 +30,12 @@ export const TOGGLE_DESTACADO = gql`
   }
 `;
 
+export const DESTACAR_MI_PRODUCTO = gql`
+  mutation DestacarMiProducto($id: ID!) {
+    destacarMiProducto(id: $id) { id destacado }
+  }
+`;
+
 export const AGREGAR_IMAGENES = gql`
   mutation AgregarImagenes($productoId: ID!, $urls: [String!]!) {
     agregarImagenes(productoId: $productoId, urls: $urls) {

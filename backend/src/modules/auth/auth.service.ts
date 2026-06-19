@@ -267,7 +267,24 @@ export async function getVendedorPublico(id: string, prisma: PrismaClient) {
     where:  { id },
     select: {
       id: true, nombreNegocio: true, descripcion: true, ciudad: true,
-      logoUrl: true, ratingPromedio: true, totalVentas: true, totalResenias: true,
+      logoUrl: true, ratingPromedio: true, totalVentas: true, totalResenias: true, plan: true,
+    },
+  });
+}
+
+// ── Planes de vendedor (H.2) ─────────────────────────────────────────────────────
+
+export async function mejorarPlan(perfilVendedorId: string, plan: string, prisma: PrismaClient) {
+  if (plan !== "FREE" && plan !== "PRO") {
+    throw new GraphQLError("Plan inválido.", { extensions: { code: "BAD_USER_INPUT" } });
+  }
+  // Pago simulado: el cambio de plan se aplica directamente
+  return prisma.perfilVendedor.update({
+    where:  { id: perfilVendedorId },
+    data:   { plan },
+    select: {
+      id: true, nombreNegocio: true, descripcion: true, ciudad: true,
+      logoUrl: true, ratingPromedio: true, totalVentas: true, totalResenias: true, plan: true,
     },
   });
 }

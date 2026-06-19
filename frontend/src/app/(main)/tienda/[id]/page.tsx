@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Store, MapPin, Star, Package, ChevronLeft, ChevronRight, ShoppingBag } from "lucide-react";
+import { Store, MapPin, Star, Package, ChevronLeft, ChevronRight, ShoppingBag, Crown } from "lucide-react";
 import { ProductoCard, type ProductoCardData } from "@/components/productos/ProductoCard";
 import { ProductoResenias } from "@/components/productos/ProductoResenias";
 import { gqlFetchCacheable } from "@/lib/graphql-server";
@@ -11,7 +11,7 @@ const LIMITE = 12;
 
 interface VendedorPublico {
   id: string; nombreNegocio: string; descripcion: string | null; ciudad: string;
-  logoUrl: string | null; ratingPromedio: string; totalVentas: number; totalResenias: number;
+  logoUrl: string | null; ratingPromedio: string; totalVentas: number; totalResenias: number; plan: string;
 }
 interface PaginatedProductos {
   items: ProductoCardData[]; total: number; pagina: number; totalPaginas: number;
@@ -20,7 +20,7 @@ interface PaginatedProductos {
 const VENDEDOR_Q = `
   query Vendedor($id: ID!) {
     vendedorPublico(id: $id) {
-      id nombreNegocio descripcion ciudad logoUrl ratingPromedio totalVentas totalResenias
+      id nombreNegocio descripcion ciudad logoUrl ratingPromedio totalVentas totalResenias plan
     }
   }`;
 
@@ -88,7 +88,14 @@ export default async function TiendaPage({
               : <Store className="h-7 w-7 text-white" />}
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl font-bold text-slate-900">{vendedor.nombreNegocio}</h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-2xl font-bold text-slate-900">{vendedor.nombreNegocio}</h1>
+              {vendedor.plan === "PRO" && (
+                <span className="inline-flex items-center gap-1 text-xs font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
+                  <Crown className="h-3 w-3" /> PRO
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-4 mt-1.5 flex-wrap text-sm text-slate-500">
               <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {vendedor.ciudad}</span>
               {vendedor.totalResenias > 0 && (

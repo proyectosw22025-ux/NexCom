@@ -68,6 +68,14 @@ export const productosResolvers = {
       return productosService.toggleDestacado(id, ctx.prisma);
     },
 
+    destacarMiProducto: (_: unknown, { id }: { id: string }, ctx: NexComContext) => {
+      requireRole(ctx, "VENDEDOR");
+      if (!ctx.user?.perfilVendedorId) {
+        throw new GraphQLError("Perfil de vendedor no encontrado.", { extensions: { code: "NOT_FOUND" } });
+      }
+      return productosService.destacarMiProducto(id, ctx.user.perfilVendedorId, ctx.prisma);
+    },
+
     agregarImagenes: (_: unknown, { productoId, urls }: { productoId: string; urls: string[] }, ctx: NexComContext) => {
       requireRole(ctx, "VENDEDOR");
       if (!ctx.user?.perfilVendedorId) {
