@@ -18,6 +18,7 @@ import { extractBearerToken, verifyAccessToken } from "./shared/jwt.util.js";
 import { publishNotificacion } from "./shared/pubsub.js";
 import { runWithLock } from "./shared/lock.util.js";
 import { registrarOperacion } from "./shared/metrics.js";
+import { initSentry, captureError, esErrorInesperado } from "./shared/sentry.js";
 import type { NexComContext, UsuarioJWT } from "./shared/types/context.type.js";
 
 interface WSExtra {
@@ -28,6 +29,8 @@ interface WSExtra {
 const stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: "2024-04-10" });
 
 async function bootstrap() {
+  initSentry(); // error tracking (inerte si no hay SENTRY_DSN)
+
   // Logging estructurado (Pino) con request-id automático por petición.
   // En producción registra cada request (método, url, status, tiempo, reqId)
   // como JSON — base de observabilidad. En dev, nivel más verboso.
@@ -39,6 +42,11 @@ async function bootstrap() {
 
   await app.register(corsPlugin);
   await app.register(rateLimitPlugin);
+
+  // Observa errores a nivel HTTP sin alterar la respuesta (los reporta a Sentry)
+  app.addHook("onError", async (req, _reply, err) => {
+    captureError(err, { url: req.url, method: req.method });
+  });
 
   app.get("/health", async (_req, reply) => {
     try {
@@ -58,8 +66,12 @@ async function bootstrap() {
       const operacion = args.operationName ?? "anónima";
       return {
         onExecuteDone({ result }: { result: unknown }) {
-          const conError = Boolean((result as { errors?: unknown[] })?.errors?.length);
-          registrarOperacion(operacion, Date.now() - inicio, conError);
+          const errors = (result as { errors?: Array<{ message: string; extensions?: { code?: unknown } }> })?.errors;
+          registrarOperacion(operacion, Date.now() - inicio, Boolean(errors?.length));
+          // Reporta a Sentry solo errores inesperados (no los de negocio/validación)
+          errors?.filter(esErrorInesperado).forEach((e) =>
+            captureError(e, { operacion, graphql: true }),
+          );
         },
       };
     },
@@ -269,6 +281,7 @@ async function bootstrap() {
       }
     } catch (err) {
       app.log.error({ err }, "Error procesando webhook de Stripe");
+      captureError(err, { contexto: "stripe-webhook" });
     }
 
     reply.status(200).send({ received: true });

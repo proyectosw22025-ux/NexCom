@@ -24,6 +24,9 @@ const envSchema = z.object({
   FRONTEND_URL:           z.string().url().default("http://localhost:3000"),
   GRAPHQL_PATH:           z.string().default("/graphql"),
 
+  // Error tracking (opcional): si no se define, Sentry queda inerte
+  SENTRY_DSN:             z.string().optional(),
+
   CACHE_TTL_PRODUCTO:     z.coerce.number().default(300),
   CACHE_TTL_CATALOGO:     z.coerce.number().default(180),
   CACHE_TTL_BUSQUEDA:     z.coerce.number().default(60),
