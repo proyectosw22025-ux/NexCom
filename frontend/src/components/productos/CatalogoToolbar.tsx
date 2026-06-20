@@ -12,9 +12,11 @@ const ORDEN_OPCIONES = [
   { value: "MEJOR_VALORADOS", label: "Mejor valorados" },
 ];
 
-// Capitales de departamento de Bolivia (la ciudad del vendedor)
+// Capitales de departamento de Bolivia (la ciudad del vendedor).
+// "todas" es un centinela: Radix Select no permite items con value "".
+const CIUDAD_TODAS = "todas";
 const CIUDADES_OPCIONES = [
-  { value: "",            label: "Todas las ciudades" },
+  { value: CIUDAD_TODAS,  label: "Todas las ciudades" },
   { value: "Santa Cruz",  label: "Santa Cruz" },
   { value: "La Paz",      label: "La Paz" },
   { value: "Cochabamba",  label: "Cochabamba" },
@@ -77,8 +79,8 @@ export function CatalogoToolbar({ orden, precioMin, precioMax, ciudad }: Catalog
       <div className="sm:w-48">
         <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Ciudad</label>
         <Select
-          value={ciudad ?? ""}
-          onValueChange={(v) => pushParams({ ciudad: v || null })}
+          value={ciudad || CIUDAD_TODAS}
+          onValueChange={(v) => pushParams({ ciudad: v === CIUDAD_TODAS ? null : v })}
           options={CIUDADES_OPCIONES}
           icon={MapPin}
         />
