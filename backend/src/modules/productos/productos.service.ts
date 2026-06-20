@@ -77,7 +77,7 @@ export const productosService = {
     prisma: PrismaClient,
   ) {
     // Saneamiento de filtros (defensa contra valores inválidos)
-    const ordenValido = ["RECIENTES", "PRECIO_ASC", "PRECIO_DESC", "MEJOR_VALORADOS"].includes(orden ?? "")
+    const ordenValido = ["RECIENTES", "PRECIO_ASC", "PRECIO_DESC", "MEJOR_VALORADOS", "MAS_VENDIDOS"].includes(orden ?? "")
       ? (orden as string) : "RECIENTES";
     const min = typeof precioMin === "number" && precioMin >= 0 ? precioMin : null;
     const max = typeof precioMax === "number" && precioMax >= 0 ? precioMax : null;

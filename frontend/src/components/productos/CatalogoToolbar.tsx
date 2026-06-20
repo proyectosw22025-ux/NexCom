@@ -7,6 +7,7 @@ import { Select } from "@/components/ui/Select";
 
 const ORDEN_OPCIONES = [
   { value: "RECIENTES",       label: "Más recientes" },
+  { value: "MAS_VENDIDOS",    label: "Más vendidos" },
   { value: "PRECIO_ASC",      label: "Precio: menor a mayor" },
   { value: "PRECIO_DESC",     label: "Precio: mayor a menor" },
   { value: "MEJOR_VALORADOS", label: "Mejor valorados" },

@@ -19,6 +19,7 @@ export interface ProductoCardData {
   stock:       number;
   activo:      boolean;
   destacado:   boolean;
+  totalVendido?: number;
   descripcion?: string | null;
   categoria:   { id: string; nombre: string; slug: string };
   vendedor:    { id?: string; nombreNegocio: string; ciudad?: string; ratingPromedio?: string; totalResenias?: number; telefono?: string | null; verificado?: boolean };

@@ -100,6 +100,7 @@ export const productosRepository = {
       orden === "PRECIO_ASC"      ? [{ precio: "asc" }]
       : orden === "PRECIO_DESC"   ? [{ precio: "desc" }]
       : orden === "MEJOR_VALORADOS" ? [{ vendedor: { ratingPromedio: "desc" } }, { creadoEn: "desc" }]
+      : orden === "MAS_VENDIDOS"  ? [{ totalVendido: "desc" }, { destacado: "desc" }]
       : [{ destacado: "desc" }, { creadoEn: "desc" }]; // RECIENTES (default)
 
     const [total, rows] = await prisma.$transaction([

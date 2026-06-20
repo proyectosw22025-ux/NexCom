@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Filter, Package } from "lucide-react";
+import { ChevronLeft, ChevronRight, Filter, Package, Flame } from "lucide-react";
 import { ProductoCard, type ProductoCardData } from "@/components/productos/ProductoCard";
 import { CatalogoToolbar } from "@/components/productos/CatalogoToolbar";
 import { gqlFetchCacheable } from "@/lib/graphql-server";
@@ -22,9 +22,9 @@ const PRODUCTOS_Q = `
   query Productos($pagina: Int, $limite: Int, $categoriaId: ID, $soloActivos: Boolean, $orden: OrdenProducto, $precioMin: Float, $precioMax: Float, $ciudad: String) {
     productos(pagina: $pagina, limite: $limite, categoriaId: $categoriaId, soloActivos: $soloActivos, orden: $orden, precioMin: $precioMin, precioMax: $precioMax, ciudad: $ciudad) {
       items {
-        id nombre descripcion precio stock activo destacado
+        id nombre descripcion precio stock activo destacado totalVendido
         categoria { id nombre slug }
-        vendedor  { id nombreNegocio ratingPromedio totalResenias }
+        vendedor  { id nombreNegocio ratingPromedio totalResenias verificado }
         imagenes  { url orden }
         etiquetas { nombre }
       }
@@ -68,6 +68,22 @@ export default async function ProductosPage({
     categorias = catData.categorias;
   } catch {
     /* fetch falló — se renderiza el estado vacío */
+  }
+
+  // Recomendación: "Lo más vendido" (por ciudad si hay filtro). Solo en la página 1
+  // y si el usuario no está ya ordenando por más vendidos (evita duplicar el grid).
+  let masVendidos: PaginatedProductos["items"] = [];
+  if (pagina === 1 && orden !== "MAS_VENDIDOS") {
+    try {
+      const recom = await gqlFetchCacheable<{ productos: PaginatedProductos }>(
+        PRODUCTOS_Q,
+        { pagina: 1, limite: 4, categoriaId, soloActivos: true, orden: "MAS_VENDIDOS", precioMin: null, precioMax: null, ciudad },
+        120,
+      );
+      masVendidos = recom.productos.items.filter((p) => (p.totalVendido ?? 0) > 0);
+    } catch {
+      /* recomendación opcional — se omite si falla */
+    }
   }
 
   // Preserva orden y rango de precio al cambiar de categoría/página
@@ -146,6 +162,23 @@ export default async function ProductosPage({
             precioMax={precioMax != null ? String(precioMax) : undefined}
             ciudad={ciudad ?? undefined}
           />
+
+          {/* Recomendación: lo más vendido (por ciudad si hay filtro) */}
+          {masVendidos.length > 0 && (
+            <section className="mb-7">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-7 h-7 rounded-lg bg-orange-50 flex items-center justify-center">
+                  <Flame className="h-4 w-4 text-orange-500" />
+                </div>
+                <h2 className="text-sm font-bold text-slate-900">
+                  Lo más vendido{ciudad ? ` en ${ciudad}` : ""}
+                </h2>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
+                {masVendidos.map((p, index) => <ProductoCard key={`top-${p.id}`} producto={p} index={index} />)}
+              </div>
+            </section>
+          )}
 
           {!result || result.items.length === 0 ? (
             <div className="text-center py-24">

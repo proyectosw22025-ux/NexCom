@@ -52,6 +52,7 @@ export const productosTypeDefs = /* GraphQL */ `
     PRECIO_ASC
     PRECIO_DESC
     MEJOR_VALORADOS
+    MAS_VENDIDOS
   }
 
   extend type Query {
