@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { CONFIRMAR_PAGO_SIMULADO } from "@/graphql/pagos/mutations";
 import { CheckoutStepper } from "@/components/checkout/CheckoutStepper";
 
-interface CheckoutData { ordenId: string; metodoPago: string; total: string }
+interface CheckoutData { ordenIds: string[]; metodoPago: string; total: string }
 
 // Datos bancarios de demostración (simulado)
 const CUENTA = {
@@ -32,9 +32,9 @@ export default function PagoPage() {
   async function handleConfirmar() {
     if (!data) return;
     try {
-      await confirmarPago({ variables: { ordenId: data.ordenId } });
+      await confirmarPago({ variables: { ordenIds: data.ordenIds } });
       sessionStorage.removeItem("nexcom_checkout");
-      router.push(`/checkout/confirmacion?ordenId=${data.ordenId}&status=ok`);
+      router.push(`/checkout/confirmacion?ordenId=${data.ordenIds[0]}&count=${data.ordenIds.length}&status=ok`);
     } catch (err: unknown) {
       const msg = err instanceof ApolloError ? (err.graphQLErrors[0]?.message ?? "Error.") : "Error.";
       toast.error(msg);
@@ -52,7 +52,7 @@ export default function PagoPage() {
 
   const esQR = data.metodoPago === "qr";
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
-    `NEXCOM-PAGO|orden:${data.ordenId}|monto:${data.total}|moneda:BOB`,
+    `NEXCOM-PAGO|orden:${data.ordenIds[0]}|monto:${data.total}|moneda:BOB`,
   )}`;
 
   return (

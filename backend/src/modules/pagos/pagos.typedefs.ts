@@ -20,15 +20,14 @@ export const pagosTypeDefs = /* GraphQL */ `
   }
 
   type OrdenSimuladaResult {
-    ordenId:    ID!
+    ordenIds:   [ID!]!
     metodoPago: String!
     total:      String!
   }
 
   type ConfirmacionPagoResult {
-    ordenId: ID!
-    estado:  String!
-    metodo:  String!
+    ordenIds: [ID!]!
+    estado:   String!
   }
 
   extend type Mutation {
@@ -44,6 +43,6 @@ export const pagosTypeDefs = /* GraphQL */ `
       metodoPago:  MetodoPagoBoliviano!
     ): OrdenSimuladaResult!
 
-    confirmarPagoSimulado(ordenId: ID!): ConfirmacionPagoResult!
+    confirmarPagoSimulado(ordenIds: [ID!]!): ConfirmacionPagoResult!
   }
 `;

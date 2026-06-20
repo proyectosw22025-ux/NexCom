@@ -12,7 +12,7 @@ export const CREAR_PAYMENT_INTENT = gql`
 export const CREAR_ORDEN_SIMULADA = gql`
   mutation CrearOrdenSimulada($direccionId: ID!, $cuponCodigo: String, $metodoPago: MetodoPagoBoliviano!) {
     crearOrdenSimulada(direccionId: $direccionId, cuponCodigo: $cuponCodigo, metodoPago: $metodoPago) {
-      ordenId
+      ordenIds
       metodoPago
       total
     }
@@ -20,11 +20,10 @@ export const CREAR_ORDEN_SIMULADA = gql`
 `;
 
 export const CONFIRMAR_PAGO_SIMULADO = gql`
-  mutation ConfirmarPagoSimulado($ordenId: ID!) {
-    confirmarPagoSimulado(ordenId: $ordenId) {
-      ordenId
+  mutation ConfirmarPagoSimulado($ordenIds: [ID!]!) {
+    confirmarPagoSimulado(ordenIds: $ordenIds) {
+      ordenIds
       estado
-      metodo
     }
   }
 `;

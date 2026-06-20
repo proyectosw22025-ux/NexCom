@@ -8,21 +8,19 @@ import { publishNotificacion } from "../../shared/pubsub.js";
 
 const METODOS_BOLIVIANOS = ["qr", "transferencia", "contra_entrega"];
 
+type ItemCarrito = {
+  productoId: string;
+  cantidad: number;
+  precioSnapshot: { toString: () => string };
+  producto: { nombre: string; activo: boolean; stock: number; vendedorId: string };
+};
+
 export const pagosService = {
   /**
-   * Validación y creación de la orden (carrito, stock, dirección, subtotal,
-   * cupón con scope, creación + descuento de stock + uso de cupón).
-   * Compartido por el flujo Stripe y el flujo boliviano simulado.
+   * Valida el carrito (no vacío, stock, productos activos) y la dirección.
+   * Devuelve el carrito y el snapshot de dirección. Compartido por todos los flujos.
    */
-  async _prepararOrden(
-    compradorId: string,
-    usuarioId: string,
-    direccionId: string,
-    cuponCodigo: string | null | undefined,
-    metodoPago: string,
-    moneda: string,
-    prisma: PrismaClient,
-  ) {
+  async _validarCheckout(compradorId: string, direccionId: string, prisma: PrismaClient) {
     const carrito = await pagosRepository.findCarritoConItems(compradorId, prisma);
     if (!carrito || carrito.items.length === 0) {
       throw new GraphQLError("Tu carrito está vacío.", { extensions: { code: "BAD_USER_INPUT" } });
@@ -40,7 +38,6 @@ export const pagosService = {
         );
       }
     }
-
     const direccion = await pagosRepository.findDireccionConSnapshot(direccionId, prisma);
     if (!direccion || !direccion.activo) {
       throw new GraphQLError("Dirección no encontrada.", { extensions: { code: "NOT_FOUND" } });
@@ -50,12 +47,27 @@ export const pagosService = {
       zona: direccion.zona, ciudad: direccion.ciudad, departamento: direccion.departamento,
       referencia: direccion.referencia,
     };
+    return { carrito, direccionSnapshot };
+  },
 
-    const subtotal = carrito.items.reduce(
+  /** Crea UNA orden con todos los items del carrito (flujo Stripe legado). */
+  async _prepararOrden(
+    compradorId: string,
+    usuarioId: string,
+    direccionId: string,
+    cuponCodigo: string | null | undefined,
+    metodoPago: string,
+    moneda: string,
+    prisma: PrismaClient,
+  ) {
+    const { carrito, direccionSnapshot } = await this._validarCheckout(compradorId, direccionId, prisma);
+    const items = carrito.items as ItemCarrito[];
+
+    const subtotal = items.reduce(
       (acc, it) => acc.plus(new Decimal(it.precioSnapshot.toString()).mul(it.cantidad)),
       new Decimal(0),
     );
-    const vendedorId = carrito.items[0]!.producto.vendedorId;
+    const vendedorId = items[0]!.producto.vendedorId;
 
     let descuentoCupon = new Decimal(0);
     let cuponId: string | null = null;
@@ -75,7 +87,7 @@ export const pagosService = {
       {
         compradorId, vendedorId, direccionId, direccionSnapshot, subtotal, descuentoCupon, total,
         metodoPago, moneda,
-        items: carrito.items.map((it) => ({
+        items: items.map((it) => ({
           productoId: it.productoId, nombreSnapshot: it.producto.nombre,
           cantidad: it.cantidad, precioUnitario: new Decimal(it.precioSnapshot.toString()),
         })),
@@ -88,7 +100,7 @@ export const pagosService = {
     return { orden, total };
   },
 
-  // ── Flujo boliviano simulado (QR / transferencia / contra entrega) ──────────────
+  // ── Flujo boliviano simulado con SPLIT por vendedor ─────────────────────────────
 
   async crearOrdenSimulada(
     compradorId: string,
@@ -101,22 +113,79 @@ export const pagosService = {
     if (!METODOS_BOLIVIANOS.includes(metodoPago)) {
       throw new GraphQLError("Método de pago inválido.", { extensions: { code: "BAD_USER_INPUT" } });
     }
-    const { orden } = await this._prepararOrden(
-      compradorId, usuarioId, direccionId, cuponCodigo, metodoPago, "BOB", prisma,
-    );
-    // Contra entrega: la orden se confirma de inmediato (se cobra al entregar)
-    if (metodoPago === "contra_entrega") {
-      await this.confirmarPagoSimulado(orden.id, compradorId, usuarioId, prisma);
+    const { carrito, direccionSnapshot } = await this._validarCheckout(compradorId, direccionId, prisma);
+    const items = carrito.items as ItemCarrito[];
+
+    // Agrupar por vendedor → una orden por tienda (marketplace real)
+    const grupos = new Map<string, ItemCarrito[]>();
+    for (const it of items) {
+      const v = it.producto.vendedorId;
+      (grupos.get(v) ?? grupos.set(v, []).get(v)!).push(it);
     }
-    return { ordenId: orden.id, metodoPago, total: orden.total.toString() };
+    const multiVendedor = grupos.size > 1;
+
+    // Cupón: solo aplica a compras de una sola tienda (evita descuentos ambiguos al hacer split)
+    const descuentoPorVendedor = new Map<string, Decimal>();
+    let cuponId: string | null = null;
+    if (cuponCodigo) {
+      if (multiVendedor) {
+        throw new GraphQLError("El cupón solo aplica a compras de una sola tienda.", {
+          extensions: { code: "BAD_USER_INPUT" },
+        });
+      }
+      const vendedorUnico = [...grupos.keys()][0]!;
+      const subtotalTotal = items.reduce(
+        (acc, it) => acc.plus(new Decimal(it.precioSnapshot.toString()).mul(it.cantidad)), new Decimal(0),
+      );
+      const validacion = await cuponesService.validar(cuponCodigo, subtotalTotal.toString(), usuarioId, prisma);
+      if (validacion.vendedorIdCupon && validacion.vendedorIdCupon !== vendedorUnico) {
+        throw new GraphQLError("Este cupón solo aplica a productos de la tienda que lo emitió.", {
+          extensions: { code: "BAD_USER_INPUT" },
+        });
+      }
+      descuentoPorVendedor.set(vendedorUnico, new Decimal(validacion.descuento));
+      cuponId = validacion.cuponId;
+    }
+
+    const ordenIds: string[] = [];
+    let totalGeneral = new Decimal(0);
+
+    for (const [vendedorId, grupoItems] of grupos) {
+      const subtotal = grupoItems.reduce(
+        (acc, it) => acc.plus(new Decimal(it.precioSnapshot.toString()).mul(it.cantidad)), new Decimal(0),
+      );
+      const descuento = descuentoPorVendedor.get(vendedorId) ?? new Decimal(0);
+      const total = subtotal.minus(descuento);
+
+      const orden = await pagosRepository.crearOrdenConItems(
+        {
+          compradorId, vendedorId, direccionId, direccionSnapshot, subtotal, descuentoCupon: descuento, total,
+          metodoPago, moneda: "BOB",
+          items: grupoItems.map((it) => ({
+            productoId: it.productoId, nombreSnapshot: it.producto.nombre,
+            cantidad: it.cantidad, precioUnitario: new Decimal(it.precioSnapshot.toString()),
+          })),
+        },
+        prisma,
+      );
+      if (cuponId && descuento.gt(0)) {
+        await pagosRepository.crearUsoCupon(cuponId, orden.id, usuarioId, descuento, prisma);
+      }
+      ordenIds.push(orden.id);
+      totalGeneral = totalGeneral.plus(total);
+    }
+
+    // Contra entrega: confirmar todas de inmediato (se cobra al entregar)
+    if (metodoPago === "contra_entrega") {
+      for (const id of ordenIds) await this._confirmarOrden(id, compradorId, prisma);
+      await pagosRepository.limpiarCarrito(compradorId, prisma);
+    }
+
+    return { ordenIds, metodoPago, total: totalGeneral.toString() };
   },
 
-  async confirmarPagoSimulado(
-    ordenId: string,
-    compradorId: string,
-    _usuarioId: string,
-    prisma: PrismaClient,
-  ) {
+  /** Confirma una sola orden (PAGADO) y notifica a comprador y vendedor. */
+  async _confirmarOrden(ordenId: string, compradorId: string, prisma: PrismaClient) {
     const orden = await pagosRepository.findOrdenConParticipantes(ordenId, prisma);
     if (!orden || orden.comprador?.id !== compradorId) {
       throw new GraphQLError("Orden no encontrada.", { extensions: { code: "NOT_FOUND" } });
@@ -124,12 +193,9 @@ export const pagosService = {
     if (orden.estado !== "PENDIENTE_PAGO") {
       throw new GraphQLError("Esta orden ya fue procesada.", { extensions: { code: "BAD_USER_INPUT" } });
     }
-
     const metodo = orden.pago?.metodo ?? "qr";
     await pagosRepository.confirmarPagoSimulado(ordenId, orden.pago?.id ?? null, compradorId, metodo, prisma);
-    await pagosRepository.limpiarCarrito(compradorId, prisma);
 
-    // Notificaciones a comprador y vendedor (infra en tiempo real ya existente)
     const idCorto = ordenId.slice(-6).toUpperCase();
     const eventos = [
       { usuarioId: orden.comprador!.usuarioId, tipo: "PAGO_CONFIRMADO", titulo: "¡Pedido confirmado!",
@@ -144,8 +210,21 @@ export const pagosService = {
         leido: notif.leido, url: notif.url, ordenId: notif.ordenId, creadoEn: notif.creadoEn.toISOString(),
       });
     }
+  },
 
-    return { ordenId, estado: "PAGADO", metodo };
+  /** Confirma el pago simulado de una o varias órdenes (QR / transferencia). */
+  async confirmarPagoSimulado(
+    ordenIds: string[],
+    compradorId: string,
+    _usuarioId: string,
+    prisma: PrismaClient,
+  ) {
+    if (!ordenIds.length) {
+      throw new GraphQLError("No hay órdenes para confirmar.", { extensions: { code: "BAD_USER_INPUT" } });
+    }
+    for (const id of ordenIds) await this._confirmarOrden(id, compradorId, prisma);
+    await pagosRepository.limpiarCarrito(compradorId, prisma);
+    return { ordenIds, estado: "PAGADO" };
   },
 
   async crearPaymentIntent(
@@ -165,19 +244,10 @@ export const pagosService = {
     const intent = await stripe.paymentIntents.create({
       amount:   amountCents,
       currency: "usd",
-      metadata: {
-        ordenId:     orden.id,
-        compradorId,
-        environment: "sandbox",
-      },
+      metadata: { ordenId: orden.id, compradorId, environment: "sandbox" },
     });
-
-    // 10. Guardar PI ID en la orden
     await pagosRepository.guardarStripePaymentIntentId(orden.id, intent.id, prisma);
 
-    return {
-      clientSecret: intent.client_secret!,
-      ordenId:      orden.id,
-    };
+    return { clientSecret: intent.client_secret!, ordenId: orden.id };
   },
 };

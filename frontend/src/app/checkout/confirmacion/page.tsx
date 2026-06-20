@@ -12,6 +12,8 @@ function ConfirmacionContent() {
   const params  = useSearchParams();
   const status  = params.get("status");
   const ordenId = params.get("ordenId");
+  const count   = parseInt(params.get("count") ?? "1", 10) || 1;
+  const varios  = count > 1;
   const ok      = status === "ok";
 
   return (
@@ -34,19 +36,30 @@ function ConfirmacionContent() {
 
       <p className="text-sm text-slate-500 mb-2">
         {ok
-          ? "Tu orden fue registrada y el vendedor fue notificado."
+          ? (varios
+              ? `Tu compra se dividió en ${count} pedidos (uno por tienda) y cada vendedor fue notificado.`
+              : "Tu pedido fue registrado y el vendedor fue notificado.")
           : "Ocurrió un problema al procesar tu pago. No se realizó ningún cargo."
         }
       </p>
 
-      {ordenId && (
+      {ordenId && !varios && (
         <p className="text-xs text-slate-400 font-mono mb-8">
-          Orden #{ordenId.slice(-6).toUpperCase()}
+          Pedido #{ordenId.slice(-6).toUpperCase()}
         </p>
       )}
+      {varios && <div className="mb-8" />}
 
       <div className="flex flex-col gap-3">
-        {ok && ordenId && (
+        {ok && (varios ? (
+          <Link
+            href="/comprador/ordenes"
+            className="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700
+                       text-white font-semibold rounded-xl py-3 text-sm transition-colors shadow-sm shadow-indigo-200"
+          >
+            <Package className="h-4 w-4" /> Ver mis pedidos
+          </Link>
+        ) : ordenId && (
           <Link
             href={`/comprador/ordenes/${ordenId}`}
             className="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700
@@ -54,9 +67,9 @@ function ConfirmacionContent() {
                        shadow-sm shadow-indigo-200"
           >
             <Package className="h-4 w-4" />
-            Ver mi orden
+            Ver mi pedido
           </Link>
-        )}
+        ))}
         {!ok && (
           <Link
             href="/checkout"

@@ -41,7 +41,7 @@ export const pagosResolvers = {
 
     confirmarPagoSimulado: (
       _: unknown,
-      { ordenId }: { ordenId: string },
+      { ordenIds }: { ordenIds: string[] },
       ctx: NexComContext,
     ) => {
       requireRole(ctx, "COMPRADOR");
@@ -49,7 +49,7 @@ export const pagosResolvers = {
         throw new GraphQLError("Perfil de comprador no encontrado.", { extensions: { code: "NOT_FOUND" } });
       }
       return pagosService.confirmarPagoSimulado(
-        ordenId, ctx.user.perfilCompradorId, ctx.user.id, ctx.prisma,
+        ordenIds, ctx.user.perfilCompradorId, ctx.user.id, ctx.prisma,
       );
     },
   },

@@ -132,13 +132,39 @@ describe("pagosService — flujo boliviano simulado", () => {
 
     const r = await pagosService.crearOrdenSimulada("comprador-1", "usuario-1", "dir-1", null, "transferencia", prisma);
 
-    expect(r).toMatchObject({ ordenId: "orden-1", metodoPago: "transferencia" });
+    expect(r.ordenIds).toEqual(["orden-1"]);
+    expect(r.metodoPago).toBe("transferencia");
     // moneda BOB y método correctos
     expect(pagosRepository.crearOrdenConItems).toHaveBeenCalledWith(
       expect.objectContaining({ metodoPago: "transferencia", moneda: "BOB" }), prisma,
     );
     // transferencia NO confirma automáticamente
     expect(pagosRepository.confirmarPagoSimulado).not.toHaveBeenCalled();
+  });
+
+  it("crearOrdenSimulada divide el carrito en una orden por vendedor (split)", async () => {
+    const itemV2 = { ...itemValido, productoId: "prod-2", producto: { ...itemValido.producto, vendedorId: "vendedor-2" } };
+    vi.mocked(pagosRepository.findCarritoConItems).mockResolvedValue({ items: [itemValido, itemV2] } as never);
+    vi.mocked(pagosRepository.findDireccionConSnapshot).mockResolvedValue(direccionValida as never);
+    vi.mocked(pagosRepository.crearOrdenConItems)
+      .mockResolvedValueOnce({ id: "orden-A" } as never)
+      .mockResolvedValueOnce({ id: "orden-B" } as never);
+
+    const r = await pagosService.crearOrdenSimulada("comprador-1", "usuario-1", "dir-1", null, "transferencia", prisma);
+
+    expect(r.ordenIds).toEqual(["orden-A", "orden-B"]); // una orden por cada vendedor
+    expect(pagosRepository.crearOrdenConItems).toHaveBeenCalledTimes(2);
+  });
+
+  it("crearOrdenSimulada rechaza cupón en carrito multi-vendedor", async () => {
+    const itemV2 = { ...itemValido, productoId: "prod-2", producto: { ...itemValido.producto, vendedorId: "vendedor-2" } };
+    vi.mocked(pagosRepository.findCarritoConItems).mockResolvedValue({ items: [itemValido, itemV2] } as never);
+    vi.mocked(pagosRepository.findDireccionConSnapshot).mockResolvedValue(direccionValida as never);
+
+    await expect(
+      pagosService.crearOrdenSimulada("comprador-1", "usuario-1", "dir-1", "PROMO", "transferencia", prisma),
+    ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
+    expect(pagosRepository.crearOrdenConItems).not.toHaveBeenCalled();
   });
 
   it("crearOrdenSimulada rechaza un método inválido", async () => {
@@ -162,9 +188,9 @@ describe("pagosService — flujo boliviano simulado", () => {
       vendedor:  { id: "vendedor-1", usuarioId: "u-vendedor" },
     } as never);
 
-    const r = await pagosService.confirmarPagoSimulado("orden-1", "comprador-1", "usuario-1", prismaConNotif);
+    const r = await pagosService.confirmarPagoSimulado(["orden-1"], "comprador-1", "usuario-1", prismaConNotif);
 
-    expect(r).toMatchObject({ ordenId: "orden-1", estado: "PAGADO" });
+    expect(r).toMatchObject({ ordenIds: ["orden-1"], estado: "PAGADO" });
     expect(pagosRepository.confirmarPagoSimulado).toHaveBeenCalled();
     expect(pagosRepository.limpiarCarrito).toHaveBeenCalledWith("comprador-1", prismaConNotif);
     expect(notifCreate).toHaveBeenCalledTimes(2); // comprador + vendedor
@@ -177,7 +203,7 @@ describe("pagosService — flujo boliviano simulado", () => {
     } as never);
 
     await expect(
-      pagosService.confirmarPagoSimulado("orden-1", "comprador-1", "usuario-1", prisma),
+      pagosService.confirmarPagoSimulado(["orden-1"], "comprador-1", "usuario-1", prisma),
     ).rejects.toMatchObject({ extensions: { code: "NOT_FOUND" } });
   });
 
@@ -188,7 +214,7 @@ describe("pagosService — flujo boliviano simulado", () => {
     } as never);
 
     await expect(
-      pagosService.confirmarPagoSimulado("orden-1", "comprador-1", "usuario-1", prisma),
+      pagosService.confirmarPagoSimulado(["orden-1"], "comprador-1", "usuario-1", prisma),
     ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
   });
 });

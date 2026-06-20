@@ -125,15 +125,15 @@ export default function CheckoutPage() {
       const { data } = await crearOrdenSimulada({
         variables: { direccionId, cuponCodigo: cuponAplicado?.codigo ?? null, metodoPago },
       });
-      const { ordenId } = data.crearOrdenSimulada;
+      const { ordenIds } = data.crearOrdenSimulada;
 
-      // Contra entrega: la orden ya queda confirmada → directo a confirmación
+      // Contra entrega: las órdenes ya quedan confirmadas → directo a confirmación
       if (metodoPago === "contra_entrega") {
-        router.push(`/checkout/confirmacion?ordenId=${ordenId}&status=ok`);
+        router.push(`/checkout/confirmacion?ordenId=${ordenIds[0]}&count=${ordenIds.length}&status=ok`);
         return;
       }
       // QR / transferencia: ir a la pantalla de pago para confirmar
-      sessionStorage.setItem("nexcom_checkout", JSON.stringify({ ordenId, metodoPago, total: total.toFixed(2) }));
+      sessionStorage.setItem("nexcom_checkout", JSON.stringify({ ordenIds, metodoPago, total: total.toFixed(2) }));
       router.push("/checkout/pago");
     } catch (err: unknown) {
       const msg = err instanceof ApolloError
