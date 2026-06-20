@@ -167,6 +167,7 @@ model PerfilVendedor {
   devoluciones          Devolucion[]
   movimientosSaldo      MovimientoSaldo[]
   solicitudesRetiro     SolicitudRetiro[]
+  facturas              Factura[]
 
   @@map("perfiles_vendedor")
 }
@@ -190,6 +191,7 @@ model PerfilComprador {
   favoritos            Favorito[]
   conversaciones       Conversacion[]
   devoluciones         Devolucion[]
+  facturas             Factura[]
 
   @@map("perfiles_comprador")
 }
@@ -502,11 +504,36 @@ model Orden {
   notificaciones   Notificacion[]
   usoCupon         UsoCupon?
   devolucion       Devolucion?
+  factura          Factura?
 
   @@index([compradorId, estado])
   @@index([vendedorId, estado])
   @@index([estado, creadoEn])
   @@map("ordenes")
+}
+
+// Factura simulada (estilo boliviano: NIT/razón social del cliente, IVA 13% por
+// dentro, código de control). Una por orden; correlativo por vendedor (emisor).
+model Factura {
+  id            String   @id @default(cuid())
+  ordenId       String   @unique @map("orden_id")
+  vendedorId    String   @map("vendedor_id")
+  compradorId   String   @map("comprador_id")
+  numero        Int // correlativo por vendedor
+  nitComprador  String   @map("nit_comprador") // NIT o CI; "0" = sin nombre
+  razonSocial   String   @map("razon_social")
+  importeTotal  Decimal  @db.Decimal(12, 4) @map("importe_total") // IVA incluido
+  iva           Decimal  @db.Decimal(12, 4) // 13% por dentro
+  codigoControl String   @map("codigo_control")
+  fechaEmision  DateTime @default(now()) @map("fecha_emision")
+
+  orden     Orden           @relation(fields: [ordenId],     references: [id])
+  vendedor  PerfilVendedor  @relation(fields: [vendedorId],  references: [id])
+  comprador PerfilComprador @relation(fields: [compradorId], references: [id])
+
+  @@unique([vendedorId, numero]) // correlativo único por emisor
+  @@index([compradorId, fechaEmision])
+  @@map("facturas")
 }
 
 model Devolucion {

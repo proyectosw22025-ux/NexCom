@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { TimelineEstados } from "@/components/ordenes/TimelineEstados";
 import { DevolucionComprador } from "@/components/devoluciones/DevolucionComprador";
+import { FacturaOrden } from "@/components/facturas/FacturaOrden";
 import {
   ArrowLeft, Loader2, Package, MapPin, CreditCard,
   CheckCircle, Star, Send, Clock,
@@ -256,6 +257,11 @@ export default function CompradorOrdenDetallePage() {
               </form>
             )}
           </div>
+        )}
+
+        {/* Factura (órdenes ya pagadas) */}
+        {orden.estado !== "PENDIENTE_PAGO" && orden.estado !== "CANCELADO" && (
+          <FacturaOrden ordenId={orden.id} />
         )}
 
         {/* Devolución (disponible tras la entrega) */}
