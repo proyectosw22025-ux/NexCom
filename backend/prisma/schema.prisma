@@ -485,6 +485,8 @@ model Orden {
   estado                EstadoOrden @default(PENDIENTE_PAGO)
   subtotal              Decimal     @db.Decimal(12, 4)
   descuentoCupon        Decimal     @default(0) @db.Decimal(12, 4) @map("descuento_cupon")
+  costoEnvio            Decimal     @default(0) @db.Decimal(12, 4) @map("costo_envio")
+  metodoEntrega         String      @default("domicilio") @map("metodo_entrega") // "domicilio" | "retiro_tienda"
   total                 Decimal     @db.Decimal(12, 4)
   stripePaymentIntentId String?     @unique @map("stripe_payment_intent_id")
   comprobanteUrl        String?     @map("comprobante_url")

@@ -49,6 +49,8 @@ export const ordenesTypeDefs = /* GraphQL */ `
     estado:                EstadoOrden!
     subtotal:              String!
     descuentoCupon:        String!
+    costoEnvio:            String!
+    metodoEntrega:         String!
     total:                 String!
     notas:                 String
     direccionSnapshot:     DireccionSnapshot

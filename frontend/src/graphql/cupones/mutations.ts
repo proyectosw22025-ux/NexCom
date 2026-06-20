@@ -9,6 +9,12 @@ export const CREAR_CUPON = gql`
   }
 `;
 
+export const DESACTIVAR_CUPON = gql`
+  mutation DesactivarCupon($id: ID!) {
+    desactivarCupon(id: $id) { id activo }
+  }
+`;
+
 export const VALIDAR_CUPON = gql`
   mutation ValidarCupon($codigo: String!, $subtotal: String!) {
     validarCupon(codigo: $codigo, subtotal: $subtotal) {

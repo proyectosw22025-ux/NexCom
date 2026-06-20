@@ -21,6 +21,7 @@ function mapOrden(o: ReturnType<typeof rawOrden>) {
     ...o,
     subtotal:       o.subtotal.toString(),
     descuentoCupon: o.descuentoCupon.toString(),
+    costoEnvio:     o.costoEnvio.toString(),
     total:          o.total.toString(),
     creadoEn:       o.creadoEn.toISOString(),
     actualizadoEn:  o.actualizadoEn.toISOString(),
@@ -44,6 +45,7 @@ function mapOrden(o: ReturnType<typeof rawOrden>) {
 function rawOrden(o: {
   id: string; compradorId: string; vendedorId: string; estado: string;
   subtotal: { toString(): string }; descuentoCupon: { toString(): string };
+  costoEnvio: { toString(): string }; metodoEntrega: string;
   total: { toString(): string }; notas: string | null;
   stripePaymentIntentId: string | null; direccionSnapshot: unknown;
   creadoEn: Date; actualizadoEn: Date;

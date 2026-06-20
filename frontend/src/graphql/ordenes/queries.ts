@@ -6,6 +6,8 @@ const ORDEN_FIELDS = gql`
     estado
     subtotal
     descuentoCupon
+    costoEnvio
+    metodoEntrega
     total
     notas
     creadoEn

@@ -12,7 +12,7 @@ import { CREAR_ORDEN_SIMULADA } from "@/graphql/pagos/mutations";
 import { ApolloError } from "@apollo/client";
 import {
   MapPin, Plus, Tag, ShoppingBag, ChevronRight, Loader2, CheckCircle, X,
-  QrCode, Landmark, Truck,
+  QrCode, Landmark, Truck, Store,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Decimal } from "decimal.js";
@@ -47,6 +47,7 @@ export default function CheckoutPage() {
   const [validandoCupon, setValidandoCupon] = useState(false);
   const [creandoPago, setCreandoPago]       = useState(false);
   const [metodoPago, setMetodoPago]         = useState<"qr" | "transferencia" | "contra_entrega">("qr");
+  const [metodoEntrega, setMetodoEntrega]   = useState<"domicilio" | "retiro_tienda">("domicilio");
   const [mostrarFormDir, setMostrarFormDir] = useState(false);
   const [nuevaDir, setNuevaDir] = useState({
     alias: "", destinatario: "", calle: "", zona: "", ciudad: "Santa Cruz",
@@ -68,7 +69,17 @@ export default function CheckoutPage() {
     new Decimal(0),
   );
   const descuento     = cuponAplicado ? new Decimal(cuponAplicado.descuento) : new Decimal(0);
-  const total         = subtotal.minus(descuento);
+
+  // Envío: por vendedor distinto, según departamento de la dirección elegida
+  const EJE_CENTRAL = ["Santa Cruz", "La Paz", "Cochabamba"];
+  const departamentoSel = direcciones.find((d) => d.id === direccionId)?.departamento ?? "";
+  const numVendedores = new Set(
+    items.map((it) => it.producto.vendedor?.id ?? it.producto.vendedor?.nombreNegocio ?? "?"),
+  ).size;
+  const costoPorVendedor = metodoEntrega === "retiro_tienda"
+    ? 0 : (EJE_CENTRAL.includes(departamentoSel) ? 15 : 25);
+  const envio = new Decimal(costoPorVendedor * Math.max(numVendedores, 1));
+  const total = subtotal.minus(descuento).plus(envio);
 
   async function handleValidarCupon() {
     if (!codigoCupon.trim()) return;
@@ -124,7 +135,7 @@ export default function CheckoutPage() {
     setCreandoPago(true);
     try {
       const { data } = await crearOrdenSimulada({
-        variables: { direccionId, cuponCodigo: cuponAplicado?.codigo ?? null, metodoPago },
+        variables: { direccionId, cuponCodigo: cuponAplicado?.codigo ?? null, metodoPago, metodoEntrega },
       });
       const { ordenIds } = data.crearOrdenSimulada;
 
@@ -322,6 +333,37 @@ export default function CheckoutPage() {
             )}
           </div>
 
+          {/* Método de entrega */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-5">
+            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide mb-4">Método de entrega</h2>
+            <div className="space-y-2">
+              {([
+                { v: "domicilio",     icon: Truck, t: "Envío a domicilio", d: "Recíbelo en tu dirección" },
+                { v: "retiro_tienda", icon: Store, t: "Retiro en tienda",   d: "Recoge gratis donde el vendedor" },
+              ] as const).map(({ v, icon: Icon, t, d }) => (
+                <label key={v} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
+                  metodoEntrega === v ? "border-indigo-400 bg-indigo-50" : "border-slate-200 hover:bg-slate-50"
+                }`}>
+                  <input type="radio" name="metodoEntrega" value={v} checked={metodoEntrega === v}
+                    onChange={() => setMetodoEntrega(v)} className="accent-indigo-600" />
+                  <Icon className={`h-5 w-5 shrink-0 ${metodoEntrega === v ? "text-indigo-600" : "text-slate-400"}`} />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-slate-900">{t}</p>
+                    <p className="text-xs text-slate-500">{d}</p>
+                  </div>
+                  <span className="text-sm font-semibold text-slate-700 shrink-0">
+                    {v === "retiro_tienda" ? "Gratis" : `Bs. ${costoPorVendedor}`}
+                  </span>
+                </label>
+              ))}
+            </div>
+            {metodoEntrega === "domicilio" && numVendedores > 1 && (
+              <p className="text-xs text-amber-600 mt-2">
+                Tu compra es de {numVendedores} tiendas: se cobra envío por cada una.
+              </p>
+            )}
+          </div>
+
           {/* Método de pago (Bolivia) */}
           <div className="bg-white rounded-2xl border border-slate-200 p-5">
             <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide mb-4">Método de pago</h2>
@@ -376,6 +418,10 @@ export default function CheckoutPage() {
                   <span className="text-emerald-600">−Bs. {descuento.toFixed(2)}</span>
                 </div>
               )}
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-500">Envío{metodoEntrega === "domicilio" && numVendedores > 1 ? ` (${numVendedores} tiendas)` : ""}</span>
+                <span className="text-slate-900">{envio.gt(0) ? `Bs. ${envio.toFixed(2)}` : "Gratis"}</span>
+              </div>
               <div className="flex justify-between text-base font-bold pt-1 border-t border-slate-100">
                 <span className="text-slate-900">Total</span>
                 <span className="text-indigo-600">Bs. {total.toFixed(2)}</span>

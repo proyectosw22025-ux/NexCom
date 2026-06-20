@@ -5,6 +5,7 @@ import type Stripe from "stripe";
 import { pagosRepository } from "./pagos.repository.js";
 import { cuponesService } from "../cupones/cupones.service.js";
 import { saldosService } from "../saldos/saldos.service.js";
+import { costoEnvio, METODOS_ENTREGA } from "../../shared/envios.js";
 import { publishNotificacion } from "../../shared/pubsub.js";
 
 const METODOS_BOLIVIANOS = ["qr", "transferencia", "contra_entrega"];
@@ -109,13 +110,19 @@ export const pagosService = {
     direccionId: string,
     cuponCodigo: string | null | undefined,
     metodoPago: string,
+    metodoEntrega: string,
     prisma: PrismaClient,
   ) {
     if (!METODOS_BOLIVIANOS.includes(metodoPago)) {
       throw new GraphQLError("Método de pago inválido.", { extensions: { code: "BAD_USER_INPUT" } });
     }
+    const entrega = METODOS_ENTREGA.includes(metodoEntrega) ? metodoEntrega : "domicilio";
     const { carrito, direccionSnapshot } = await this._validarCheckout(compradorId, direccionId, prisma);
     const items = carrito.items as ItemCarrito[];
+    // Envío por orden (por vendedor): según departamento de la dirección
+    const envioPorOrden = costoEnvio(
+      (direccionSnapshot as { departamento?: string }).departamento, entrega,
+    );
 
     // Agrupar por vendedor → una orden por tienda (marketplace real)
     const grupos = new Map<string, ItemCarrito[]>();
@@ -156,11 +163,12 @@ export const pagosService = {
         (acc, it) => acc.plus(new Decimal(it.precioSnapshot.toString()).mul(it.cantidad)), new Decimal(0),
       );
       const descuento = descuentoPorVendedor.get(vendedorId) ?? new Decimal(0);
-      const total = subtotal.minus(descuento);
+      const total = subtotal.minus(descuento).plus(envioPorOrden);
 
       const orden = await pagosRepository.crearOrdenConItems(
         {
-          compradorId, vendedorId, direccionId, direccionSnapshot, subtotal, descuentoCupon: descuento, total,
+          compradorId, vendedorId, direccionId, direccionSnapshot, subtotal, descuentoCupon: descuento,
+          costoEnvio: envioPorOrden, metodoEntrega: entrega, total,
           metodoPago, moneda: "BOB",
           items: grupoItems.map((it) => ({
             productoId: it.productoId, nombreSnapshot: it.producto.nombre,

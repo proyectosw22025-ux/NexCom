@@ -26,8 +26,8 @@ export const pagosResolvers = {
 
     crearOrdenSimulada: (
       _: unknown,
-      { direccionId, cuponCodigo, metodoPago }:
-        { direccionId: string; cuponCodigo?: string | null; metodoPago: string },
+      { direccionId, cuponCodigo, metodoPago, metodoEntrega }:
+        { direccionId: string; cuponCodigo?: string | null; metodoPago: string; metodoEntrega?: string },
       ctx: NexComContext,
     ) => {
       requireRole(ctx, "COMPRADOR");
@@ -35,7 +35,8 @@ export const pagosResolvers = {
         throw new GraphQLError("Perfil de comprador no encontrado.", { extensions: { code: "NOT_FOUND" } });
       }
       return pagosService.crearOrdenSimulada(
-        ctx.user.perfilCompradorId, ctx.user.id, direccionId, cuponCodigo, metodoPago, ctx.prisma,
+        ctx.user.perfilCompradorId, ctx.user.id, direccionId, cuponCodigo, metodoPago,
+        metodoEntrega ?? "domicilio", ctx.prisma,
       );
     },
 

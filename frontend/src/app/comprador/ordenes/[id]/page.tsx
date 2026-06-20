@@ -26,7 +26,7 @@ interface DireccionSnapshot {
 interface ItemOrden { id: string; nombreSnapshot: string; cantidad: number; precioUnitario: string; subtotal: string; }
 interface HistorialEstado { id: string; estadoAnterior: string | null; estadoNuevo: string; notas: string | null; creadoEn: string; }
 interface Orden {
-  id: string; estado: string; subtotal: string; descuentoCupon: string; total: string;
+  id: string; estado: string; subtotal: string; descuentoCupon: string; costoEnvio: string; metodoEntrega: string; total: string;
   notas: string | null; creadoEn: string; actualizadoEn: string;
   direccionSnapshot: DireccionSnapshot | null;
   items: ItemOrden[];
@@ -143,6 +143,10 @@ export default function CompradorOrdenDetallePage() {
                 <span>Descuento cupón</span><span>-Bs. {orden.descuentoCupon}</span>
               </div>
             )}
+            <div className="flex justify-between text-sm text-slate-500">
+              <span>{orden.metodoEntrega === "retiro_tienda" ? "Retiro en tienda" : "Envío a domicilio"}</span>
+              <span>{parseFloat(orden.costoEnvio) > 0 ? `Bs. ${orden.costoEnvio}` : "Gratis"}</span>
+            </div>
             <div className="flex justify-between text-base font-bold text-slate-900 pt-1">
               <span>Total</span><span>Bs. {orden.total}</span>
             </div>

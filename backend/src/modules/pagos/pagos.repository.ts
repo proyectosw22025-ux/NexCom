@@ -37,6 +37,8 @@ export const pagosRepository = {
       direccionSnapshot: object;
       subtotal:         Decimal;
       descuentoCupon:   Decimal;
+      costoEnvio?:      Decimal;
+      metodoEntrega?:   string; // "domicilio" | "retiro_tienda"
       total:            Decimal;
       items: { productoId: string; nombreSnapshot: string; cantidad: number; precioUnitario: Decimal }[];
       metodoPago?:      string; // "card" (Stripe) | "qr" | "transferencia" | "contra_entrega"
@@ -53,6 +55,8 @@ export const pagosRepository = {
           direccionSnapshot: data.direccionSnapshot,
           subtotal:         data.subtotal,
           descuentoCupon:   data.descuentoCupon,
+          costoEnvio:       data.costoEnvio ?? 0,
+          metodoEntrega:    data.metodoEntrega ?? "domicilio",
           total:            data.total,
           estado:           "PENDIENTE_PAGO",
           items: {

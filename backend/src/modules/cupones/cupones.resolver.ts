@@ -40,6 +40,11 @@ export const cuponesResolvers = {
       return cuponesService.crear(input, ctx.prisma, vendedorId);
     },
 
+    desactivarCupon: (_: unknown, { id }: { id: string }, ctx: NexComContext) => {
+      const user = requireRole(ctx, "VENDEDOR", "ADMIN");
+      return cuponesService.desactivar(id, user.rol, ctx.user?.perfilVendedorId ?? null, ctx.prisma);
+    },
+
     validarCupon: (
       _: unknown,
       { codigo, subtotal }: { codigo: string; subtotal: string },

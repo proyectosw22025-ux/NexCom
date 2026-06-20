@@ -8,3 +8,12 @@ export const MIS_CUPONES = gql`
     }
   }
 `;
+
+export const CUPONES_ADMIN = gql`
+  query CuponesAdmin {
+    cupones {
+      id codigo tipo valor montoMinimo maxUsos usosActuales vendedorId
+      fechaInicio fechaFin activo creadoEn
+    }
+  }
+`;

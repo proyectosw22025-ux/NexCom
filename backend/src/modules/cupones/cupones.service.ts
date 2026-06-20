@@ -12,6 +12,16 @@ export const cuponesService = {
     return cuponesRepository.findByVendedor(vendedorId, prisma);
   },
 
+  async desactivar(id: string, rol: string, vendedorId: string | null, prisma: PrismaClient) {
+    const cupon = await cuponesRepository.findById(id, prisma);
+    if (!cupon) throw new GraphQLError("Cupón no encontrado.", { extensions: { code: "NOT_FOUND" } });
+    // El vendedor solo puede desactivar sus propios cupones; el admin, cualquiera
+    if (rol === "VENDEDOR" && cupon.vendedorId !== vendedorId) {
+      throw new GraphQLError("No puedes modificar este cupón.", { extensions: { code: "FORBIDDEN" } });
+    }
+    return cuponesRepository.setActivo(id, false, prisma);
+  },
+
   async crear(
     input: {
       codigo: string;

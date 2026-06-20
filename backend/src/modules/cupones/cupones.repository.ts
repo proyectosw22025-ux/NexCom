@@ -40,6 +40,15 @@ export const cuponesRepository = {
     return prisma.cupon.findUnique({ where: { codigo } });
   },
 
+  async findById(id: string, prisma: PrismaClient) {
+    return prisma.cupon.findUnique({ where: { id } });
+  },
+
+  async setActivo(id: string, activo: boolean, prisma: PrismaClient) {
+    const cupon = await prisma.cupon.update({ where: { id }, data: { activo } });
+    return mapCupon(cupon);
+  },
+
   async findByVendedor(vendedorId: string, prisma: PrismaClient) {
     const cupones = await prisma.cupon.findMany({
       where:   { vendedorId },

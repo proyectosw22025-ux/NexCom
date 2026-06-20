@@ -40,6 +40,7 @@ export const cuponesTypeDefs = /* GraphQL */ `
 
   extend type Mutation {
     crearCupon(input: CrearCuponInput!):                     Cupon!
+    desactivarCupon(id: ID!):                                Cupon!
     validarCupon(codigo: String!, subtotal: String!): CuponValidado!
   }
 `;

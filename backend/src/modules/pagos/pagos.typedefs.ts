@@ -38,9 +38,10 @@ export const pagosTypeDefs = /* GraphQL */ `
 
     # Flujo boliviano simulado
     crearOrdenSimulada(
-      direccionId: ID!
-      cuponCodigo: String
-      metodoPago:  MetodoPagoBoliviano!
+      direccionId:   ID!
+      cuponCodigo:   String
+      metodoPago:    MetodoPagoBoliviano!
+      metodoEntrega: String
     ): OrdenSimuladaResult!
 
     confirmarPagoSimulado(ordenIds: [ID!]!): ConfirmacionPagoResult!
