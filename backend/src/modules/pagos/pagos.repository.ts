@@ -42,6 +42,7 @@ export const pagosRepository = {
       descuentoPuntos?: Decimal;
       costoEnvio?:      Decimal;
       metodoEntrega?:   string; // "domicilio" | "retiro_tienda"
+      puntoRetiro?:     string | null;
       total:            Decimal;
       items: { productoId: string; nombreSnapshot: string; cantidad: number; precioUnitario: Decimal }[];
       metodoPago?:      string; // "card" (Stripe) | "qr" | "transferencia" | "contra_entrega"
@@ -62,6 +63,7 @@ export const pagosRepository = {
           descuentoPuntos:  data.descuentoPuntos ?? 0,
           costoEnvio:       data.costoEnvio ?? 0,
           metodoEntrega:    data.metodoEntrega ?? "domicilio",
+          puntoRetiro:      data.puntoRetiro ?? null,
           total:            data.total,
           estado:           "PENDIENTE_PAGO",
           items: {

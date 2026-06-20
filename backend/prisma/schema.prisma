@@ -496,6 +496,7 @@ model Orden {
   descuentoPuntos       Decimal     @default(0) @db.Decimal(12, 4) @map("descuento_puntos")
   costoEnvio            Decimal     @default(0) @db.Decimal(12, 4) @map("costo_envio")
   metodoEntrega         String      @default("domicilio") @map("metodo_entrega") // "domicilio" | "retiro_tienda"
+  puntoRetiro           String?     @map("punto_retiro") // punto de retiro elegido (si metodoEntrega = retiro_tienda)
   total                 Decimal     @db.Decimal(12, 4)
   stripePaymentIntentId String?     @unique @map("stripe_payment_intent_id")
   comprobanteUrl        String?     @map("comprobante_url")

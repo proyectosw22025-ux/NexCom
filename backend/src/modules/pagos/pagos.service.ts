@@ -113,12 +113,15 @@ export const pagosService = {
     metodoPago: string,
     metodoEntrega: string,
     usarPuntos: boolean,
+    puntoRetiro: string | null | undefined,
     prisma: PrismaClient,
   ) {
     if (!METODOS_BOLIVIANOS.includes(metodoPago)) {
       throw new GraphQLError("Método de pago inválido.", { extensions: { code: "BAD_USER_INPUT" } });
     }
     const entrega = METODOS_ENTREGA.includes(metodoEntrega) ? metodoEntrega : "domicilio";
+    // El punto de retiro solo aplica al retiro en tienda/punto
+    const puntoRetiroFinal = entrega === "retiro_tienda" ? (puntoRetiro?.trim() || null) : null;
     const { carrito, direccionSnapshot } = await this._validarCheckout(compradorId, direccionId, prisma);
     const items = carrito.items as ItemCarrito[];
     // Envío por orden (por vendedor): según departamento de la dirección
@@ -193,7 +196,7 @@ export const pagosService = {
         {
           compradorId, vendedorId, direccionId, direccionSnapshot, subtotal, descuentoCupon: descuento,
           puntosUsados: usarPuntos ? puntosUsados : 0, descuentoPuntos: descPuntosOrden,
-          costoEnvio: envioPorOrden, metodoEntrega: entrega, total,
+          costoEnvio: envioPorOrden, metodoEntrega: entrega, puntoRetiro: puntoRetiroFinal, total,
           metodoPago, moneda: "BOB",
           items: grupoItems.map((it) => ({
             productoId: it.productoId, nombreSnapshot: it.producto.nombre,

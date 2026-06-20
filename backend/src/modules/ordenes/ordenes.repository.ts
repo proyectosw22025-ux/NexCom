@@ -45,7 +45,7 @@ function mapOrden(o: ReturnType<typeof rawOrden>) {
 function rawOrden(o: {
   id: string; compradorId: string; vendedorId: string; estado: string;
   subtotal: { toString(): string }; descuentoCupon: { toString(): string };
-  costoEnvio: { toString(): string }; metodoEntrega: string;
+  costoEnvio: { toString(): string }; metodoEntrega: string; puntoRetiro: string | null;
   total: { toString(): string }; notas: string | null;
   stripePaymentIntentId: string | null; direccionSnapshot: unknown;
   creadoEn: Date; actualizadoEn: Date;

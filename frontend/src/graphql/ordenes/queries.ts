@@ -8,6 +8,7 @@ const ORDEN_FIELDS = gql`
     descuentoCupon
     costoEnvio
     metodoEntrega
+    puntoRetiro
     total
     notas
     creadoEn

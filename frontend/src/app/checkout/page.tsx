@@ -10,6 +10,7 @@ import { CREAR_DIRECCION } from "@/graphql/direcciones/mutations";
 import { VALIDAR_CUPON } from "@/graphql/cupones/mutations";
 import { CREAR_ORDEN_SIMULADA } from "@/graphql/pagos/mutations";
 import { MIS_PUNTOS } from "@/graphql/fidelidad";
+import { puntosDeRetiro } from "@/lib/puntos-retiro";
 import { ApolloError } from "@apollo/client";
 import {
   MapPin, Plus, Tag, ShoppingBag, ChevronRight, Loader2, CheckCircle, X,
@@ -49,6 +50,7 @@ export default function CheckoutPage() {
   const [creandoPago, setCreandoPago]       = useState(false);
   const [metodoPago, setMetodoPago]         = useState<"qr" | "transferencia" | "contra_entrega">("qr");
   const [metodoEntrega, setMetodoEntrega]   = useState<"domicilio" | "retiro_tienda">("domicilio");
+  const [puntoRetiro, setPuntoRetiro]       = useState<string>("");
   const [usarPuntos, setUsarPuntos]         = useState(false);
   const [mostrarFormDir, setMostrarFormDir] = useState(false);
   const [nuevaDir, setNuevaDir] = useState({
@@ -81,6 +83,8 @@ export default function CheckoutPage() {
   const numVendedores = new Set(
     items.map((it) => it.producto.vendedor?.id ?? it.producto.vendedor?.nombreNegocio ?? "?"),
   ).size;
+  const ciudadSel = direcciones.find((d) => d.id === direccionId)?.ciudad ?? "";
+  const opcionesRetiro = puntosDeRetiro(ciudadSel);
   const costoPorVendedor = metodoEntrega === "retiro_tienda"
     ? 0 : (EJE_CENTRAL.includes(departamentoSel) ? 15 : 25);
   const envio = new Decimal(costoPorVendedor * Math.max(numVendedores, 1));
@@ -149,7 +153,11 @@ export default function CheckoutPage() {
     setCreandoPago(true);
     try {
       const { data } = await crearOrdenSimulada({
-        variables: { direccionId, cuponCodigo: cuponAplicado?.codigo ?? null, metodoPago, metodoEntrega, usarPuntos: usarPuntos && puntosCanjeables },
+        variables: {
+          direccionId, cuponCodigo: cuponAplicado?.codigo ?? null, metodoPago, metodoEntrega,
+          usarPuntos: usarPuntos && puntosCanjeables,
+          puntoRetiro: metodoEntrega === "retiro_tienda" ? (puntoRetiro || opcionesRetiro[opcionesRetiro.length - 1]) : null,
+        },
       });
       const { ordenIds } = data.crearOrdenSimulada;
 
@@ -375,6 +383,18 @@ export default function CheckoutPage() {
               <p className="text-xs text-amber-600 mt-2">
                 Tu compra es de {numVendedores} tiendas: se cobra envío por cada una.
               </p>
+            )}
+            {metodoEntrega === "retiro_tienda" && (
+              <div className="mt-3">
+                <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Punto de retiro</label>
+                <select
+                  value={puntoRetiro}
+                  onChange={(e) => setPuntoRetiro(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
+                >
+                  {opcionesRetiro.map((p) => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
             )}
           </div>
 
