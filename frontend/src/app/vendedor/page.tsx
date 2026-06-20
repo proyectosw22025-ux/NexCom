@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { Badge } from "@/components/ui/Badge";
+import { OnboardingVendedor } from "@/components/vendedor/OnboardingVendedor";
 import type { ProductoCardData } from "@/components/productos/ProductoCard";
 
 // Code-split: recharts (~70kB) solo se descarga al montar el dashboard del
@@ -47,6 +48,11 @@ export default function VendedorDashboard() {
         </h1>
         <p className="text-slate-500 mt-1 text-sm">Resumen de tu tienda</p>
       </div>
+
+      {/* Onboarding para vendedores nuevos (se oculta al completarse) */}
+      {!loading && (
+        <OnboardingVendedor totalProductos={productos.length} destacados={destacados} />
+      )}
 
       {/* Gráfico de ventas */}
       <VentasChart />
