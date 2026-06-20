@@ -15,6 +15,12 @@ export const TOGGLE_ACTIVO_USUARIO = gql`
   }
 `;
 
+export const VERIFICAR_VENDEDOR = gql`
+  mutation VerificarVendedor($vendedorId: ID!, $verificado: Boolean!) {
+    verificarVendedor(vendedorId: $vendedorId, verificado: $verificado) { id verificado }
+  }
+`;
+
 export const CAMBIAR_ROL_USUARIO = gql`
   mutation CambiarRolUsuario($id: ID!, $rol: String!) {
     cambiarRolUsuario(id: $id, rol: $rol) {

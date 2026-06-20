@@ -13,6 +13,7 @@ import { useAuth } from "@/context/auth-context";
 import { Badge } from "@/components/ui/Badge";
 import { ReportarDialog } from "@/components/reportes/ReportarDialog";
 import { BotonWhatsApp } from "@/components/common/BotonWhatsApp";
+import { SellosConfianza } from "@/components/vendedor/SellosConfianza";
 import { INICIAR_CONVERSACION } from "@/graphql/mensajes/mutations";
 import { toast } from "sonner";
 import type { ProductoCardData } from "@/components/productos/ProductoCard";
@@ -111,6 +112,15 @@ export function ProductoCompra({ producto: p }: { producto: ProductoCardData }) 
             <div className="flex-1">
               <p className="text-xs text-slate-400">Vendido por</p>
               <p className="text-sm font-semibold text-slate-900 group-hover:text-violet-700 transition-colors">{p.vendedor.nombreNegocio}</p>
+              <div className="mt-1">
+                <SellosConfianza
+                  verificado={p.vendedor.verificado}
+                  ciudad={p.vendedor.ciudad}
+                  ratingPromedio={p.vendedor.ratingPromedio}
+                  totalResenias={p.vendedor.totalResenias}
+                  size="sm"
+                />
+              </div>
             </div>
             <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-violet-500 transition-colors" />
           </Link>

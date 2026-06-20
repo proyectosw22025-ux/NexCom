@@ -3,18 +3,18 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@apollo/client";
 import { LISTAR_USUARIOS } from "@/graphql/admin/queries";
-import { TOGGLE_ACTIVO_USUARIO, CAMBIAR_ROL_USUARIO } from "@/graphql/admin/mutations";
+import { TOGGLE_ACTIVO_USUARIO, CAMBIAR_ROL_USUARIO, VERIFICAR_VENDEDOR } from "@/graphql/admin/mutations";
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { FilterPills } from "@/components/ui/FilterPills";
-import { Users, Search, Loader2, CheckCircle, XCircle, ToggleLeft, ToggleRight } from "lucide-react";
+import { Users, Search, Loader2, CheckCircle, XCircle, ToggleLeft, ToggleRight, BadgeCheck } from "lucide-react";
 import { toast } from "sonner";
 import { ApolloError } from "@apollo/client";
 import Link from "next/link";
 
 interface UsuarioAdmin {
   id: string; email: string; rol: string; verificado: boolean; activo: boolean; creadoEn: string;
-  perfilVendedor:  { id: string; nombreNegocio: string; ciudad: string } | null;
+  perfilVendedor:  { id: string; nombreNegocio: string; ciudad: string; verificado: boolean } | null;
   perfilComprador: { id: string; nombreCompleto: string } | null;
 }
 
@@ -38,6 +38,17 @@ export default function AdminUsuariosPage() {
 
   const [toggleActivo, { loading: toggling }] = useMutation(TOGGLE_ACTIVO_USUARIO);
   const [cambiarRol,   { loading: changing }] = useMutation(CAMBIAR_ROL_USUARIO);
+  const [verificarVendedor] = useMutation(VERIFICAR_VENDEDOR);
+
+  async function handleVerificar(vendedorId: string, verificado: boolean) {
+    try {
+      await verificarVendedor({ variables: { vendedorId, verificado: !verificado } });
+      await refetch();
+      toast.success(!verificado ? "Vendedor verificado." : "Verificación quitada.");
+    } catch {
+      toast.error("No se pudo actualizar la verificación.");
+    }
+  }
 
   const todos = data?.listarUsuarios?.items ?? [];
   const filtrados = todos.filter((u) => {
@@ -172,26 +183,37 @@ export default function AdminUsuariosPage() {
                       <Badge variant={u.activo ? "activo" : "inactivo"} size="sm" />
                     </td>
                     <td className="px-5 py-3 text-right text-xs text-slate-400">{formatFecha(u.creadoEn)}</td>
-                    <td className="px-5 py-3 text-center">
-                      <ConfirmDialog
-                        title={u.activo ? "Desactivar cuenta" : "Activar cuenta"}
-                        description={`¿${u.activo ? "Desactivar" : "Activar"} la cuenta de ${u.email}?`}
-                        confirmLabel={u.activo ? "Desactivar" : "Activar"}
-                        variant={u.activo ? "danger" : "default"}
-                        onConfirm={() => handleToggle(u.id, u.activo)}
-                        trigger={
+                    <td className="px-5 py-3">
+                      <div className="flex items-center justify-center gap-1">
+                        {u.perfilVendedor && (
                           <button
-                            disabled={toggling}
-                            title={u.activo ? "Desactivar cuenta" : "Activar cuenta"}
-                            className={`p-1.5 rounded-lg transition-colors ${u.activo ? "hover:bg-red-50" : "hover:bg-emerald-50"}`}
+                            onClick={() => handleVerificar(u.perfilVendedor!.id, u.perfilVendedor!.verificado)}
+                            title={u.perfilVendedor.verificado ? "Quitar verificación de microempresa" : "Verificar microempresa"}
+                            className={`p-1.5 rounded-lg transition-colors ${u.perfilVendedor.verificado ? "text-emerald-600 hover:bg-emerald-50" : "text-slate-300 hover:bg-slate-100"}`}
                           >
-                            {u.activo
-                              ? <ToggleRight className="h-4 w-4 text-emerald-500" />
-                              : <ToggleLeft  className="h-4 w-4 text-slate-300" />
-                            }
+                            <BadgeCheck className="h-4 w-4" />
                           </button>
-                        }
-                      />
+                        )}
+                        <ConfirmDialog
+                          title={u.activo ? "Desactivar cuenta" : "Activar cuenta"}
+                          description={`¿${u.activo ? "Desactivar" : "Activar"} la cuenta de ${u.email}?`}
+                          confirmLabel={u.activo ? "Desactivar" : "Activar"}
+                          variant={u.activo ? "danger" : "default"}
+                          onConfirm={() => handleToggle(u.id, u.activo)}
+                          trigger={
+                            <button
+                              disabled={toggling}
+                              title={u.activo ? "Desactivar cuenta" : "Activar cuenta"}
+                              className={`p-1.5 rounded-lg transition-colors ${u.activo ? "hover:bg-red-50" : "hover:bg-emerald-50"}`}
+                            >
+                              {u.activo
+                                ? <ToggleRight className="h-4 w-4 text-emerald-500" />
+                                : <ToggleLeft  className="h-4 w-4 text-slate-300" />
+                              }
+                            </button>
+                          }
+                        />
+                      </div>
                     </td>
                   </tr>
                 );

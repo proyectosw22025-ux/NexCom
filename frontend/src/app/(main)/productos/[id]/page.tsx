@@ -16,7 +16,7 @@ const PRODUCTO_Q = `
     producto(id: $id) {
       id nombre descripcion precio stock activo destacado
       categoria { id nombre slug }
-      vendedor  { id nombreNegocio ratingPromedio totalResenias telefono }
+      vendedor  { id nombreNegocio ciudad ratingPromedio totalResenias telefono verificado }
       imagenes  { url orden }
       etiquetas { nombre }
     }

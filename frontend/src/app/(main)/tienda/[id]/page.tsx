@@ -4,6 +4,7 @@ import { Store, MapPin, Star, Package, ChevronLeft, ChevronRight, ShoppingBag, C
 import { ProductoCard, type ProductoCardData } from "@/components/productos/ProductoCard";
 import { ProductoResenias } from "@/components/productos/ProductoResenias";
 import { BotonWhatsApp } from "@/components/common/BotonWhatsApp";
+import { SellosConfianza } from "@/components/vendedor/SellosConfianza";
 import { gqlFetchCacheable } from "@/lib/graphql-server";
 
 export const revalidate = 60;
@@ -13,7 +14,7 @@ const LIMITE = 12;
 interface VendedorPublico {
   id: string; nombreNegocio: string; descripcion: string | null; ciudad: string;
   logoUrl: string | null; ratingPromedio: string; totalVentas: number; totalResenias: number; plan: string;
-  telefono: string | null;
+  telefono: string | null; verificado: boolean; respondeRapido: boolean;
 }
 interface PaginatedProductos {
   items: ProductoCardData[]; total: number; pagina: number; totalPaginas: number;
@@ -23,6 +24,7 @@ const VENDEDOR_Q = `
   query Vendedor($id: ID!) {
     vendedorPublico(id: $id) {
       id nombreNegocio descripcion ciudad logoUrl ratingPromedio totalVentas totalResenias plan telefono
+      verificado respondeRapido
     }
   }`;
 
@@ -108,6 +110,15 @@ export default async function TiendaPage({
                 </span>
               )}
               <span className="flex items-center gap-1"><ShoppingBag className="h-3.5 w-3.5" /> {vendedor.totalVentas} ventas</span>
+            </div>
+            <div className="mt-3">
+              <SellosConfianza
+                verificado={vendedor.verificado}
+                ciudad={vendedor.ciudad}
+                ratingPromedio={vendedor.ratingPromedio}
+                totalResenias={vendedor.totalResenias}
+                respondeRapido={vendedor.respondeRapido}
+              />
             </div>
             {vendedor.descripcion && (
               <p className="text-sm text-slate-600 mt-3 leading-relaxed">{vendedor.descripcion}</p>

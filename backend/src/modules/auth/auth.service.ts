@@ -267,7 +267,48 @@ export async function getVendedorPublico(id: string, prisma: PrismaClient) {
     where:  { id },
     select: {
       id: true, nombreNegocio: true, descripcion: true, ciudad: true, telefono: true,
-      logoUrl: true, ratingPromedio: true, totalVentas: true, totalResenias: true, plan: true,
+      logoUrl: true, ratingPromedio: true, totalVentas: true, totalResenias: true, plan: true, verificado: true, usuarioId: true,
+    },
+  });
+}
+
+/**
+ * "Responde rápido": mediana del tiempo de primera respuesta del vendedor a los
+ * mensajes de los compradores < 24h, con al menos 3 conversaciones respondidas.
+ * Se computa bajo demanda (field resolver), nunca en listados.
+ */
+export async function vendedorRespondeRapido(
+  perfilVendedorId: string,
+  vendedorUsuarioId: string | null | undefined,
+  prisma: PrismaClient,
+): Promise<boolean> {
+  if (!vendedorUsuarioId) return false;
+  const convs = await prisma.conversacion.findMany({
+    where:  { vendedorId: perfilVendedorId },
+    select: { mensajes: { orderBy: { creadoEn: "asc" }, select: { emisorId: true, creadoEn: true } } },
+    take:   30,
+  });
+  const tiempos: number[] = [];
+  for (const c of convs) {
+    const primerComprador = c.mensajes.find((m) => m.emisorId !== vendedorUsuarioId);
+    if (!primerComprador) continue;
+    const respuesta = c.mensajes.find((m) => m.emisorId === vendedorUsuarioId && m.creadoEn > primerComprador.creadoEn);
+    if (!respuesta) continue;
+    tiempos.push(respuesta.creadoEn.getTime() - primerComprador.creadoEn.getTime());
+  }
+  if (tiempos.length < 3) return false;
+  tiempos.sort((a, b) => a - b);
+  const mediana = tiempos[Math.floor(tiempos.length / 2)]!;
+  return mediana < 24 * 60 * 60 * 1000;
+}
+
+export async function verificarVendedor(perfilVendedorId: string, verificado: boolean, prisma: PrismaClient) {
+  return prisma.perfilVendedor.update({
+    where:  { id: perfilVendedorId },
+    data:   { verificado },
+    select: {
+      id: true, nombreNegocio: true, descripcion: true, ciudad: true, telefono: true,
+      logoUrl: true, ratingPromedio: true, totalVentas: true, totalResenias: true, plan: true, verificado: true, usuarioId: true,
     },
   });
 }
@@ -284,7 +325,7 @@ export async function mejorarPlan(perfilVendedorId: string, plan: string, prisma
     data:   { plan },
     select: {
       id: true, nombreNegocio: true, descripcion: true, ciudad: true, telefono: true,
-      logoUrl: true, ratingPromedio: true, totalVentas: true, totalResenias: true, plan: true,
+      logoUrl: true, ratingPromedio: true, totalVentas: true, totalResenias: true, plan: true, verificado: true, usuarioId: true,
     },
   });
 }

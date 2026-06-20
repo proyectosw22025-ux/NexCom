@@ -4,6 +4,15 @@ import { requireAuth, requireRole } from "../../shared/guards.js";
 import * as service from "./auth.service.js";
 
 export const authResolvers = {
+  // Field resolver: se computa solo cuando se solicita "respondeRapido" (no en listados)
+  PerfilVendedorPublico: {
+    respondeRapido: (
+      parent: { id: string; usuarioId?: string | null },
+      _: unknown,
+      ctx: NexComContext,
+    ) => service.vendedorRespondeRapido(parent.id, parent.usuarioId, ctx.prisma),
+  },
+
   Query: {
     me: async (_: unknown, __: unknown, ctx: NexComContext) => {
       const user = requireAuth(ctx);
@@ -16,6 +25,15 @@ export const authResolvers = {
   },
 
   Mutation: {
+    verificarVendedor: (
+      _: unknown,
+      { vendedorId, verificado }: { vendedorId: string; verificado: boolean },
+      ctx: NexComContext,
+    ) => {
+      requireRole(ctx, "ADMIN");
+      return service.verificarVendedor(vendedorId, verificado, ctx.prisma);
+    },
+
     mejorarPlan: (_: unknown, { plan }: { plan: string }, ctx: NexComContext) => {
       requireRole(ctx, "VENDEDOR");
       if (!ctx.user?.perfilVendedorId) {

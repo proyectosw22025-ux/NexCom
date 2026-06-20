@@ -152,6 +152,7 @@ model PerfilVendedor {
   telefono       String?
   ciudad         String   @default("Santa Cruz")
   logoUrl        String?  @map("logo_url")
+  verificado     Boolean  @default(false) // microempresa verificada por el admin
   ratingPromedio Decimal  @default(0) @db.Decimal(3, 2) @map("rating_promedio")
   totalVentas    Int      @default(0) @map("total_ventas")
   totalResenias  Int      @default(0) @map("total_resenias")

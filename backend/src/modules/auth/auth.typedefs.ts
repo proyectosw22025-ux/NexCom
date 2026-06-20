@@ -16,6 +16,8 @@ export const authTypeDefs = /* GraphQL */ `
     totalVentas:   Int!
     totalResenias: Int!
     plan:          String!
+    verificado:    Boolean!
+    respondeRapido: Boolean!
   }
 
   type PerfilCompradorPublico {
@@ -68,6 +70,7 @@ export const authTypeDefs = /* GraphQL */ `
 
   extend type Mutation {
     mejorarPlan(plan: String!):                                 PerfilVendedorPublico!
+    verificarVendedor(vendedorId: ID!, verificado: Boolean!):   PerfilVendedorPublico!
     register(input: RegisterInput!):                            AuthPayload!
     login(email: String!, password: String!):                  AuthPayload!
     logout(refreshToken: String):                               Boolean!

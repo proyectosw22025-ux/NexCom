@@ -10,7 +10,7 @@ export const LISTAR_USUARIOS = gql`
         verificado
         activo
         creadoEn
-        perfilVendedor  { id nombreNegocio ciudad ratingPromedio totalVentas totalResenias }
+        perfilVendedor  { id nombreNegocio ciudad ratingPromedio totalVentas totalResenias verificado }
         perfilComprador { id nombreCompleto telefono }
       }
       total
