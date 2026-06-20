@@ -68,10 +68,10 @@ export const productosRepository = {
   },
 
   async findPaginated(
-    { pagina, limite, categoriaId, vendedorId, soloActivos, orden, precioMin, precioMax }:
+    { pagina, limite, categoriaId, vendedorId, soloActivos, orden, precioMin, precioMax, ciudad }:
       {
         pagina: number; limite: number; categoriaId?: string | null; vendedorId?: string | null; soloActivos?: boolean | null;
-        orden?: string | null; precioMin?: number | null; precioMax?: number | null;
+        orden?: string | null; precioMin?: number | null; precioMax?: number | null; ciudad?: string | null;
       },
     prisma: PrismaClient,
   ) {
@@ -90,6 +90,7 @@ export const productosRepository = {
       ...(soloActivos !== false ? { activo: true } : {}),
       ...(categoriaId ? { categoriaId } : {}),
       ...(vendedorId ? { vendedorId } : {}),
+      ...(ciudad ? { vendedor: { is: { ciudad } } } : {}),
       ...precioFilter,
     };
 

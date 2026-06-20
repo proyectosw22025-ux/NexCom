@@ -17,6 +17,7 @@ import {
 import { toast } from "sonner";
 import { Decimal } from "decimal.js";
 import { CheckoutStepper } from "@/components/checkout/CheckoutStepper";
+import { AvisoMultiVendedor } from "@/components/cart/AvisoMultiVendedor";
 
 interface Direccion {
   id: string;
@@ -168,6 +169,8 @@ export default function CheckoutPage() {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
         {/* Columna principal */}
         <div className="lg:col-span-3 space-y-6">
+
+          <AvisoMultiVendedor items={items} />
 
           {/* Dirección de envío */}
           <div className="bg-white rounded-2xl border border-slate-200 p-5">

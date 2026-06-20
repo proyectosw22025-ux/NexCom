@@ -7,6 +7,13 @@ export const busquedaTypeDefs = /* GraphQL */ `
     termino:     String!
   }
 
+  type SugerenciaProducto {
+    id:        ID!
+    nombre:    String!
+    precio:    String!
+    imagenUrl: String
+  }
+
   extend type Query {
     buscar(
       termino:    String!
@@ -14,5 +21,7 @@ export const busquedaTypeDefs = /* GraphQL */ `
       limite:     Int
       categoriaId: ID
     ): ResultadoBusqueda!
+
+    sugerenciasBusqueda(termino: String!): [SugerenciaProducto!]!
   }
 `;

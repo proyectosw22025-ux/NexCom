@@ -15,7 +15,7 @@ export const productosResolvers = {
       _: unknown,
       args: {
         pagina?: number; limite?: number; categoriaId?: string; vendedorId?: string; soloActivos?: boolean;
-        orden?: string; precioMin?: number; precioMax?: number;
+        orden?: string; precioMin?: number; precioMax?: number; ciudad?: string;
       },
       ctx: NexComContext,
     ) => productosService.getAll(args, ctx.prisma),

@@ -19,8 +19,8 @@ interface PaginatedProductos {
 interface Categoria { id: string; nombre: string; slug: string }
 
 const PRODUCTOS_Q = `
-  query Productos($pagina: Int, $limite: Int, $categoriaId: ID, $soloActivos: Boolean, $orden: OrdenProducto, $precioMin: Float, $precioMax: Float) {
-    productos(pagina: $pagina, limite: $limite, categoriaId: $categoriaId, soloActivos: $soloActivos, orden: $orden, precioMin: $precioMin, precioMax: $precioMax) {
+  query Productos($pagina: Int, $limite: Int, $categoriaId: ID, $soloActivos: Boolean, $orden: OrdenProducto, $precioMin: Float, $precioMax: Float, $ciudad: String) {
+    productos(pagina: $pagina, limite: $limite, categoriaId: $categoriaId, soloActivos: $soloActivos, orden: $orden, precioMin: $precioMin, precioMax: $precioMax, ciudad: $ciudad) {
       items {
         id nombre descripcion precio stock activo destacado
         categoria { id nombre slug }
@@ -40,7 +40,7 @@ const CATEGORIAS_Q = `
 export default async function ProductosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ categoria?: string; pagina?: string; orden?: string; precioMin?: string; precioMax?: string }>;
+  searchParams: Promise<{ categoria?: string; pagina?: string; orden?: string; precioMin?: string; precioMax?: string; ciudad?: string }>;
 }) {
   const sp = await searchParams;
   const categoriaId = sp.categoria ?? null;
@@ -48,6 +48,7 @@ export default async function ProductosPage({
   const orden  = sp.orden ?? "RECIENTES";
   const precioMin = sp.precioMin && !isNaN(Number(sp.precioMin)) ? Number(sp.precioMin) : null;
   const precioMax = sp.precioMax && !isNaN(Number(sp.precioMax)) ? Number(sp.precioMax) : null;
+  const ciudad = sp.ciudad?.trim() || null;
 
   let result: PaginatedProductos | null = null;
   let categorias: Categoria[] = [];
@@ -57,7 +58,7 @@ export default async function ProductosPage({
   try {
     const [prodData, catData] = await Promise.all([
       gqlFetchCacheable<{ productos: PaginatedProductos }>(
-        PRODUCTOS_Q, { pagina, limite: LIMITE, categoriaId, soloActivos: true, orden, precioMin, precioMax }, 60,
+        PRODUCTOS_Q, { pagina, limite: LIMITE, categoriaId, soloActivos: true, orden, precioMin, precioMax, ciudad }, 60,
       ),
       gqlFetchCacheable<{ categorias: Categoria[] }>(
         CATEGORIAS_Q, { soloRaices: false }, 300,
@@ -75,6 +76,7 @@ export default async function ProductosPage({
     if (orden && orden !== "RECIENTES") p.set("orden", orden);
     if (precioMin != null) p.set("precioMin", String(precioMin));
     if (precioMax != null) p.set("precioMax", String(precioMax));
+    if (ciudad) p.set("ciudad", ciudad);
     return p;
   };
   const hrefCategoria = (catId: string | null) => {
@@ -142,6 +144,7 @@ export default async function ProductosPage({
             orden={orden}
             precioMin={precioMin != null ? String(precioMin) : undefined}
             precioMax={precioMax != null ? String(precioMax) : undefined}
+            ciudad={ciudad ?? undefined}
           />
 
           {!result || result.items.length === 0 ? (

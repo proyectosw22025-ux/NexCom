@@ -2,7 +2,7 @@
 
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { ArrowUpDown, X } from "lucide-react";
+import { ArrowUpDown, X, MapPin } from "lucide-react";
 import { Select } from "@/components/ui/Select";
 
 const ORDEN_OPCIONES = [
@@ -12,10 +12,25 @@ const ORDEN_OPCIONES = [
   { value: "MEJOR_VALORADOS", label: "Mejor valorados" },
 ];
 
+// Capitales de departamento de Bolivia (la ciudad del vendedor)
+const CIUDADES_OPCIONES = [
+  { value: "",            label: "Todas las ciudades" },
+  { value: "Santa Cruz",  label: "Santa Cruz" },
+  { value: "La Paz",      label: "La Paz" },
+  { value: "Cochabamba",  label: "Cochabamba" },
+  { value: "Sucre",       label: "Sucre" },
+  { value: "Oruro",       label: "Oruro" },
+  { value: "Potosí",      label: "Potosí" },
+  { value: "Tarija",      label: "Tarija" },
+  { value: "Trinidad",    label: "Trinidad" },
+  { value: "Cobija",      label: "Cobija" },
+];
+
 interface CatalogoToolbarProps {
   orden:      string;
   precioMin?: string;
   precioMax?: string;
+  ciudad?:    string;
 }
 
 /**
@@ -24,7 +39,7 @@ interface CatalogoToolbarProps {
  * filtros, queda compartible y es indexable. Al cambiar un filtro, se resetea
  * la paginación a la página 1.
  */
-export function CatalogoToolbar({ orden, precioMin, precioMax }: CatalogoToolbarProps) {
+export function CatalogoToolbar({ orden, precioMin, precioMax, ciudad }: CatalogoToolbarProps) {
   const router   = useRouter();
   const pathname = usePathname();
   const params   = useSearchParams();
@@ -48,13 +63,24 @@ export function CatalogoToolbar({ orden, precioMin, precioMax }: CatalogoToolbar
   return (
     <div className="flex flex-col sm:flex-row sm:items-end gap-3 mb-6">
       {/* Orden */}
-      <div className="sm:w-56">
+      <div className="sm:w-52">
         <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Ordenar por</label>
         <Select
           value={orden}
           onValueChange={(v) => pushParams({ orden: v === "RECIENTES" ? null : v })}
           options={ORDEN_OPCIONES}
           icon={ArrowUpDown}
+        />
+      </div>
+
+      {/* Ciudad */}
+      <div className="sm:w-48">
+        <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Ciudad</label>
+        <Select
+          value={ciudad ?? ""}
+          onValueChange={(v) => pushParams({ ciudad: v || null })}
+          options={CIUDADES_OPCIONES}
+          icon={MapPin}
         />
       </div>
 

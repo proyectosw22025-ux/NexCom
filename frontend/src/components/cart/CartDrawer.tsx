@@ -5,6 +5,7 @@ import Link from "next/link";
 import { X, ShoppingCart, Trash2, ShoppingBag } from "lucide-react";
 import { useCart } from "@/context/cart-context";
 import { QuantityStepper } from "@/components/ui/QuantityStepper";
+import { AvisoMultiVendedor } from "@/components/cart/AvisoMultiVendedor";
 
 export function CartDrawer() {
   const { carrito, isOpen, closeCart, actualizar, eliminar, vaciar } = useCart();
@@ -104,6 +105,7 @@ export function CartDrawer() {
         {/* Footer */}
         {carrito && carrito.items.length > 0 && (
           <div className="px-5 py-4 border-t border-slate-100 space-y-3">
+            <AvisoMultiVendedor items={carrito.items} />
             <div className="flex justify-between items-center">
               <span className="text-sm text-slate-500">Total</span>
               <span className="text-lg font-bold text-slate-900">Bs. {carrito.total}</span>

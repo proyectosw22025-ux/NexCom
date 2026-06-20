@@ -15,7 +15,7 @@ export const MI_CARRITO = gql`
           id nombre precio stock activo
           imagenes { url orden }
           categoria { nombre }
-          vendedor  { nombreNegocio }
+          vendedor  { id nombreNegocio }
         }
       }
     }

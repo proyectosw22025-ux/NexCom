@@ -64,6 +64,14 @@ export const BUSCAR = gql`
   }
 `;
 
+export const SUGERENCIAS_BUSQUEDA = gql`
+  query SugerenciasBusqueda($termino: String!) {
+    sugerenciasBusqueda(termino: $termino) {
+      id nombre precio imagenUrl
+    }
+  }
+`;
+
 export const CATEGORIAS = gql`
   query Categorias($soloRaices: Boolean) {
     categorias(soloRaices: $soloRaices) {

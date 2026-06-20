@@ -8,5 +8,11 @@ export const busquedaResolvers = {
       args: { termino: string; pagina?: number; limite?: number; categoriaId?: string },
       ctx: NexComContext,
     ) => busquedaService.buscar(args, ctx.prisma),
+
+    sugerenciasBusqueda: (
+      _: unknown,
+      { termino }: { termino: string },
+      ctx: NexComContext,
+    ) => busquedaService.sugerir(termino, ctx.prisma),
   },
 };

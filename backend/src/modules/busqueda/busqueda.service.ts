@@ -38,4 +38,23 @@ export const busquedaService = {
     await setCache(cacheKey, result, env.CACHE_TTL_BUSQUEDA);
     return result;
   },
+
+  async sugerir(termino: string, prisma: PrismaClient) {
+    const q = termino.trim();
+    if (q.length < 2) return [];
+
+    const cacheKey = `sugerencias:${q.toLowerCase()}`;
+    const cached   = await getFromCache<{ id: string; nombre: string; precio: string; imagenUrl: string | null }[]>(cacheKey);
+    if (cached) return cached;
+
+    const rows = await busquedaRepository.sugerir(q, prisma);
+    const sugerencias = rows.map((p) => ({
+      id:        p.id,
+      nombre:    p.nombre,
+      precio:    p.precio.toString(),
+      imagenUrl: p.imagenes[0]?.url ?? null,
+    }));
+    await setCache(cacheKey, sugerencias, env.CACHE_TTL_BUSQUEDA);
+    return sugerencias;
+  },
 };

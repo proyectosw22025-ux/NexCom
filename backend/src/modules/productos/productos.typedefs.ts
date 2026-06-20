@@ -64,6 +64,7 @@ export const productosTypeDefs = /* GraphQL */ `
       orden:       OrdenProducto
       precioMin:   Float
       precioMax:   Float
+      ciudad:      String
     ): PaginatedProductos!
     producto(id: ID!):    Producto
     misProductos:         [Producto!]!

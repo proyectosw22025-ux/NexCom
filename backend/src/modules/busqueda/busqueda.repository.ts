@@ -75,4 +75,17 @@ export const busquedaRepository = {
 
     return { items, total };
   },
+
+  /** Sugerencias ligeras para autocompletado (typeahead): id, nombre, precio, miniatura. */
+  async sugerir(termino: string, prisma: PrismaClient) {
+    return prisma.producto.findMany({
+      where:  { activo: true, nombre: { contains: termino, mode: "insensitive" } },
+      select: {
+        id: true, nombre: true, precio: true,
+        imagenes: { orderBy: { orden: "asc" }, take: 1, select: { url: true } },
+      },
+      orderBy: [{ destacado: "desc" }, { nombre: "asc" }],
+      take:    6,
+    });
+  },
 };

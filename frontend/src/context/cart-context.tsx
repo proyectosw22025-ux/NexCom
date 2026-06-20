@@ -29,6 +29,7 @@ export interface ItemCarrito {
     stock:   number;
     activo:  boolean;
     imagenes: { url: string; orden: number }[];
+    vendedor?: { id: string; nombreNegocio: string };
   };
 }
 

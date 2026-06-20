@@ -5,7 +5,7 @@ const CARRITO_FIELDS = gql`
     id total totalItems
     items {
       id cantidad precioSnapshot subtotal
-      producto { id nombre precio stock activo imagenes { url orden } }
+      producto { id nombre precio stock activo imagenes { url orden } vendedor { id nombreNegocio } }
     }
   }
 `;
