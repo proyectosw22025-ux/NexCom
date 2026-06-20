@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import { env } from "../config/env.js";
+import { encolarEmail } from "./queue.js";
 
 const transporter = nodemailer.createTransport({
   host:   env.MAIL_HOST,
@@ -10,13 +11,27 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-async function sendMail(to: string, subject: string, html: string): Promise<void> {
+/** Envío real (lo ejecuta el worker de la cola). Tolera SMTP no configurado en dev. */
+export async function sendMailNow(to: string, subject: string, html: string): Promise<void> {
   try {
     await transporter.sendMail({ from: env.MAIL_FROM, to, subject, html });
-  } catch (err) {
-    // En dev: si el mailer no está configurado, imprime en consola
+  } catch {
     console.warn("[Mailer] No se pudo enviar el email (revisa MAIL_USER y MAIL_PASS en .env).");
     console.info(`[Mailer] Para: ${to} | Asunto: ${subject}`);
+  }
+}
+
+/**
+ * Encola el email para envío asíncrono (no bloquea la request, con reintentos).
+ * Si la cola/Redis no está disponible, cae a envío directo (best-effort) para no
+ * perder emails críticos como la verificación de cuenta.
+ */
+async function sendMail(to: string, subject: string, html: string): Promise<void> {
+  try {
+    await encolarEmail({ to, subject, html });
+  } catch (err) {
+    console.warn("[Mailer] Cola no disponible, enviando directo:", (err as Error).message);
+    await sendMailNow(to, subject, html);
   }
 }
 

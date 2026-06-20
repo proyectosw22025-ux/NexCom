@@ -16,6 +16,7 @@ import prisma from "./shared/prisma.client.js";
 import redis from "./shared/redis.client.js";
 import { extractBearerToken, verifyAccessToken } from "./shared/jwt.util.js";
 import { publishNotificacion } from "./shared/pubsub.js";
+import { startEmailWorker } from "./shared/email.worker.js";
 import { runWithLock } from "./shared/lock.util.js";
 import { registrarOperacion } from "./shared/metrics.js";
 import { initSentry, captureError, esErrorInesperado } from "./shared/sentry.js";
@@ -301,6 +302,13 @@ async function bootstrap() {
   redis.connect()
     .then(() => console.log("[Redis] Conectado en", env.REDIS_URL))
     .catch((err: Error) => console.warn("[Redis] No disponible — cache desactivado:", err.message));
+
+  // Worker de la cola de emails (BullMQ): procesa envíos asíncronos con reintentos
+  try {
+    startEmailWorker();
+  } catch (err) {
+    console.warn("[EmailWorker] No se pudo iniciar:", (err as Error).message);
+  }
 
   try {
     await app.listen({ port: env.PORT, host: "0.0.0.0" });
