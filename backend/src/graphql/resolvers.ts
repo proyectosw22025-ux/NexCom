@@ -20,6 +20,7 @@ import { devolucionesResolvers }     from "../modules/devoluciones/devoluciones.
 import { saldosResolvers }           from "../modules/saldos/saldos.resolver.js";
 import { facturasResolvers }         from "../modules/facturas/facturas.resolver.js";
 import { uploadsResolvers }          from "../modules/uploads/uploads.resolver.js";
+import { fidelidadResolvers }        from "../modules/fidelidad/fidelidad.resolver.js";
 import { adminResolvers }           from "../modules/admin/admin.resolver.js";
 import { reportesResolvers }        from "../modules/reportes/reportes.resolver.js";
 import { configSistemaResolvers }   from "../modules/config-sistema/config-sistema.resolver.js";
@@ -57,6 +58,7 @@ export const resolvers = mergeResolvers([
   saldosResolvers,
   facturasResolvers,
   uploadsResolvers,
+  fidelidadResolvers,
   adminResolvers,
   reportesResolvers,
   configSistemaResolvers,

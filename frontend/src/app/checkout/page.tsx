@@ -9,10 +9,11 @@ import { MIS_DIRECCIONES } from "@/graphql/direcciones/queries";
 import { CREAR_DIRECCION } from "@/graphql/direcciones/mutations";
 import { VALIDAR_CUPON } from "@/graphql/cupones/mutations";
 import { CREAR_ORDEN_SIMULADA } from "@/graphql/pagos/mutations";
+import { MIS_PUNTOS } from "@/graphql/fidelidad";
 import { ApolloError } from "@apollo/client";
 import {
   MapPin, Plus, Tag, ShoppingBag, ChevronRight, Loader2, CheckCircle, X,
-  QrCode, Landmark, Truck, Store,
+  QrCode, Landmark, Truck, Store, Gift,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Decimal } from "decimal.js";
@@ -48,6 +49,7 @@ export default function CheckoutPage() {
   const [creandoPago, setCreandoPago]       = useState(false);
   const [metodoPago, setMetodoPago]         = useState<"qr" | "transferencia" | "contra_entrega">("qr");
   const [metodoEntrega, setMetodoEntrega]   = useState<"domicilio" | "retiro_tienda">("domicilio");
+  const [usarPuntos, setUsarPuntos]         = useState(false);
   const [mostrarFormDir, setMostrarFormDir] = useState(false);
   const [nuevaDir, setNuevaDir] = useState({
     alias: "", destinatario: "", calle: "", zona: "", ciudad: "Santa Cruz",
@@ -56,6 +58,9 @@ export default function CheckoutPage() {
 
   const { data: dirData, refetch: refetchDirs } = useQuery<{ misDirecciones: Direccion[] }>(
     MIS_DIRECCIONES, { fetchPolicy: "cache-and-network" },
+  );
+  const { data: puntosData } = useQuery<{ misPuntos: { disponibles: number; valorBs: string } }>(
+    MIS_PUNTOS, { fetchPolicy: "cache-and-network" },
   );
   const [validarCupon]       = useMutation(VALIDAR_CUPON);
   const [crearDireccion]     = useMutation(CREAR_DIRECCION);
@@ -79,7 +84,16 @@ export default function CheckoutPage() {
   const costoPorVendedor = metodoEntrega === "retiro_tienda"
     ? 0 : (EJE_CENTRAL.includes(departamentoSel) ? 15 : 25);
   const envio = new Decimal(costoPorVendedor * Math.max(numVendedores, 1));
-  const total = subtotal.minus(descuento).plus(envio);
+
+  // Puntos de fidelidad: solo en compras de una sola tienda (como los cupones)
+  const puntosDisponibles = puntosData?.misPuntos.disponibles ?? 0;
+  const puntosCanjeables = numVendedores === 1 && puntosDisponibles > 0;
+  const baseDescontable = subtotal.minus(descuento);
+  const descuentoPuntos = usarPuntos && puntosCanjeables
+    ? Decimal.min(new Decimal(puntosDisponibles).mul("0.10"), baseDescontable)
+    : new Decimal(0);
+
+  const total = baseDescontable.minus(descuentoPuntos).plus(envio);
 
   async function handleValidarCupon() {
     if (!codigoCupon.trim()) return;
@@ -135,7 +149,7 @@ export default function CheckoutPage() {
     setCreandoPago(true);
     try {
       const { data } = await crearOrdenSimulada({
-        variables: { direccionId, cuponCodigo: cuponAplicado?.codigo ?? null, metodoPago, metodoEntrega },
+        variables: { direccionId, cuponCodigo: cuponAplicado?.codigo ?? null, metodoPago, metodoEntrega, usarPuntos: usarPuntos && puntosCanjeables },
       });
       const { ordenIds } = data.crearOrdenSimulada;
 
@@ -407,6 +421,26 @@ export default function CheckoutPage() {
               ))}
             </div>
 
+            {/* Puntos de fidelidad */}
+            {puntosDisponibles > 0 && (
+              <div className="mb-3 p-3 rounded-xl bg-amber-50 border border-amber-100">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox" checked={usarPuntos} disabled={!puntosCanjeables}
+                    onChange={(e) => setUsarPuntos(e.target.checked)}
+                    className="accent-amber-500 disabled:opacity-40"
+                  />
+                  <Gift className="h-4 w-4 text-amber-600 shrink-0" />
+                  <span className="text-xs text-amber-800 flex-1">
+                    Usar mis <strong>{puntosDisponibles} puntos</strong> (Bs. {puntosData?.misPuntos.valorBs})
+                  </span>
+                </label>
+                {!puntosCanjeables && numVendedores > 1 && (
+                  <p className="text-[11px] text-amber-600 mt-1">Canjeables solo en compras de una sola tienda.</p>
+                )}
+              </div>
+            )}
+
             <div className="border-t border-slate-100 pt-3 space-y-1.5">
               <div className="flex justify-between text-sm">
                 <span className="text-slate-500">Subtotal</span>
@@ -416,6 +450,12 @@ export default function CheckoutPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-emerald-600">Descuento</span>
                   <span className="text-emerald-600">−Bs. {descuento.toFixed(2)}</span>
+                </div>
+              )}
+              {descuentoPuntos.gt(0) && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-amber-600">Puntos canjeados</span>
+                  <span className="text-amber-600">−Bs. {descuentoPuntos.toFixed(2)}</span>
                 </div>
               )}
               <div className="flex justify-between text-sm">

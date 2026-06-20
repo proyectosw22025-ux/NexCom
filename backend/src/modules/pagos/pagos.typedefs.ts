@@ -42,6 +42,7 @@ export const pagosTypeDefs = /* GraphQL */ `
       cuponCodigo:   String
       metodoPago:    MetodoPagoBoliviano!
       metodoEntrega: String
+      usarPuntos:    Boolean
     ): OrdenSimuladaResult!
 
     confirmarPagoSimulado(ordenIds: [ID!]!): ConfirmacionPagoResult!

@@ -5,6 +5,7 @@ import type Stripe from "stripe";
 import { pagosRepository } from "./pagos.repository.js";
 import { cuponesService } from "../cupones/cupones.service.js";
 import { saldosService } from "../saldos/saldos.service.js";
+import { fidelidadService } from "../fidelidad/fidelidad.service.js";
 import { costoEnvio, METODOS_ENTREGA } from "../../shared/envios.js";
 import { publishNotificacion } from "../../shared/pubsub.js";
 
@@ -111,6 +112,7 @@ export const pagosService = {
     cuponCodigo: string | null | undefined,
     metodoPago: string,
     metodoEntrega: string,
+    usarPuntos: boolean,
     prisma: PrismaClient,
   ) {
     if (!METODOS_BOLIVIANOS.includes(metodoPago)) {
@@ -155,6 +157,26 @@ export const pagosService = {
       cuponId = validacion.cuponId;
     }
 
+    // Puntos de fidelidad: solo en compras de una sola tienda (como los cupones).
+    // Se descuentan sobre (subtotal - cupón) del único vendedor.
+    let puntosUsados = 0;
+    let descuentoPuntos = new Decimal(0);
+    if (usarPuntos) {
+      if (multiVendedor) {
+        throw new GraphQLError("Los puntos solo se pueden canjear en compras de una sola tienda.", {
+          extensions: { code: "BAD_USER_INPUT" },
+        });
+      }
+      const vendedorUnico = [...grupos.keys()][0]!;
+      const subtotalUnico = items.reduce(
+        (acc, it) => acc.plus(new Decimal(it.precioSnapshot.toString()).mul(it.cantidad)), new Decimal(0),
+      );
+      const base = subtotalUnico.minus(descuentoPorVendedor.get(vendedorUnico) ?? new Decimal(0));
+      const cotizacion = await fidelidadService.cotizarCanje(compradorId, base, prisma);
+      puntosUsados   = cotizacion.puntosUsados;
+      descuentoPuntos = cotizacion.descuento;
+    }
+
     const ordenIds: string[] = [];
     let totalGeneral = new Decimal(0);
 
@@ -163,11 +185,14 @@ export const pagosService = {
         (acc, it) => acc.plus(new Decimal(it.precioSnapshot.toString()).mul(it.cantidad)), new Decimal(0),
       );
       const descuento = descuentoPorVendedor.get(vendedorId) ?? new Decimal(0);
-      const total = subtotal.minus(descuento).plus(envioPorOrden);
+      // descuentoPuntos solo aplica al único vendedor (single-vendor garantizado si usarPuntos)
+      const descPuntosOrden = usarPuntos ? descuentoPuntos : new Decimal(0);
+      const total = subtotal.minus(descuento).minus(descPuntosOrden).plus(envioPorOrden);
 
       const orden = await pagosRepository.crearOrdenConItems(
         {
           compradorId, vendedorId, direccionId, direccionSnapshot, subtotal, descuentoCupon: descuento,
+          puntosUsados: usarPuntos ? puntosUsados : 0, descuentoPuntos: descPuntosOrden,
           costoEnvio: envioPorOrden, metodoEntrega: entrega, total,
           metodoPago, moneda: "BOB",
           items: grupoItems.map((it) => ({
@@ -209,6 +234,15 @@ export const pagosService = {
     await saldosService.registrarVenta(
       orden.vendedor!.id, ordenId, orden.total.toString(), orden.vendedor!.plan ?? "FREE", prisma,
     );
+
+    // Fidelidad: debitar puntos canjeados y acreditar puntos ganados (sobre el gasto neto)
+    if (orden.puntosUsados > 0) {
+      await fidelidadService.registrarCanje(orden.comprador!.id, ordenId, orden.puntosUsados, prisma);
+    }
+    const gastoNeto = new Decimal(orden.subtotal.toString())
+      .minus(orden.descuentoCupon.toString())
+      .minus(orden.descuentoPuntos.toString());
+    await fidelidadService.registrarGanados(orden.comprador!.id, ordenId, gastoNeto, prisma);
 
     const idCorto = ordenId.slice(-6).toUpperCase();
     const eventos = [

@@ -38,6 +38,8 @@ export const pagosRepository = {
       direccionSnapshot: object;
       subtotal:         Decimal;
       descuentoCupon:   Decimal;
+      puntosUsados?:    number;
+      descuentoPuntos?: Decimal;
       costoEnvio?:      Decimal;
       metodoEntrega?:   string; // "domicilio" | "retiro_tienda"
       total:            Decimal;
@@ -56,6 +58,8 @@ export const pagosRepository = {
           direccionSnapshot: data.direccionSnapshot,
           subtotal:         data.subtotal,
           descuentoCupon:   data.descuentoCupon,
+          puntosUsados:     data.puntosUsados ?? 0,
+          descuentoPuntos:  data.descuentoPuntos ?? 0,
           costoEnvio:       data.costoEnvio ?? 0,
           metodoEntrega:    data.metodoEntrega ?? "domicilio",
           total:            data.total,

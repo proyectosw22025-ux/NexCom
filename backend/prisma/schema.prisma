@@ -49,6 +49,11 @@ enum TipoMovimientoSaldo {
   REEMBOLSO // débito: reversa del neto al reembolsar una devolución
 }
 
+enum TipoMovimientoPuntos {
+  GANADOS   // crédito: puntos por compra pagada
+  CANJEADOS // débito: puntos usados como descuento
+}
+
 enum EstadoRetiro {
   PENDIENTE
   PAGADO
@@ -193,6 +198,7 @@ model PerfilComprador {
   conversaciones       Conversacion[]
   devoluciones         Devolucion[]
   facturas             Factura[]
+  movimientosPuntos    MovimientoPuntos[]
 
   @@map("perfiles_comprador")
 }
@@ -486,6 +492,8 @@ model Orden {
   estado                EstadoOrden @default(PENDIENTE_PAGO)
   subtotal              Decimal     @db.Decimal(12, 4)
   descuentoCupon        Decimal     @default(0) @db.Decimal(12, 4) @map("descuento_cupon")
+  puntosUsados          Int         @default(0) @map("puntos_usados")
+  descuentoPuntos       Decimal     @default(0) @db.Decimal(12, 4) @map("descuento_puntos")
   costoEnvio            Decimal     @default(0) @db.Decimal(12, 4) @map("costo_envio")
   metodoEntrega         String      @default("domicilio") @map("metodo_entrega") // "domicilio" | "retiro_tienda"
   total                 Decimal     @db.Decimal(12, 4)
@@ -577,6 +585,23 @@ model MovimientoSaldo {
   @@index([vendedorId, creadoEn])
   @@index([ordenId, tipo])
   @@map("movimientos_saldo")
+}
+
+// Libro mayor de puntos de fidelidad del comprador (append-only). Balance = sum(GANADOS) - sum(CANJEADOS).
+model MovimientoPuntos {
+  id          String               @id @default(cuid())
+  compradorId String               @map("comprador_id")
+  tipo        TipoMovimientoPuntos
+  puntos      Int
+  ordenId     String?              @map("orden_id")
+  descripcion String?
+  creadoEn    DateTime             @default(now()) @map("creado_en")
+
+  comprador PerfilComprador @relation(fields: [compradorId], references: [id])
+
+  @@index([compradorId, creadoEn])
+  @@index([ordenId, tipo])
+  @@map("movimientos_puntos")
 }
 
 model SolicitudRetiro {

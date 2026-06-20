@@ -27,6 +27,10 @@ vi.mock("../saldos/saldos.service.js", () => ({
   saldosService: { registrarVenta: vi.fn(), registrarReembolso: vi.fn() },
 }));
 
+vi.mock("../fidelidad/fidelidad.service.js", () => ({
+  fidelidadService: { cotizarCanje: vi.fn(), registrarGanados: vi.fn(), registrarCanje: vi.fn() },
+}));
+
 vi.mock("../../shared/pubsub.js", () => ({ publishNotificacion: vi.fn() }));
 
 const prisma = {} as PrismaClient;
@@ -134,7 +138,7 @@ describe("pagosService — flujo boliviano simulado", () => {
     vi.mocked(pagosRepository.findDireccionConSnapshot).mockResolvedValue(direccionValida as never);
     vi.mocked(pagosRepository.crearOrdenConItems).mockResolvedValue({ id: "orden-1", total: { toString: () => "100" } } as never);
 
-    const r = await pagosService.crearOrdenSimulada("comprador-1", "usuario-1", "dir-1", null, "transferencia", "domicilio", prisma);
+    const r = await pagosService.crearOrdenSimulada("comprador-1", "usuario-1", "dir-1", null, "transferencia", "domicilio", false, prisma);
 
     expect(r.ordenIds).toEqual(["orden-1"]);
     expect(r.metodoPago).toBe("transferencia");
@@ -154,7 +158,7 @@ describe("pagosService — flujo boliviano simulado", () => {
       .mockResolvedValueOnce({ id: "orden-A" } as never)
       .mockResolvedValueOnce({ id: "orden-B" } as never);
 
-    const r = await pagosService.crearOrdenSimulada("comprador-1", "usuario-1", "dir-1", null, "transferencia", "domicilio", prisma);
+    const r = await pagosService.crearOrdenSimulada("comprador-1", "usuario-1", "dir-1", null, "transferencia", "domicilio", false, prisma);
 
     expect(r.ordenIds).toEqual(["orden-A", "orden-B"]); // una orden por cada vendedor
     expect(pagosRepository.crearOrdenConItems).toHaveBeenCalledTimes(2);
@@ -166,14 +170,14 @@ describe("pagosService — flujo boliviano simulado", () => {
     vi.mocked(pagosRepository.findDireccionConSnapshot).mockResolvedValue(direccionValida as never);
 
     await expect(
-      pagosService.crearOrdenSimulada("comprador-1", "usuario-1", "dir-1", "PROMO", "transferencia", "domicilio", prisma),
+      pagosService.crearOrdenSimulada("comprador-1", "usuario-1", "dir-1", "PROMO", "transferencia", "domicilio", false, prisma),
     ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
     expect(pagosRepository.crearOrdenConItems).not.toHaveBeenCalled();
   });
 
   it("crearOrdenSimulada rechaza un método inválido", async () => {
     await expect(
-      pagosService.crearOrdenSimulada("comprador-1", "usuario-1", "dir-1", null, "bitcoin", "domicilio", prisma),
+      pagosService.crearOrdenSimulada("comprador-1", "usuario-1", "dir-1", null, "bitcoin", "domicilio", false, prisma),
     ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
     expect(pagosRepository.crearOrdenConItems).not.toHaveBeenCalled();
   });
@@ -187,6 +191,8 @@ describe("pagosService — flujo boliviano simulado", () => {
 
     vi.mocked(pagosRepository.findOrdenConParticipantes).mockResolvedValue({
       id: "orden-1", estado: "PENDIENTE_PAGO", total: { toString: () => "100" },
+      subtotal: { toString: () => "100" }, descuentoCupon: { toString: () => "0" },
+      descuentoPuntos: { toString: () => "0" }, puntosUsados: 0,
       pago: { id: "pago-1", metodo: "qr" },
       comprador: { id: "comprador-1", usuarioId: "u-comprador" },
       vendedor:  { id: "vendedor-1", usuarioId: "u-vendedor", plan: "FREE" },

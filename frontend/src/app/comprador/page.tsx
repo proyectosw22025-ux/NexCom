@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
 import { MIS_ORDENES } from "@/graphql/ordenes/queries";
 import { NOTIFICACIONES_NO_LEIDAS, MIS_NOTIFICACIONES } from "@/graphql/notificaciones/queries";
-import { Package, Bell, ShoppingBag, ChevronRight, Loader2, CheckCircle, Truck } from "lucide-react";
+import { MIS_PUNTOS } from "@/graphql/fidelidad";
+import { Package, Bell, ShoppingBag, ChevronRight, Loader2, CheckCircle, Truck, Gift } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 
 interface Orden {
@@ -50,7 +51,11 @@ export default function CompradorPage() {
   const { data: noLeidasData } = useQuery<{ notificacionesNoLeidas: number }>(
     NOTIFICACIONES_NO_LEIDAS, { fetchPolicy: "cache-and-network" },
   );
+  const { data: puntosData } = useQuery<{ misPuntos: { disponibles: number; valorBs: string } }>(
+    MIS_PUNTOS, { fetchPolicy: "cache-and-network" },
+  );
 
+  const puntos  = puntosData?.misPuntos;
   const ordenes = ordenesData?.misOrdenes ?? [];
   const notifs  = (notifData?.misNotificaciones ?? []).slice(0, 5);
   const noLeidas = noLeidasData?.notificacionesNoLeidas ?? 0;
@@ -84,6 +89,20 @@ export default function CompradorPage() {
           </div>
         ))}
       </div>
+
+      {/* Puntos de fidelidad */}
+      {puntos && (
+        <div className="bg-gradient-to-r from-amber-400 to-orange-500 rounded-2xl p-5 mb-8 flex items-center gap-4">
+          <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center shrink-0">
+            <Gift className="h-6 w-6 text-white" />
+          </div>
+          <div className="flex-1">
+            <p className="text-xs font-semibold uppercase tracking-wide text-white/80">Puntos NexCom</p>
+            <p className="text-2xl font-extrabold text-white">{puntos.disponibles} pts</p>
+            <p className="text-xs text-white/90">Equivalen a Bs. {puntos.valorBs} de descuento en tu próxima compra</p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Últimos pedidos */}
