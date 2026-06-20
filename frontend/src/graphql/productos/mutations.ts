@@ -1,5 +1,11 @@
 import { gql } from "@apollo/client";
 
+export const FIRMAR_SUBIDA_IMAGEN = gql`
+  mutation FirmarSubidaImagen {
+    firmarSubidaImagen { cloudName apiKey timestamp folder signature }
+  }
+`;
+
 export const CREAR_PRODUCTO = gql`
   mutation CrearProducto($input: ProductoInput!) {
     crearProducto(input: $input) {
@@ -41,5 +47,11 @@ export const AGREGAR_IMAGENES = gql`
     agregarImagenes(productoId: $productoId, urls: $urls) {
       id imagenes { id url orden }
     }
+  }
+`;
+
+export const ELIMINAR_IMAGEN = gql`
+  mutation EliminarImagen($imagenId: ID!) {
+    eliminarImagen(imagenId: $imagenId)
   }
 `;

@@ -27,6 +27,11 @@ const envSchema = z.object({
   // Error tracking (opcional): si no se define, Sentry queda inerte
   SENTRY_DSN:             z.string().optional(),
 
+  // Cloudinary (subida de imágenes). Opcionales: si faltan, la subida se deshabilita.
+  CLOUDINARY_CLOUD_NAME:  z.string().optional(),
+  CLOUDINARY_API_KEY:     z.string().optional(),
+  CLOUDINARY_API_SECRET:  z.string().optional(),
+
   CACHE_TTL_PRODUCTO:     z.coerce.number().default(300),
   CACHE_TTL_CATALOGO:     z.coerce.number().default(180),
   CACHE_TTL_BUSQUEDA:     z.coerce.number().default(60),

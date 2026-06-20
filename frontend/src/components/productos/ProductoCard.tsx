@@ -22,7 +22,7 @@ export interface ProductoCardData {
   descripcion?: string | null;
   categoria:   { id: string; nombre: string; slug: string };
   vendedor:    { id?: string; nombreNegocio: string; ratingPromedio?: string; totalResenias?: number; telefono?: string | null };
-  imagenes:    { url: string; orden: number }[];
+  imagenes:    { id?: string; url: string; orden: number }[];
   etiquetas:   { nombre: string }[];
 }
 

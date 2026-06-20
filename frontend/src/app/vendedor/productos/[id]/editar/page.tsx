@@ -6,14 +6,16 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { ACTUALIZAR_PRODUCTO } from "@/graphql/productos/mutations";
+import { ACTUALIZAR_PRODUCTO, AGREGAR_IMAGENES, ELIMINAR_IMAGEN } from "@/graphql/productos/mutations";
 import { PRODUCTO, CATEGORIAS } from "@/graphql/productos/queries";
-import { ArrowLeft, Package, Loader2 } from "lucide-react";
+import { ArrowLeft, Package, Loader2, ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { ApolloError } from "@apollo/client";
 import type { ProductoCardData } from "@/components/productos/ProductoCard";
 import { Select, type SelectOption } from "@/components/ui/Select";
+import { ImageUploader } from "@/components/productos/ImageUploader";
 
 const schema = z.object({
   nombre:      z.string().min(3, "Mínimo 3 caracteres"),
@@ -30,12 +32,36 @@ export default function EditarProductoPage() {
   const { id } = useParams<{ id: string }>();
   const router  = useRouter();
 
-  const { data: prodData, loading } = useQuery<{ producto: ProductoCardData | null }>(PRODUCTO, { variables: { id } });
+  const { data: prodData, loading, refetch } = useQuery<{ producto: ProductoCardData | null }>(PRODUCTO, { variables: { id } });
   const { data: catData } = useQuery<{
     categorias: { id: string; nombre: string; hijos: { id: string; nombre: string }[] }[]
   }>(CATEGORIAS, { variables: { soloRaices: false } });
 
   const [actualizarProducto] = useMutation(ACTUALIZAR_PRODUCTO);
+  const [agregarImagenes] = useMutation(AGREGAR_IMAGENES);
+  const [eliminarImagen]  = useMutation(ELIMINAR_IMAGEN);
+
+  const imagenes = [...(prodData?.producto?.imagenes ?? [])].sort((a, b) => a.orden - b.orden);
+
+  async function handleAgregarImagenes(urls: string[]) {
+    if (!urls.length) return;
+    try {
+      await agregarImagenes({ variables: { productoId: id, urls } });
+      await refetch();
+      toast.success("Imagen agregada.");
+    } catch {
+      toast.error("No se pudo agregar la imagen.");
+    }
+  }
+
+  async function handleEliminarImagen(imagenId: string) {
+    try {
+      await eliminarImagen({ variables: { imagenId } });
+      await refetch();
+    } catch {
+      toast.error("No se pudo eliminar la imagen.");
+    }
+  }
   const { register, handleSubmit, control, reset, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
@@ -178,6 +204,35 @@ export default function EditarProductoPage() {
                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm
                             focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 focus:bg-white transition-all"
                  placeholder="nuevo, popular…" />
+        </div>
+
+        {/* Imágenes */}
+        <div className="space-y-2">
+          <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wide">
+            <ImagePlus className="h-3.5 w-3.5 inline mr-1.5" /> Imágenes del producto
+          </label>
+          {imagenes.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {imagenes.map((img, i) => (
+                <div key={img.id} className="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-200">
+                  <Image src={img.url} alt={`Imagen ${i + 1}`} fill className="object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => img.id && handleEliminarImagen(img.id)}
+                    aria-label="Eliminar imagen"
+                    className="absolute top-0.5 right-0.5 bg-black/60 hover:bg-red-600 text-white rounded-md p-0.5 transition-colors"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                  {i === 0 && (
+                    <span className="absolute bottom-0 inset-x-0 bg-indigo-600/90 text-white text-[9px] text-center py-0.5">Principal</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          {/* value={[]} → cada subida persiste de inmediato vía agregarImagenes */}
+          <ImageUploader value={[]} onChange={handleAgregarImagenes} max={Math.max(0, 6 - imagenes.length)} />
         </div>
 
         <div className="flex gap-3 pt-2">

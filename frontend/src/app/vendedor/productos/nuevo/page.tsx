@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useMutation, useQuery } from "@apollo/client";
 import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
@@ -12,6 +13,7 @@ import { ArrowLeft, Package, Loader2, ImagePlus } from "lucide-react";
 import { toast } from "sonner";
 import { ApolloError } from "@apollo/client";
 import { Select, type SelectOption } from "@/components/ui/Select";
+import { ImageUploader } from "@/components/productos/ImageUploader";
 
 const schema = z.object({
   nombre:      z.string().min(3, "Mínimo 3 caracteres"),
@@ -20,13 +22,13 @@ const schema = z.object({
   stock:       z.number().int().min(0, "Stock no puede ser negativo"),
   categoriaId: z.string().min(1, "Selecciona una categoría"),
   etiquetas:   z.string().optional(),
-  imagenesUrl: z.string().optional(),
 });
 
 type FormData = z.infer<typeof schema>;
 
 export default function NuevoProductoPage() {
   const router = useRouter();
+  const [imagenes, setImagenes] = useState<string[]>([]);
   const { register, handleSubmit, control, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
@@ -44,7 +46,7 @@ export default function NuevoProductoPage() {
   async function onSubmit(values: FormData) {
     try {
       const etiquetas   = values.etiquetas?.split(",").map((s) => s.trim()).filter(Boolean) ?? [];
-      const imagenesUrl = values.imagenesUrl?.split("\n").map((s) => s.trim()).filter(Boolean) ?? [];
+      const imagenesUrl = imagenes;
 
       await crearProducto({
         variables: {
@@ -158,12 +160,9 @@ export default function NuevoProductoPage() {
         <div className="space-y-1.5">
           <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wide">
             <ImagePlus className="h-3.5 w-3.5 inline mr-1.5" />
-            URLs de imágenes <span className="text-slate-400 normal-case font-normal">(una por línea, máx 5)</span>
+            Imágenes del producto
           </label>
-          <textarea {...register("imagenesUrl")} rows={3}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono
-                               focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 focus:bg-white transition-all resize-none"
-                    placeholder="https://example.com/imagen1.jpg&#10;https://example.com/imagen2.jpg" />
+          <ImageUploader value={imagenes} onChange={setImagenes} />
         </div>
 
         <div className="flex gap-3 pt-2">
