@@ -23,7 +23,8 @@ export const busquedaRepository = {
       ? Prisma.sql`AND p.categoria_id = ${categoriaId}`
       : Prisma.sql``;
 
-    // FTS: obtener IDs ordenados por relevancia
+    // FTS (relevancia semántica) + ILIKE (subcadena) + pg_trgm (tolerante a
+    // errores de tipeo). El operador `%` usa el índice GIN trigram.
     const idRows = await prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
       SELECT p.id
       FROM productos p
@@ -33,12 +34,14 @@ export const busquedaRepository = {
         to_tsvector('spanish', coalesce(p.nombre,'') || ' ' || coalesce(p.descripcion,''))
           @@ plainto_tsquery('spanish', ${termino})
         OR p.nombre ILIKE ${`%${termino}%`}
+        OR word_similarity(${termino}, p.nombre) > 0.4
       )
       ORDER BY
         ts_rank(
           to_tsvector('spanish', coalesce(p.nombre,'') || ' ' || coalesce(p.descripcion,'')),
           plainto_tsquery('spanish', ${termino})
         ) DESC,
+        word_similarity(${termino}, p.nombre) DESC,
         p.destacado DESC
       LIMIT  ${Prisma.raw(String(limite))}
       OFFSET ${Prisma.raw(String(offset))}
@@ -53,6 +56,7 @@ export const busquedaRepository = {
         to_tsvector('spanish', coalesce(p.nombre,'') || ' ' || coalesce(p.descripcion,''))
           @@ plainto_tsquery('spanish', ${termino})
         OR p.nombre ILIKE ${`%${termino}%`}
+        OR word_similarity(${termino}, p.nombre) > 0.4
       )
     `);
 

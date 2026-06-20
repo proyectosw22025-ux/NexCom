@@ -250,6 +250,9 @@ model Producto {
   // Cubre el orden por defecto del catálogo: WHERE activo ORDER BY destacado DESC, creado_en DESC
   @@index([activo, destacado, creadoEn])
   @@index([precio])
+  // Índice trigram (pg_trgm) para búsqueda tolerante a errores de tipeo sobre el nombre.
+  // La extensión pg_trgm se crea en la migración (CREATE EXTENSION IF NOT EXISTS).
+  @@index([nombre(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("productos")
 }
 
