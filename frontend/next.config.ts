@@ -7,7 +7,10 @@ const nextConfig: NextConfig = {
   },
   images: {
     remotePatterns: [
-      { protocol: "https", hostname: "**" },
+      // Cloudinary (subida de imágenes de productos)
+      { protocol: "https", hostname: "res.cloudinary.com" },
+      // Generador de QR del checkout simulado
+      { protocol: "https", hostname: "api.qrserver.com" },
       { protocol: "http",  hostname: "localhost" },
     ],
   },
