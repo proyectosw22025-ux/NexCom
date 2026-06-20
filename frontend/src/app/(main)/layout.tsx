@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import {
   ShoppingCart, Menu, X, Store, LogIn, LogOut,
-  User, ChevronDown, Boxes, Heart, LayoutDashboard,
+  User, ChevronDown, Boxes, Heart, LayoutDashboard, MessageCircle,
 } from "lucide-react";
 import { CartProvider, useCart } from "@/context/cart-context";
 import { useAuth } from "@/context/auth-context";
@@ -57,6 +57,13 @@ function NavbarInner() {
                 </span>
               )}
             </button>
+          )}
+
+          {/* Mensajes */}
+          {user && (
+            <Link href="/mensajes" className="p-2 rounded-xl hover:bg-slate-100 transition-colors" title="Mensajes">
+              <MessageCircle className="h-5 w-5 text-slate-700" />
+            </Link>
           )}
 
           {/* Notificaciones */}

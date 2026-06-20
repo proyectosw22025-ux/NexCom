@@ -3,14 +3,17 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useMutation, ApolloError } from "@apollo/client";
 import {
-  ShoppingCart, Package, Store, Tag, Minus, Plus, Loader2, CheckCircle, ChevronRight, Flag,
+  ShoppingCart, Package, Store, Tag, Minus, Plus, Loader2, CheckCircle, ChevronRight, Flag, MessageCircle,
 } from "lucide-react";
 import { useCart } from "@/context/cart-context";
 import { useAuth } from "@/context/auth-context";
 import { Badge } from "@/components/ui/Badge";
 import { ReportarDialog } from "@/components/reportes/ReportarDialog";
 import { BotonWhatsApp } from "@/components/common/BotonWhatsApp";
+import { INICIAR_CONVERSACION } from "@/graphql/mensajes/mutations";
 import { toast } from "sonner";
 import type { ProductoCardData } from "@/components/productos/ProductoCard";
 
@@ -19,10 +22,23 @@ import type { ProductoCardData } from "@/components/productos/ProductoCard";
 export function ProductoCompra({ producto: p }: { producto: ProductoCardData }) {
   const { user } = useAuth();
   const { agregar } = useCart();
+  const router = useRouter();
   const [cantidad, setCantidad]       = useState(1);
   const [selectedImg, setSelectedImg] = useState(0);
   const [adding, setAdding] = useState(false);
   const [added, setAdded]   = useState(false);
+  const [iniciarConversacion, { loading: iniciandoChat }] = useMutation(INICIAR_CONVERSACION);
+
+  async function handleMensajear() {
+    if (!p.vendedor.id) return;
+    try {
+      const { data } = await iniciarConversacion({ variables: { vendedorId: p.vendedor.id, productoId: p.id } });
+      router.push(`/mensajes?c=${data.iniciarConversacion}`);
+    } catch (err: unknown) {
+      const msg = err instanceof ApolloError ? (err.graphQLErrors[0]?.message ?? "Error.") : "Error.";
+      toast.error(msg);
+    }
+  }
 
   const imagenes = [...p.imagenes].sort((a, b) => a.orden - b.orden);
   const imgUrl   = imagenes[selectedImg]?.url;
@@ -158,10 +174,22 @@ export function ProductoCompra({ producto: p }: { producto: ProductoCardData }) 
             </Link>
           )}
 
-          <BotonWhatsApp
-            telefono={p.vendedor.telefono}
-            mensaje={`Hola, me interesa "${p.nombre}" que vi en NexCom. ¿Está disponible?`}
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {user?.rol === "COMPRADOR" && p.vendedor.id && (
+              <button
+                onClick={handleMensajear}
+                disabled={iniciandoChat}
+                className="flex items-center justify-center gap-2 border border-indigo-200 text-indigo-700 font-semibold rounded-xl py-2.5 px-4 text-sm hover:bg-indigo-50 transition-colors disabled:opacity-50"
+              >
+                {iniciandoChat ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
+                Mensajear al vendedor
+              </button>
+            )}
+            <BotonWhatsApp
+              telefono={p.vendedor.telefono}
+              mensaje={`Hola, me interesa "${p.nombre}" que vi en NexCom. ¿Está disponible?`}
+            />
+          </div>
 
           {user && (
             <ReportarDialog
