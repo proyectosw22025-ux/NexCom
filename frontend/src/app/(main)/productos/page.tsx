@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, Filter, Package, Flame } from "lucide-react";
 import { ProductoCard, type ProductoCardData } from "@/components/productos/ProductoCard";
 import { CatalogoToolbar } from "@/components/productos/CatalogoToolbar";
+import { CampaniaBanner } from "@/components/common/CampaniaBanner";
 import { gqlFetchCacheable } from "@/lib/graphql-server";
 
 // SSR con regeneración: la página se renderiza en el servidor (HTML con datos,
@@ -111,6 +112,9 @@ export default async function ProductosPage({
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
+      {/* Modo feria: banner de temporada (se activa según la fecha) */}
+      <CampaniaBanner />
+
       <div className="flex flex-col lg:flex-row gap-8">
 
         {/* Sidebar filtros */}
