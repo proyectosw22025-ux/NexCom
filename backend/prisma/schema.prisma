@@ -44,6 +44,17 @@ enum EstadoDevolucion {
   REEMBOLSADA
 }
 
+enum TipoMovimientoSaldo {
+  VENTA     // crédito: neto tras comisión de plataforma
+  REEMBOLSO // débito: reversa del neto al reembolsar una devolución
+}
+
+enum EstadoRetiro {
+  PENDIENTE
+  PAGADO
+  RECHAZADO
+}
+
 enum EstadoPago {
   PENDIENTE
   COMPLETADO
@@ -154,6 +165,8 @@ model PerfilVendedor {
   valoracionesRecibidas Valoracion[]   @relation("ValoracionesVendedor")
   conversaciones        Conversacion[]
   devoluciones          Devolucion[]
+  movimientosSaldo      MovimientoSaldo[]
+  solicitudesRetiro     SolicitudRetiro[]
 
   @@map("perfiles_vendedor")
 }
@@ -515,6 +528,44 @@ model Devolucion {
   @@index([compradorId, estado])
   @@index([vendedorId, estado])
   @@map("devoluciones")
+}
+
+// Libro mayor de saldo del vendedor (append-only). El balance se computa sumando
+// movimientos; nunca se muta un saldo agregado (evita drift / condiciones de carrera).
+model MovimientoSaldo {
+  id          String              @id @default(cuid())
+  vendedorId  String              @map("vendedor_id")
+  tipo        TipoMovimientoSaldo
+  monto       Decimal             @db.Decimal(12, 4) // neto (siempre positivo); el signo lo da el tipo
+  comision    Decimal             @default(0) @db.Decimal(12, 4) // comisión retenida (informativo)
+  ordenId     String?             @map("orden_id") // orden de origen (único por tipo → idempotencia)
+  descripcion String?
+  creadoEn    DateTime            @default(now()) @map("creado_en")
+
+  vendedor PerfilVendedor @relation(fields: [vendedorId], references: [id])
+
+  @@index([vendedorId, creadoEn])
+  @@index([ordenId, tipo])
+  @@map("movimientos_saldo")
+}
+
+model SolicitudRetiro {
+  id           String       @id @default(cuid())
+  vendedorId   String       @map("vendedor_id")
+  monto        Decimal      @db.Decimal(12, 4)
+  estado       EstadoRetiro @default(PENDIENTE)
+  banco        String
+  numeroCuenta String       @map("numero_cuenta")
+  titular      String
+  notaAdmin    String?      @map("nota_admin")
+  creadoEn     DateTime     @default(now()) @map("creado_en")
+  resueltoEn   DateTime?    @map("resuelto_en")
+
+  vendedor PerfilVendedor @relation(fields: [vendedorId], references: [id])
+
+  @@index([vendedorId, estado])
+  @@index([estado, creadoEn])
+  @@map("solicitudes_retiro")
 }
 
 // ══════════════════════════════════════════════════════════════

@@ -2,6 +2,7 @@ import { GraphQLError } from "graphql";
 import { Decimal } from "decimal.js";
 import type { PrismaClient } from "@prisma/client";
 import { devolucionesRepository } from "./devoluciones.repository.js";
+import { saldosService } from "../saldos/saldos.service.js";
 import { publishNotificacion } from "../../shared/pubsub.js";
 
 // Reglas de negocio
@@ -119,6 +120,8 @@ export const devolucionesService = {
     if (aprobar) {
       // Reembolso simulado + restock atómico
       actualizada = await devolucionesRepository.reembolsar(id, nota, dev.orden!.items, prisma);
+      // Revertir el neto acreditado al vendedor (clawback)
+      await saldosService.registrarReembolso(dev.vendedor!.id, dev.ordenId, prisma);
       await notificar(
         prisma, dev.comprador!.usuarioId, "DEVOLUCION_RESUELTA", "Devolución aprobada",
         `Tu devolución de la orden #${idCorto} fue aprobada. Se reembolsará Bs. ${dev.montoReembolso.toString()}.`,

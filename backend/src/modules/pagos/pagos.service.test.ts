@@ -23,6 +23,10 @@ vi.mock("../cupones/cupones.service.js", () => ({
   cuponesService: { validar: vi.fn() },
 }));
 
+vi.mock("../saldos/saldos.service.js", () => ({
+  saldosService: { registrarVenta: vi.fn(), registrarReembolso: vi.fn() },
+}));
+
 vi.mock("../../shared/pubsub.js", () => ({ publishNotificacion: vi.fn() }));
 
 const prisma = {} as PrismaClient;
@@ -182,10 +186,10 @@ describe("pagosService — flujo boliviano simulado", () => {
     const prismaConNotif = { notificacion: { create: notifCreate } } as unknown as PrismaClient;
 
     vi.mocked(pagosRepository.findOrdenConParticipantes).mockResolvedValue({
-      id: "orden-1", estado: "PENDIENTE_PAGO",
+      id: "orden-1", estado: "PENDIENTE_PAGO", total: { toString: () => "100" },
       pago: { id: "pago-1", metodo: "qr" },
       comprador: { id: "comprador-1", usuarioId: "u-comprador" },
-      vendedor:  { id: "vendedor-1", usuarioId: "u-vendedor" },
+      vendedor:  { id: "vendedor-1", usuarioId: "u-vendedor", plan: "FREE" },
     } as never);
 
     const r = await pagosService.confirmarPagoSimulado(["orden-1"], "comprador-1", "usuario-1", prismaConNotif);

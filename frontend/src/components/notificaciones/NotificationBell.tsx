@@ -6,7 +6,7 @@ import { useQuery, useMutation, useLazyQuery, useSubscription } from "@apollo/cl
 import * as Popover from "@radix-ui/react-popover";
 import { toast } from "sonner";
 import {
-  Bell, CheckCheck, CreditCard, ShoppingBag, Loader2, TrendingDown, MessageCircle, RotateCcw,
+  Bell, CheckCheck, CreditCard, ShoppingBag, Loader2, TrendingDown, MessageCircle, RotateCcw, Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "@/lib/format-relative-time";
@@ -32,6 +32,7 @@ const TIPO_ICONOS: Record<string, typeof Bell> = {
   NUEVO_MENSAJE:   MessageCircle,
   NUEVA_DEVOLUCION:   RotateCcw,
   DEVOLUCION_RESUELTA: RotateCcw,
+  RETIRO_RESUELTO:    Wallet,
 };
 
 const ACCENTS = {

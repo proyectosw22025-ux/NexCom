@@ -4,6 +4,7 @@ import type { PrismaClient } from "@prisma/client";
 import type Stripe from "stripe";
 import { pagosRepository } from "./pagos.repository.js";
 import { cuponesService } from "../cupones/cupones.service.js";
+import { saldosService } from "../saldos/saldos.service.js";
 import { publishNotificacion } from "../../shared/pubsub.js";
 
 const METODOS_BOLIVIANOS = ["qr", "transferencia", "contra_entrega"];
@@ -195,6 +196,11 @@ export const pagosService = {
     }
     const metodo = orden.pago?.metodo ?? "qr";
     await pagosRepository.confirmarPagoSimulado(ordenId, orden.pago?.id ?? null, compradorId, metodo, prisma);
+
+    // Acreditar el neto (tras comisión de plataforma) al saldo del vendedor
+    await saldosService.registrarVenta(
+      orden.vendedor!.id, ordenId, orden.total.toString(), orden.vendedor!.plan ?? "FREE", prisma,
+    );
 
     const idCorto = ordenId.slice(-6).toUpperCase();
     const eventos = [

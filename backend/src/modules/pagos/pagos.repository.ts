@@ -192,7 +192,7 @@ export const pagosRepository = {
       include: {
         pago:      true,
         comprador: { select: { id: true, usuarioId: true } },
-        vendedor:  { select: { id: true, usuarioId: true } },
+        vendedor:  { select: { id: true, usuarioId: true, plan: true } },
       },
     });
   },

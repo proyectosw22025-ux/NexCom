@@ -16,6 +16,9 @@ vi.mock("./devoluciones.repository.js", () => ({
     findByOrden:             vi.fn(),
   },
 }));
+vi.mock("../saldos/saldos.service.js", () => ({
+  saldosService: { registrarVenta: vi.fn(), registrarReembolso: vi.fn() },
+}));
 vi.mock("../../shared/pubsub.js", () => ({ publishNotificacion: vi.fn() }));
 
 const notifCreate = vi.fn().mockResolvedValue({

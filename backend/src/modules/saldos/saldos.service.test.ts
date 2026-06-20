@@ -1,0 +1,159 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { PrismaClient } from "@prisma/client";
+
+import { saldosRepository } from "./saldos.repository.js";
+import { saldosService } from "./saldos.service.js";
+
+vi.mock("./saldos.repository.js", () => ({
+  saldosRepository: {
+    existeMovimiento:      vi.fn(),
+    crearMovimiento:       vi.fn(),
+    findVentaPorOrden:     vi.fn(),
+    sumarMovimientos:      vi.fn(),
+    sumarRetiros:          vi.fn(),
+    listMovimientos:       vi.fn(),
+    crearRetiro:           vi.fn(),
+    listRetirosByVendedor: vi.fn(),
+    listRetirosPendientes: vi.fn(),
+    listRetirosResueltos:  vi.fn(),
+    findRetiro:            vi.fn(),
+    actualizarRetiro:      vi.fn(),
+  },
+}));
+vi.mock("../../shared/pubsub.js", () => ({ publishNotificacion: vi.fn() }));
+
+const prisma = {} as PrismaClient;
+
+describe("saldosService.registrarVenta (comisión por plan)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("FREE: retiene 10% de comisión y acredita el 90% neto", async () => {
+    vi.mocked(saldosRepository.existeMovimiento).mockResolvedValue(false);
+    await saldosService.registrarVenta("v1", "orden-1", "100.00", "FREE", prisma);
+    expect(saldosRepository.crearMovimiento).toHaveBeenCalledWith(
+      expect.objectContaining({ tipo: "VENTA", monto: "90", comision: "10" }), prisma,
+    );
+  });
+
+  it("PRO: retiene solo 5% de comisión", async () => {
+    vi.mocked(saldosRepository.existeMovimiento).mockResolvedValue(false);
+    await saldosService.registrarVenta("v1", "orden-2", "200.00", "PRO", prisma);
+    expect(saldosRepository.crearMovimiento).toHaveBeenCalledWith(
+      expect.objectContaining({ tipo: "VENTA", monto: "190", comision: "10" }), prisma,
+    );
+  });
+
+  it("es idempotente: no acredita dos veces la misma orden", async () => {
+    vi.mocked(saldosRepository.existeMovimiento).mockResolvedValue(true);
+    await saldosService.registrarVenta("v1", "orden-1", "100.00", "FREE", prisma);
+    expect(saldosRepository.crearMovimiento).not.toHaveBeenCalled();
+  });
+});
+
+describe("saldosService.registrarReembolso (clawback exacto)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("revierte exactamente el neto que se acreditó (no recalcula)", async () => {
+    vi.mocked(saldosRepository.existeMovimiento).mockResolvedValue(false);
+    vi.mocked(saldosRepository.findVentaPorOrden).mockResolvedValue({ monto: "90" } as never);
+    await saldosService.registrarReembolso("v1", "orden-1", prisma);
+    expect(saldosRepository.crearMovimiento).toHaveBeenCalledWith(
+      expect.objectContaining({ tipo: "REEMBOLSO", monto: "90" }), prisma,
+    );
+  });
+
+  it("no hace nada si no existe la venta original", async () => {
+    vi.mocked(saldosRepository.existeMovimiento).mockResolvedValue(false);
+    vi.mocked(saldosRepository.findVentaPorOrden).mockResolvedValue(null);
+    await saldosService.registrarReembolso("v1", "orden-x", prisma);
+    expect(saldosRepository.crearMovimiento).not.toHaveBeenCalled();
+  });
+});
+
+describe("saldosService.getSaldo", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("disponible = (ventas - reembolsos) - (pendiente + pagado)", async () => {
+    vi.mocked(saldosRepository.sumarMovimientos).mockImplementation(async (_v, tipo) =>
+      tipo === "VENTA" ? { monto: "500", comision: "50" } : { monto: "90", comision: "0" },
+    );
+    vi.mocked(saldosRepository.sumarRetiros).mockImplementation(async (_v, estado) =>
+      estado === "PENDIENTE" ? "100" : "200",
+    );
+    const s = await saldosService.getSaldo("v1", prisma);
+    // generado = 500 - 90 = 410; disponible = 410 - 100 - 200 = 110
+    expect(s).toMatchObject({ generado: "410.00", enRevision: "100.00", retirado: "200.00", disponible: "110.00" });
+  });
+});
+
+describe("saldosService.solicitarRetiro", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const saldoDisponible = (disp: string) => {
+    vi.mocked(saldosRepository.sumarMovimientos).mockImplementation(async (_v, tipo) =>
+      tipo === "VENTA" ? { monto: disp, comision: "0" } : { monto: "0", comision: "0" },
+    );
+    vi.mocked(saldosRepository.sumarRetiros).mockResolvedValue("0");
+  };
+
+  it("crea el retiro cuando el monto está dentro del saldo disponible", async () => {
+    saldoDisponible("300");
+    vi.mocked(saldosRepository.crearRetiro).mockResolvedValue({
+      id: "r1", monto: "150", estado: "PENDIENTE", banco: "Bisa", numeroCuenta: "123", titular: "Ana", creadoEn: new Date(),
+    } as never);
+    const r = await saldosService.solicitarRetiro(
+      "v1", { monto: "150", banco: "Bisa", numeroCuenta: "123", titular: "Ana" }, prisma,
+    );
+    expect(r).toMatchObject({ id: "r1", estado: "PENDIENTE", monto: "150.00" });
+  });
+
+  it("rechaza un retiro que supera el saldo disponible (sin sobregiro)", async () => {
+    saldoDisponible("100");
+    await expect(
+      saldosService.solicitarRetiro("v1", { monto: "150", banco: "Bisa", numeroCuenta: "1", titular: "Ana" }, prisma),
+    ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
+    expect(saldosRepository.crearRetiro).not.toHaveBeenCalled();
+  });
+
+  it("rechaza montos por debajo del mínimo", async () => {
+    saldoDisponible("1000");
+    await expect(
+      saldosService.solicitarRetiro("v1", { monto: "10", banco: "Bisa", numeroCuenta: "1", titular: "Ana" }, prisma),
+    ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
+  });
+
+  it("rechaza si faltan datos bancarios", async () => {
+    saldoDisponible("1000");
+    await expect(
+      saldosService.solicitarRetiro("v1", { monto: "100", banco: "", numeroCuenta: "1", titular: "Ana" }, prisma),
+    ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
+  });
+});
+
+describe("saldosService.resolverRetiro", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const prismaN = { notificacion: { create: vi.fn().mockResolvedValue({
+    id: "n", tipo: "RETIRO_RESUELTO", titulo: "t", mensaje: "m", leido: false, url: null, ordenId: null, creadoEn: new Date(),
+  }) } } as unknown as PrismaClient;
+
+  const pendiente = {
+    id: "r1", monto: "150", estado: "PENDIENTE", banco: "Bisa", numeroCuenta: "1", titular: "Ana", creadoEn: new Date(),
+    vendedor: { id: "v1", usuarioId: "u-v" },
+  };
+
+  it("aprueba (PAGADO) y notifica al vendedor", async () => {
+    vi.mocked(saldosRepository.findRetiro).mockResolvedValue(pendiente as never);
+    vi.mocked(saldosRepository.actualizarRetiro).mockResolvedValue({ ...pendiente, estado: "PAGADO", resueltoEn: new Date() } as never);
+    const r = await saldosService.resolverRetiro("r1", true, null, prismaN);
+    expect(saldosRepository.actualizarRetiro).toHaveBeenCalledWith("r1", "PAGADO", null, prismaN);
+    expect(r.estado).toBe("PAGADO");
+  });
+
+  it("rechaza resolver un retiro que ya no está pendiente", async () => {
+    vi.mocked(saldosRepository.findRetiro).mockResolvedValue({ ...pendiente, estado: "PAGADO" } as never);
+    await expect(
+      saldosService.resolverRetiro("r1", true, null, prismaN),
+    ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
+  });
+});
