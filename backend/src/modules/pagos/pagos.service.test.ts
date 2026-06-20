@@ -13,12 +13,17 @@ vi.mock("./pagos.repository.js", () => ({
     crearOrdenConItems:           vi.fn(),
     crearUsoCupon:                vi.fn(),
     guardarStripePaymentIntentId: vi.fn(),
+    findOrdenConParticipantes:    vi.fn(),
+    confirmarPagoSimulado:        vi.fn(),
+    limpiarCarrito:               vi.fn(),
   },
 }));
 
 vi.mock("../cupones/cupones.service.js", () => ({
   cuponesService: { validar: vi.fn() },
 }));
+
+vi.mock("../../shared/pubsub.js", () => ({ publishNotificacion: vi.fn() }));
 
 const prisma = {} as PrismaClient;
 
@@ -114,5 +119,76 @@ describe("pagosService.crearPaymentIntent", () => {
     ).rejects.toMatchObject({ extensions: { code: "NOT_FOUND" } });
 
     expect(paymentIntentsCreate).not.toHaveBeenCalled();
+  });
+});
+
+describe("pagosService — flujo boliviano simulado", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("crearOrdenSimulada (transferencia): crea la orden en BOB y NO confirma de inmediato", async () => {
+    vi.mocked(pagosRepository.findCarritoConItems).mockResolvedValue({ items: [itemValido] } as never);
+    vi.mocked(pagosRepository.findDireccionConSnapshot).mockResolvedValue(direccionValida as never);
+    vi.mocked(pagosRepository.crearOrdenConItems).mockResolvedValue({ id: "orden-1", total: { toString: () => "100" } } as never);
+
+    const r = await pagosService.crearOrdenSimulada("comprador-1", "usuario-1", "dir-1", null, "transferencia", prisma);
+
+    expect(r).toMatchObject({ ordenId: "orden-1", metodoPago: "transferencia" });
+    // moneda BOB y método correctos
+    expect(pagosRepository.crearOrdenConItems).toHaveBeenCalledWith(
+      expect.objectContaining({ metodoPago: "transferencia", moneda: "BOB" }), prisma,
+    );
+    // transferencia NO confirma automáticamente
+    expect(pagosRepository.confirmarPagoSimulado).not.toHaveBeenCalled();
+  });
+
+  it("crearOrdenSimulada rechaza un método inválido", async () => {
+    await expect(
+      pagosService.crearOrdenSimulada("comprador-1", "usuario-1", "dir-1", null, "bitcoin", prisma),
+    ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
+    expect(pagosRepository.crearOrdenConItems).not.toHaveBeenCalled();
+  });
+
+  it("confirmarPagoSimulado: confirma la orden y notifica a comprador y vendedor", async () => {
+    const notifCreate = vi.fn().mockResolvedValue({
+      id: "n1", tipo: "X", titulo: "t", mensaje: "m", leido: false, url: null, ordenId: "orden-1",
+      creadoEn: new Date(),
+    });
+    const prismaConNotif = { notificacion: { create: notifCreate } } as unknown as PrismaClient;
+
+    vi.mocked(pagosRepository.findOrdenConParticipantes).mockResolvedValue({
+      id: "orden-1", estado: "PENDIENTE_PAGO",
+      pago: { id: "pago-1", metodo: "qr" },
+      comprador: { id: "comprador-1", usuarioId: "u-comprador" },
+      vendedor:  { id: "vendedor-1", usuarioId: "u-vendedor" },
+    } as never);
+
+    const r = await pagosService.confirmarPagoSimulado("orden-1", "comprador-1", "usuario-1", prismaConNotif);
+
+    expect(r).toMatchObject({ ordenId: "orden-1", estado: "PAGADO" });
+    expect(pagosRepository.confirmarPagoSimulado).toHaveBeenCalled();
+    expect(pagosRepository.limpiarCarrito).toHaveBeenCalledWith("comprador-1", prismaConNotif);
+    expect(notifCreate).toHaveBeenCalledTimes(2); // comprador + vendedor
+  });
+
+  it("confirmarPagoSimulado rechaza si la orden no es del comprador", async () => {
+    vi.mocked(pagosRepository.findOrdenConParticipantes).mockResolvedValue({
+      id: "orden-1", estado: "PENDIENTE_PAGO", pago: { id: "p", metodo: "qr" },
+      comprador: { id: "OTRO", usuarioId: "x" }, vendedor: { id: "v", usuarioId: "y" },
+    } as never);
+
+    await expect(
+      pagosService.confirmarPagoSimulado("orden-1", "comprador-1", "usuario-1", prisma),
+    ).rejects.toMatchObject({ extensions: { code: "NOT_FOUND" } });
+  });
+
+  it("confirmarPagoSimulado rechaza una orden ya procesada", async () => {
+    vi.mocked(pagosRepository.findOrdenConParticipantes).mockResolvedValue({
+      id: "orden-1", estado: "PAGADO", pago: { id: "p", metodo: "qr" },
+      comprador: { id: "comprador-1", usuarioId: "x" }, vendedor: { id: "v", usuarioId: "y" },
+    } as never);
+
+    await expect(
+      pagosService.confirmarPagoSimulado("orden-1", "comprador-1", "usuario-1", prisma),
+    ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
   });
 });

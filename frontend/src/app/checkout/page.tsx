@@ -8,10 +8,11 @@ import { useCart } from "@/context/cart-context";
 import { MIS_DIRECCIONES } from "@/graphql/direcciones/queries";
 import { CREAR_DIRECCION } from "@/graphql/direcciones/mutations";
 import { VALIDAR_CUPON } from "@/graphql/cupones/mutations";
-import { CREAR_PAYMENT_INTENT } from "@/graphql/pagos/mutations";
+import { CREAR_ORDEN_SIMULADA } from "@/graphql/pagos/mutations";
 import { ApolloError } from "@apollo/client";
 import {
   MapPin, Plus, Tag, ShoppingBag, ChevronRight, Loader2, CheckCircle, X,
+  QrCode, Landmark, Truck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Decimal } from "decimal.js";
@@ -44,6 +45,7 @@ export default function CheckoutPage() {
   const [cuponAplicado, setCuponAplicado]   = useState<CuponValidado | null>(null);
   const [validandoCupon, setValidandoCupon] = useState(false);
   const [creandoPago, setCreandoPago]       = useState(false);
+  const [metodoPago, setMetodoPago]         = useState<"qr" | "transferencia" | "contra_entrega">("qr");
   const [mostrarFormDir, setMostrarFormDir] = useState(false);
   const [nuevaDir, setNuevaDir] = useState({
     alias: "", destinatario: "", calle: "", zona: "", ciudad: "Santa Cruz",
@@ -55,7 +57,7 @@ export default function CheckoutPage() {
   );
   const [validarCupon]       = useMutation(VALIDAR_CUPON);
   const [crearDireccion]     = useMutation(CREAR_DIRECCION);
-  const [crearPaymentIntent] = useMutation(CREAR_PAYMENT_INTENT);
+  const [crearOrdenSimulada] = useMutation(CREAR_ORDEN_SIMULADA);
 
   const direcciones = dirData?.misDirecciones ?? [];
 
@@ -115,24 +117,28 @@ export default function CheckoutPage() {
     }
   }
 
-  async function handleProcederAlPago() {
+  async function handleRealizarPedido() {
     if (!direccionId) { toast.error("Selecciona una dirección de envío."); return; }
     if (items.length === 0) { toast.error("Tu carrito está vacío."); return; }
     setCreandoPago(true);
     try {
-      const { data } = await crearPaymentIntent({
-        variables: {
-          direccionId,
-          cuponCodigo: cuponAplicado?.codigo ?? null,
-        },
+      const { data } = await crearOrdenSimulada({
+        variables: { direccionId, cuponCodigo: cuponAplicado?.codigo ?? null, metodoPago },
       });
-      const { clientSecret, ordenId } = data.crearPaymentIntent;
-      sessionStorage.setItem("nexcom_checkout", JSON.stringify({ clientSecret, ordenId }));
+      const { ordenId } = data.crearOrdenSimulada;
+
+      // Contra entrega: la orden ya queda confirmada → directo a confirmación
+      if (metodoPago === "contra_entrega") {
+        router.push(`/checkout/confirmacion?ordenId=${ordenId}&status=ok`);
+        return;
+      }
+      // QR / transferencia: ir a la pantalla de pago para confirmar
+      sessionStorage.setItem("nexcom_checkout", JSON.stringify({ ordenId, metodoPago, total: total.toFixed(2) }));
       router.push("/checkout/pago");
     } catch (err: unknown) {
       const msg = err instanceof ApolloError
-        ? (err.graphQLErrors[0]?.message ?? "Error al procesar el pago.")
-        : "Error al procesar el pago.";
+        ? (err.graphQLErrors[0]?.message ?? "Error al crear el pedido.")
+        : "Error al crear el pedido.";
       toast.error(msg);
     } finally {
       setCreandoPago(false);
@@ -312,6 +318,30 @@ export default function CheckoutPage() {
               </div>
             )}
           </div>
+
+          {/* Método de pago (Bolivia) */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-5">
+            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide mb-4">Método de pago</h2>
+            <div className="space-y-2">
+              {([
+                { v: "qr",             icon: QrCode,   t: "QR Simple",        d: "Escanea y paga con la app de tu banco" },
+                { v: "transferencia",  icon: Landmark, t: "Transferencia bancaria", d: "Transfiere y sube tu comprobante" },
+                { v: "contra_entrega", icon: Truck,    t: "Pago contra entrega",    d: "Paga en efectivo al recibir tu pedido" },
+              ] as const).map(({ v, icon: Icon, t, d }) => (
+                <label key={v} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
+                  metodoPago === v ? "border-indigo-400 bg-indigo-50" : "border-slate-200 hover:bg-slate-50"
+                }`}>
+                  <input type="radio" name="metodoPago" value={v} checked={metodoPago === v}
+                    onChange={() => setMetodoPago(v)} className="accent-indigo-600" />
+                  <Icon className={`h-5 w-5 shrink-0 ${metodoPago === v ? "text-indigo-600" : "text-slate-400"}`} />
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">{t}</p>
+                    <p className="text-xs text-slate-500">{d}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Resumen de orden */}
@@ -350,7 +380,7 @@ export default function CheckoutPage() {
             </div>
 
             <button
-              onClick={handleProcederAlPago}
+              onClick={handleRealizarPedido}
               disabled={creandoPago || !direccionId}
               className="mt-5 w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700
                          disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold
@@ -358,12 +388,12 @@ export default function CheckoutPage() {
             >
               {creandoPago
                 ? <><Loader2 className="h-4 w-4 animate-spin" /> Procesando…</>
-                : <><ChevronRight className="h-4 w-4" /> Continuar al pago</>
+                : <><ChevronRight className="h-4 w-4" /> {metodoPago === "contra_entrega" ? "Confirmar pedido" : "Realizar pedido"}</>
               }
             </button>
 
             <p className="text-xs text-slate-400 text-center mt-3">
-              Pago seguro con Stripe · Sandbox
+              Pagos en Bs. · QR · Transferencia · Contra entrega
             </p>
           </div>
         </div>

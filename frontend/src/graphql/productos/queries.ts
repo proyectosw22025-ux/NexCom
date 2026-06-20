@@ -12,7 +12,7 @@ const PRODUCTO_FIELDS = gql`
     totalVendido
     creadoEn
     categoria { id nombre slug }
-    vendedor   { id nombreNegocio ciudad logoUrl ratingPromedio totalResenias }
+    vendedor   { id nombreNegocio ciudad logoUrl ratingPromedio totalResenias telefono }
     imagenes   { id url orden }
     etiquetas  { id nombre slug }
   }

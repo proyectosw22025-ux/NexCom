@@ -10,6 +10,7 @@ export const authTypeDefs = /* GraphQL */ `
     nombreNegocio: String!
     descripcion:   String
     ciudad:        String!
+    telefono:      String
     logoUrl:       String
     ratingPromedio: String!
     totalVentas:   Int!

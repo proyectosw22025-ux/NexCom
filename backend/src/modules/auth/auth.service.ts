@@ -266,7 +266,7 @@ export async function getVendedorPublico(id: string, prisma: PrismaClient) {
   return prisma.perfilVendedor.findUnique({
     where:  { id },
     select: {
-      id: true, nombreNegocio: true, descripcion: true, ciudad: true,
+      id: true, nombreNegocio: true, descripcion: true, ciudad: true, telefono: true,
       logoUrl: true, ratingPromedio: true, totalVentas: true, totalResenias: true, plan: true,
     },
   });
@@ -283,7 +283,7 @@ export async function mejorarPlan(perfilVendedorId: string, plan: string, prisma
     where:  { id: perfilVendedorId },
     data:   { plan },
     select: {
-      id: true, nombreNegocio: true, descripcion: true, ciudad: true,
+      id: true, nombreNegocio: true, descripcion: true, ciudad: true, telefono: true,
       logoUrl: true, ratingPromedio: true, totalVentas: true, totalResenias: true, plan: true,
     },
   });

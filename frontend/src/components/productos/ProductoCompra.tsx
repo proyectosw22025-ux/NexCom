@@ -10,6 +10,7 @@ import { useCart } from "@/context/cart-context";
 import { useAuth } from "@/context/auth-context";
 import { Badge } from "@/components/ui/Badge";
 import { ReportarDialog } from "@/components/reportes/ReportarDialog";
+import { BotonWhatsApp } from "@/components/common/BotonWhatsApp";
 import { toast } from "sonner";
 import type { ProductoCardData } from "@/components/productos/ProductoCard";
 
@@ -156,6 +157,11 @@ export function ProductoCompra({ producto: p }: { producto: ProductoCardData }) 
               Inicia sesión para comprar
             </Link>
           )}
+
+          <BotonWhatsApp
+            telefono={p.vendedor.telefono}
+            mensaje={`Hola, me interesa "${p.nombre}" que vi en NexCom. ¿Está disponible?`}
+          />
 
           {user && (
             <ReportarDialog

@@ -8,3 +8,23 @@ export const CREAR_PAYMENT_INTENT = gql`
     }
   }
 `;
+
+export const CREAR_ORDEN_SIMULADA = gql`
+  mutation CrearOrdenSimulada($direccionId: ID!, $cuponCodigo: String, $metodoPago: MetodoPagoBoliviano!) {
+    crearOrdenSimulada(direccionId: $direccionId, cuponCodigo: $cuponCodigo, metodoPago: $metodoPago) {
+      ordenId
+      metodoPago
+      total
+    }
+  }
+`;
+
+export const CONFIRMAR_PAGO_SIMULADO = gql`
+  mutation ConfirmarPagoSimulado($ordenId: ID!) {
+    confirmarPagoSimulado(ordenId: $ordenId) {
+      ordenId
+      estado
+      metodo
+    }
+  }
+`;

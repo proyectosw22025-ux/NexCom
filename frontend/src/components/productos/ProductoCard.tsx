@@ -21,7 +21,7 @@ export interface ProductoCardData {
   destacado:   boolean;
   descripcion?: string | null;
   categoria:   { id: string; nombre: string; slug: string };
-  vendedor:    { id?: string; nombreNegocio: string; ratingPromedio?: string; totalResenias?: number };
+  vendedor:    { id?: string; nombreNegocio: string; ratingPromedio?: string; totalResenias?: number; telefono?: string | null };
   imagenes:    { url: string; orden: number }[];
   etiquetas:   { nombre: string }[];
 }

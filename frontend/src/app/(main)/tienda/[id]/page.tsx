@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Store, MapPin, Star, Package, ChevronLeft, ChevronRight, ShoppingBag, Crown } from "lucide-react";
 import { ProductoCard, type ProductoCardData } from "@/components/productos/ProductoCard";
 import { ProductoResenias } from "@/components/productos/ProductoResenias";
+import { BotonWhatsApp } from "@/components/common/BotonWhatsApp";
 import { gqlFetchCacheable } from "@/lib/graphql-server";
 
 export const revalidate = 60;
@@ -12,6 +13,7 @@ const LIMITE = 12;
 interface VendedorPublico {
   id: string; nombreNegocio: string; descripcion: string | null; ciudad: string;
   logoUrl: string | null; ratingPromedio: string; totalVentas: number; totalResenias: number; plan: string;
+  telefono: string | null;
 }
 interface PaginatedProductos {
   items: ProductoCardData[]; total: number; pagina: number; totalPaginas: number;
@@ -20,7 +22,7 @@ interface PaginatedProductos {
 const VENDEDOR_Q = `
   query Vendedor($id: ID!) {
     vendedorPublico(id: $id) {
-      id nombreNegocio descripcion ciudad logoUrl ratingPromedio totalVentas totalResenias plan
+      id nombreNegocio descripcion ciudad logoUrl ratingPromedio totalVentas totalResenias plan telefono
     }
   }`;
 
@@ -110,6 +112,12 @@ export default async function TiendaPage({
             {vendedor.descripcion && (
               <p className="text-sm text-slate-600 mt-3 leading-relaxed">{vendedor.descripcion}</p>
             )}
+            <div className="mt-4 inline-flex">
+              <BotonWhatsApp
+                telefono={vendedor.telefono}
+                mensaje={`Hola, vi tu tienda "${vendedor.nombreNegocio}" en NexCom y quisiera más información.`}
+              />
+            </div>
           </div>
         </div>
       </div>

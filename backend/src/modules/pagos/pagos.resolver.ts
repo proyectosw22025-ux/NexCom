@@ -23,5 +23,34 @@ export const pagosResolvers = {
         ctx.stripe,
       );
     },
+
+    crearOrdenSimulada: (
+      _: unknown,
+      { direccionId, cuponCodigo, metodoPago }:
+        { direccionId: string; cuponCodigo?: string | null; metodoPago: string },
+      ctx: NexComContext,
+    ) => {
+      requireRole(ctx, "COMPRADOR");
+      if (!ctx.user?.perfilCompradorId) {
+        throw new GraphQLError("Perfil de comprador no encontrado.", { extensions: { code: "NOT_FOUND" } });
+      }
+      return pagosService.crearOrdenSimulada(
+        ctx.user.perfilCompradorId, ctx.user.id, direccionId, cuponCodigo, metodoPago, ctx.prisma,
+      );
+    },
+
+    confirmarPagoSimulado: (
+      _: unknown,
+      { ordenId }: { ordenId: string },
+      ctx: NexComContext,
+    ) => {
+      requireRole(ctx, "COMPRADOR");
+      if (!ctx.user?.perfilCompradorId) {
+        throw new GraphQLError("Perfil de comprador no encontrado.", { extensions: { code: "NOT_FOUND" } });
+      }
+      return pagosService.confirmarPagoSimulado(
+        ordenId, ctx.user.perfilCompradorId, ctx.user.id, ctx.prisma,
+      );
+    },
   },
 };

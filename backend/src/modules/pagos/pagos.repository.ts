@@ -39,6 +39,8 @@ export const pagosRepository = {
       descuentoCupon:   Decimal;
       total:            Decimal;
       items: { productoId: string; nombreSnapshot: string; cantidad: number; precioUnitario: Decimal }[];
+      metodoPago?:      string; // "card" (Stripe) | "qr" | "transferencia" | "contra_entrega"
+      moneda?:          string; // default BOB (Bolivianos)
     },
     prisma: PrismaClient,
   ) {
@@ -70,8 +72,8 @@ export const pagosRepository = {
         data: {
           ordenId: orden.id,
           monto:   data.total,
-          moneda:  "USD",
-          metodo:  "card",
+          moneda:  data.moneda ?? "BOB",
+          metodo:  data.metodoPago ?? "card",
           estado:  "PENDIENTE",
         },
       });
@@ -177,6 +179,43 @@ export const pagosRepository = {
           estadoNuevo:    "CANCELADO",
           cambiadoPorId:  orden.compradorId,
           notas:          "Pago fallido — stock restituido",
+        },
+      });
+    });
+  },
+
+  // ── Flujo de pago simulado (Bolivia: QR / transferencia / contra entrega) ──────
+
+  async findOrdenConParticipantes(ordenId: string, prisma: PrismaClient) {
+    return prisma.orden.findUnique({
+      where:   { id: ordenId },
+      include: {
+        pago:      true,
+        comprador: { select: { id: true, usuarioId: true } },
+        vendedor:  { select: { id: true, usuarioId: true } },
+      },
+    });
+  },
+
+  async confirmarPagoSimulado(
+    ordenId: string,
+    pagoId: string | null,
+    compradorId: string,
+    metodo: string,
+    prisma: PrismaClient,
+  ) {
+    return prisma.$transaction(async (tx) => {
+      await tx.orden.update({ where: { id: ordenId }, data: { estado: "PAGADO" } });
+      if (pagoId) {
+        await tx.pago.update({ where: { id: pagoId }, data: { estado: "COMPLETADO" } });
+      }
+      await tx.historialEstadoOrden.create({
+        data: {
+          ordenId,
+          estadoAnterior: "PENDIENTE_PAGO",
+          estadoNuevo:    "PAGADO",
+          cambiadoPorId:  compradorId,
+          notas:          `Pago confirmado (${metodo})`,
         },
       });
     });
