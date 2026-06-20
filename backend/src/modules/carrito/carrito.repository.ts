@@ -105,4 +105,40 @@ export const carritoRepository = {
     });
     return c.id;
   },
+
+  // ── Guardar para después ──────────────────────────────────────────────────
+  async guardar(compradorId: string, productoId: string, prisma: PrismaClient) {
+    await prisma.itemGuardado.upsert({
+      where:  { compradorId_productoId: { compradorId, productoId } },
+      create: { compradorId, productoId },
+      update: {},
+    });
+  },
+
+  async eliminarGuardado(compradorId: string, productoId: string, prisma: PrismaClient) {
+    await prisma.itemGuardado.deleteMany({ where: { compradorId, productoId } });
+  },
+
+  async listarGuardados(compradorId: string, prisma: PrismaClient) {
+    const rows = await prisma.itemGuardado.findMany({
+      where:   { compradorId },
+      orderBy: { creadoEn: "desc" },
+      select: {
+        producto: {
+          select: {
+            id: true, nombre: true, precio: true, stock: true, activo: true,
+            imagenes: { orderBy: { orden: "asc" }, take: 1, select: { url: true } },
+          },
+        },
+      },
+    });
+    return rows.map((r) => ({
+      id:        r.producto.id,
+      nombre:    r.producto.nombre,
+      precio:    r.producto.precio.toString(),
+      stock:     r.producto.stock,
+      activo:    r.producto.activo,
+      imagenUrl: r.producto.imagenes[0]?.url ?? null,
+    }));
+  },
 };

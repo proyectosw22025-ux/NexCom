@@ -15,6 +15,9 @@ export const carritoResolvers = {
   Query: {
     miCarrito: (_: unknown, __: unknown, ctx: NexComContext) =>
       carritoService.getCarrito(getCompradorId(ctx), ctx.prisma),
+
+    misGuardados: (_: unknown, __: unknown, ctx: NexComContext) =>
+      carritoService.getGuardados(getCompradorId(ctx), ctx.prisma),
   },
 
   Mutation: {
@@ -38,5 +41,14 @@ export const carritoResolvers = {
 
     vaciarCarrito: (_: unknown, __: unknown, ctx: NexComContext) =>
       carritoService.vaciar(getCompradorId(ctx), ctx.prisma),
+
+    guardarParaDespues: (_: unknown, { productoId }: { productoId: string }, ctx: NexComContext) =>
+      carritoService.guardarParaDespues(getCompradorId(ctx), productoId, ctx.prisma),
+
+    moverAlCarrito: (_: unknown, { productoId }: { productoId: string }, ctx: NexComContext) =>
+      carritoService.moverAlCarrito(getCompradorId(ctx), productoId, ctx.prisma),
+
+    quitarGuardado: (_: unknown, { productoId }: { productoId: string }, ctx: NexComContext) =>
+      carritoService.quitarGuardado(getCompradorId(ctx), productoId, ctx.prisma),
   },
 };

@@ -199,6 +199,7 @@ model PerfilComprador {
   devoluciones         Devolucion[]
   facturas             Factura[]
   movimientosPuntos    MovimientoPuntos[]
+  itemsGuardados       ItemGuardado[]
 
   @@map("perfiles_comprador")
 }
@@ -272,6 +273,7 @@ model Producto {
   itemsOrden      ItemOrden[]
   itemsCarrito    ItemCarrito[]
   favoritos       Favorito[]
+  guardados       ItemGuardado[]
   ofertaProductos OfertaProducto[]
   preguntas       PreguntaProducto[]
 
@@ -362,6 +364,20 @@ model Favorito {
 
   @@unique([compradorId, productoId])
   @@map("favoritos")
+}
+
+// "Guardar para después": productos que el comprador mueve fuera del carrito activo.
+model ItemGuardado {
+  id          String   @id @default(cuid())
+  compradorId String   @map("comprador_id")
+  productoId  String   @map("producto_id")
+  creadoEn    DateTime @default(now()) @map("creado_en")
+
+  comprador PerfilComprador @relation(fields: [compradorId], references: [id], onDelete: Cascade)
+  producto  Producto        @relation(fields: [productoId], references: [id], onDelete: Cascade)
+
+  @@unique([compradorId, productoId])
+  @@map("items_guardados")
 }
 
 // ══════════════════════════════════════════════════════════════

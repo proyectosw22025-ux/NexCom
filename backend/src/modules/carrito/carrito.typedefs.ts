@@ -14,8 +14,18 @@ export const carritoTypeDefs = /* GraphQL */ `
     totalItems: Int!
   }
 
+  type ProductoGuardado {
+    id:        ID!
+    nombre:    String!
+    precio:    String!
+    stock:     Int!
+    activo:    Boolean!
+    imagenUrl: String
+  }
+
   extend type Query {
-    miCarrito: Carrito
+    miCarrito:    Carrito
+    misGuardados: [ProductoGuardado!]!
   }
 
   extend type Mutation {
@@ -23,5 +33,8 @@ export const carritoTypeDefs = /* GraphQL */ `
     actualizarCantidad(productoId: ID!, cantidad: Int!):   Carrito!
     eliminarDelCarrito(productoId: ID!):                   Carrito!
     vaciarCarrito:                                         Boolean!
+    guardarParaDespues(productoId: ID!):                   Carrito!
+    moverAlCarrito(productoId: ID!):                       Carrito!
+    quitarGuardado(productoId: ID!):                       Boolean!
   }
 `;

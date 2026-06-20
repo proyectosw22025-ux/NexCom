@@ -36,3 +36,23 @@ export const VACIAR_CARRITO = gql`
     vaciarCarrito
   }
 `;
+
+export const GUARDAR_PARA_DESPUES = gql`
+  ${CARRITO_FIELDS}
+  mutation GuardarParaDespues($productoId: ID!) {
+    guardarParaDespues(productoId: $productoId) { ...CarritoFields }
+  }
+`;
+
+export const MOVER_AL_CARRITO = gql`
+  ${CARRITO_FIELDS}
+  mutation MoverAlCarrito($productoId: ID!) {
+    moverAlCarrito(productoId: $productoId) { ...CarritoFields }
+  }
+`;
+
+export const QUITAR_GUARDADO = gql`
+  mutation QuitarGuardado($productoId: ID!) {
+    quitarGuardado(productoId: $productoId)
+  }
+`;

@@ -92,4 +92,29 @@ export const carritoService = {
     await carritoRepository.clearItems(carritoId, prisma);
     return true;
   },
+
+  // ── Guardar para después ──────────────────────────────────────────────────
+
+  /** Mueve un producto del carrito a "guardados". */
+  async guardarParaDespues(compradorId: string, productoId: string, prisma: PrismaClient) {
+    const carritoId = await carritoRepository.getCarritoId(compradorId, prisma);
+    await carritoRepository.deleteItem(carritoId, productoId, prisma);
+    await carritoRepository.guardar(compradorId, productoId, prisma);
+    return carritoRepository.getOrCreate(compradorId, prisma);
+  },
+
+  /** Mueve un producto de "guardados" de vuelta al carrito (cantidad 1). */
+  async moverAlCarrito(compradorId: string, productoId: string, prisma: PrismaClient) {
+    await carritoRepository.eliminarGuardado(compradorId, productoId, prisma);
+    return this.agregar(compradorId, productoId, 1, prisma); // valida stock/activo
+  },
+
+  async quitarGuardado(compradorId: string, productoId: string, prisma: PrismaClient): Promise<boolean> {
+    await carritoRepository.eliminarGuardado(compradorId, productoId, prisma);
+    return true;
+  },
+
+  async getGuardados(compradorId: string, prisma: PrismaClient) {
+    return carritoRepository.listarGuardados(compradorId, prisma);
+  },
 };
