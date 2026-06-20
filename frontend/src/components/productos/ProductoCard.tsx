@@ -36,7 +36,8 @@ export function ProductoCard({ producto, index, initialFavorito = false }: { pro
 
   const [toggleFavorito] = useMutation(TOGGLE_FAVORITO);
 
-  const imgUrl = producto.imagenes.sort((a, b) => a.orden - b.orden)[0]?.url;
+  // copia antes de ordenar: no mutar el array de props (puede venir congelado y lanzar en hidratación)
+  const imgUrl = [...producto.imagenes].sort((a, b) => a.orden - b.orden)[0]?.url;
 
   async function handleAddToCart(e: React.MouseEvent) {
     e.preventDefault();

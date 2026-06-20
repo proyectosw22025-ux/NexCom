@@ -22,6 +22,9 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
       {error.digest && (
         <p className="text-xs text-slate-400 font-mono mt-3">Ref: {error.digest}</p>
       )}
+      {error.message && (
+        <p className="text-[11px] text-slate-400 font-mono mt-2 max-w-md break-words">{error.message}</p>
+      )}
       <div className="flex items-center gap-3 mt-7">
         <button
           onClick={reset}
