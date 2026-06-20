@@ -94,7 +94,7 @@ export function CatalogoToolbar({ orden, precioMin, precioMax, ciudad }: Catalog
             onChange={(e) => setMin(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") pushParams({ precioMin: min || null, precioMax: max || null }); }}
             placeholder="Mín"
-            className="w-24 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm
+            className="w-0 flex-1 sm:w-24 sm:flex-none min-w-0 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm
                        focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
           />
           <span className="text-slate-300">–</span>
@@ -104,7 +104,7 @@ export function CatalogoToolbar({ orden, precioMin, precioMax, ciudad }: Catalog
             onChange={(e) => setMax(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") pushParams({ precioMin: min || null, precioMax: max || null }); }}
             placeholder="Máx"
-            className="w-24 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm
+            className="w-0 flex-1 sm:w-24 sm:flex-none min-w-0 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm
                        focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
           />
           <button

@@ -88,7 +88,10 @@ export function NotificationBell({ accent = "indigo" }: NotificationBellProps) {
   return (
     <Popover.Root onOpenChange={(open) => { if (open) cargarNotificaciones(); }}>
       <Popover.Trigger asChild>
-        <button className="relative p-2 rounded-xl hover:bg-slate-100 transition-colors">
+        <button
+          aria-label={`Notificaciones${noLeidas > 0 ? `, ${noLeidas} sin leer` : ""}`}
+          className="relative p-2 rounded-xl hover:bg-slate-100 transition-colors"
+        >
           <Bell className="h-5 w-5 text-slate-700" />
           {noLeidas > 0 && (
             <span className={cn(

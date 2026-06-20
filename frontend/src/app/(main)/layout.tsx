@@ -46,6 +46,7 @@ function NavbarInner() {
           {user?.rol === "COMPRADOR" && (
             <button
               onClick={openCart}
+              aria-label={`Carrito${(carrito?.totalItems ?? 0) > 0 ? `, ${carrito!.totalItems} artículos` : ""}`}
               className="relative p-2 rounded-xl hover:bg-slate-100 transition-colors"
             >
               <ShoppingCart className="h-5 w-5 text-slate-700" />
@@ -61,7 +62,7 @@ function NavbarInner() {
 
           {/* Mensajes */}
           {user && (
-            <Link href="/mensajes" className="p-2 rounded-xl hover:bg-slate-100 transition-colors" title="Mensajes">
+            <Link href="/mensajes" aria-label="Mensajes" className="p-2 rounded-xl hover:bg-slate-100 transition-colors" title="Mensajes">
               <MessageCircle className="h-5 w-5 text-slate-700" />
             </Link>
           )}
@@ -74,6 +75,9 @@ function NavbarInner() {
             <div className="relative">
               <button
                 onClick={() => setUserMenuOpen((v) => !v)}
+                aria-label="Menú de usuario"
+                aria-expanded={userMenuOpen}
+                aria-haspopup="menu"
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-slate-100 transition-colors text-sm"
               >
                 <div className="w-6 h-6 bg-indigo-100 rounded-full flex items-center justify-center">
@@ -127,6 +131,8 @@ function NavbarInner() {
           {/* Mobile menu toggle */}
           <button
             onClick={() => setMenuOpen((v) => !v)}
+            aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
+            aria-expanded={menuOpen}
             className="md:hidden p-2 rounded-xl hover:bg-slate-100 transition-colors"
           >
             {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -148,9 +154,17 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   return (
     <CartProvider>
       <div className="min-h-screen bg-slate-50 flex flex-col">
+        {/* Saltar al contenido: visible solo al enfocarlo con teclado (a11y) */}
+        <a
+          href="#contenido"
+          className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2
+                     focus:bg-indigo-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-xl focus:text-sm focus:font-semibold"
+        >
+          Saltar al contenido
+        </a>
         <NavbarInner />
         <CartDrawer />
-        <main className="flex-1">{children}</main>
+        <main id="contenido" className="flex-1">{children}</main>
         <footer className="bg-white border-t border-slate-200 mt-16">
           <div className="max-w-7xl mx-auto px-4 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
@@ -159,7 +173,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               </div>
               <span className="font-semibold text-slate-700">NexCom</span>
             </div>
-            <p className="text-xs text-slate-400">© 2025 NexCom Bolivia · Marketplace local para microempresas</p>
+            <p className="text-xs text-slate-400">© {new Date().getFullYear()} NexCom Bolivia · Marketplace local para microempresas</p>
           </div>
         </footer>
       </div>
