@@ -10,6 +10,7 @@ import { CREAR_VALORACION } from "@/graphql/valoraciones/mutations";
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { TimelineEstados } from "@/components/ordenes/TimelineEstados";
+import { DevolucionComprador } from "@/components/devoluciones/DevolucionComprador";
 import {
   ArrowLeft, Loader2, Package, MapPin, CreditCard,
   CheckCircle, Star, Send, Clock,
@@ -255,6 +256,11 @@ export default function CompradorOrdenDetallePage() {
               </form>
             )}
           </div>
+        )}
+
+        {/* Devolución (disponible tras la entrega) */}
+        {(orden.estado === "ENTREGADO" || orden.estado === "COMPLETADO") && (
+          <DevolucionComprador ordenId={orden.id} />
         )}
       </div>
     </div>

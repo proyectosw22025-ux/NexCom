@@ -15,6 +15,7 @@ import { ordenesTypeDefs }        from "../modules/ordenes/ordenes.typedefs.js";
 import { valoracionesTypeDefs }   from "../modules/valoraciones/valoraciones.typedefs.js";
 import { notificacionesTypeDefs } from "../modules/notificaciones/notificaciones.typedefs.js";
 import { mensajesTypeDefs }      from "../modules/mensajes/mensajes.typedefs.js";
+import { devolucionesTypeDefs }  from "../modules/devoluciones/devoluciones.typedefs.js";
 import { adminTypeDefs }          from "../modules/admin/admin.typedefs.js";
 import { reportesTypeDefs }       from "../modules/reportes/reportes.typedefs.js";
 import { configSistemaTypeDefs }  from "../modules/config-sistema/config-sistema.typedefs.js";
@@ -51,6 +52,7 @@ export const schema = mergeTypeDefs([
   valoracionesTypeDefs,
   notificacionesTypeDefs,
   mensajesTypeDefs,
+  devolucionesTypeDefs,
   adminTypeDefs,
   reportesTypeDefs,
   configSistemaTypeDefs,

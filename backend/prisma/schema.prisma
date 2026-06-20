@@ -38,6 +38,12 @@ enum EstadoOrden {
   CANCELADO
 }
 
+enum EstadoDevolucion {
+  SOLICITADA
+  RECHAZADA
+  REEMBOLSADA
+}
+
 enum EstadoPago {
   PENDIENTE
   COMPLETADO
@@ -147,6 +153,7 @@ model PerfilVendedor {
   ordenesComoVendedor   Orden[]        @relation("OrdenesVendedor")
   valoracionesRecibidas Valoracion[]   @relation("ValoracionesVendedor")
   conversaciones        Conversacion[]
+  devoluciones          Devolucion[]
 
   @@map("perfiles_vendedor")
 }
@@ -169,6 +176,7 @@ model PerfilComprador {
   valoracionesHechas   Valoracion[]    @relation("ValoracionesComprador")
   favoritos            Favorito[]
   conversaciones       Conversacion[]
+  devoluciones         Devolucion[]
 
   @@map("perfiles_comprador")
 }
@@ -480,11 +488,33 @@ model Orden {
   historialEstados HistorialEstadoOrden[]
   notificaciones   Notificacion[]
   usoCupon         UsoCupon?
+  devolucion       Devolucion?
 
   @@index([compradorId, estado])
   @@index([vendedorId, estado])
   @@index([estado, creadoEn])
   @@map("ordenes")
+}
+
+model Devolucion {
+  id                String           @id @default(cuid())
+  ordenId           String           @unique @map("orden_id") // una devolución por orden
+  compradorId       String           @map("comprador_id")
+  vendedorId        String           @map("vendedor_id")
+  motivo            String
+  estado            EstadoDevolucion @default(SOLICITADA)
+  montoReembolso    Decimal          @db.Decimal(12, 4) @map("monto_reembolso")
+  respuestaVendedor String?          @map("respuesta_vendedor") // nota del vendedor al resolver
+  creadoEn          DateTime         @default(now()) @map("creado_en")
+  actualizadoEn     DateTime         @updatedAt      @map("actualizado_en")
+
+  orden     Orden           @relation(fields: [ordenId],     references: [id])
+  comprador PerfilComprador @relation(fields: [compradorId], references: [id])
+  vendedor  PerfilVendedor  @relation(fields: [vendedorId],  references: [id])
+
+  @@index([compradorId, estado])
+  @@index([vendedorId, estado])
+  @@map("devoluciones")
 }
 
 // ══════════════════════════════════════════════════════════════
