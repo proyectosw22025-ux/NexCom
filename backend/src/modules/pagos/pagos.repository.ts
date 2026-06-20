@@ -1,3 +1,4 @@
+import { GraphQLError } from "graphql";
 import type { PrismaClient, EstadoOrden, EstadoPago } from "@prisma/client";
 import { Decimal } from "decimal.js";
 
@@ -82,12 +83,21 @@ export const pagosRepository = {
         },
       });
 
-      // Descontar stock de cada producto
+      // Descontar stock de forma ATÓMICA y condicional: el UPDATE solo aplica si
+      // aún hay stock suficiente (WHERE stock >= cantidad). Si dos compras compiten
+      // por la última unidad, solo una afecta filas; la otra obtiene count 0 y se
+      // revierte toda la transacción → sin sobreventa bajo concurrencia.
       for (const it of data.items) {
-        await tx.producto.update({
-          where: { id: it.productoId },
+        const res = await tx.producto.updateMany({
+          where: { id: it.productoId, stock: { gte: it.cantidad } },
           data:  { stock: { decrement: it.cantidad } },
         });
+        if (res.count === 0) {
+          throw new GraphQLError(
+            `Stock insuficiente para "${it.nombreSnapshot}". Otro comprador acaba de tomar las últimas unidades.`,
+            { extensions: { code: "BAD_USER_INPUT" } },
+          );
+        }
       }
 
       // Crear historial de estado inicial
