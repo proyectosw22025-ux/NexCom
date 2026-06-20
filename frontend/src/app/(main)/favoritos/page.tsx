@@ -2,7 +2,7 @@
 
 import { useQuery } from "@apollo/client";
 import Link from "next/link";
-import { Heart, Loader2 } from "lucide-react";
+import { Heart } from "lucide-react";
 import { MIS_FAVORITOS } from "@/graphql/favoritos/queries";
 import { useAuth } from "@/context/auth-context";
 import { ProductoCard, type ProductoCardData } from "@/components/productos/ProductoCard";

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { ShoppingBag, User, Package, Bell, LogOut } from "lucide-react";
+import { ShoppingBag, User, Package, LogOut } from "lucide-react";
 import { DashboardTopbar } from "@/components/layout/DashboardTopbar";
 
 const NAV = [

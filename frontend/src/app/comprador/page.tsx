@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
 import { MIS_ORDENES } from "@/graphql/ordenes/queries";
 import { NOTIFICACIONES_NO_LEIDAS, MIS_NOTIFICACIONES } from "@/graphql/notificaciones/queries";
-import { Package, Bell, ShoppingBag, ChevronRight, Loader2, CheckCircle, Clock, Truck } from "lucide-react";
+import { Package, Bell, ShoppingBag, ChevronRight, Loader2, CheckCircle, Truck } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 
 interface Orden {

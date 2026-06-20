@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useQuery, useMutation } from "@apollo/client";
 import Link from "next/link";
 import { MI_ORDEN } from "@/graphql/ordenes/queries";
@@ -49,7 +49,6 @@ function formatFecha(iso: string) {
 
 export default function CompradorOrdenDetallePage() {
   const { id } = useParams<{ id: string }>();
-  const router  = useRouter();
 
   const { data, loading, refetch } = useQuery<{ miOrden: Orden }>(MI_ORDEN, {
     variables: { id }, fetchPolicy: "cache-and-network",

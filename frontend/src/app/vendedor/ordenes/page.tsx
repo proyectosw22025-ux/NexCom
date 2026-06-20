@@ -43,7 +43,7 @@ export default function VendedorOrdenesPage() {
 
   const ordenes = data?.ordenesVendedor ?? [];
 
-  async function handleAvanzar(id: string, titulo: string) {
+  async function handleAvanzar(id: string) {
     try {
       await avanzar({ variables: { id } });
       toast.success(`Orden actualizada.`);
@@ -112,7 +112,7 @@ export default function VendedorOrdenesPage() {
                 <div className="flex items-center gap-2">
                   {PUEDE_AVANZAR.includes(o.estado) && (
                     <button
-                      onClick={() => handleAvanzar(o.id, o.id)}
+                      onClick={() => handleAvanzar(o.id)}
                       disabled={avanzando}
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700
                                  disabled:opacity-50 text-white text-xs font-semibold rounded-xl

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useMutation } from "@apollo/client";
 import { useAuth } from "@/context/auth-context";
 import { UPDATE_PASSWORD } from "@/graphql/auth/mutations";
-import { User, Lock, Mail, Phone, Loader2, CheckCircle } from "lucide-react";
+import { User, Lock, Mail, Loader2, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { ApolloError } from "@apollo/client";
 
