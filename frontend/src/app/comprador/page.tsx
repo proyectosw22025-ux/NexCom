@@ -8,6 +8,9 @@ import { NOTIFICACIONES_NO_LEIDAS, MIS_NOTIFICACIONES } from "@/graphql/notifica
 import { MIS_PUNTOS } from "@/graphql/fidelidad";
 import { Package, Bell, ShoppingBag, ChevronRight, Loader2, CheckCircle, Truck, Gift } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
+import { PageHero } from "@/components/ui/PageHero";
+import { StatCard } from "@/components/ui/StatCard";
+import { CountUp } from "@/components/ui/CountUp";
 
 interface Orden {
   id: string;
@@ -61,44 +64,40 @@ export default function CompradorPage() {
   const noLeidas = noLeidasData?.notificacionesNoLeidas ?? 0;
 
   const stats = [
-    { label: "Total pedidos",  value: ordenes.length, icon: Package,      color: "bg-indigo-50", iconColor: "text-indigo-600" },
-    { label: "En camino",      value: ordenes.filter(o => o.estado === "ENVIADO").length, icon: Truck, color: "bg-sky-50", iconColor: "text-sky-600" },
-    { label: "Completados",    value: ordenes.filter(o => o.estado === "COMPLETADO").length, icon: CheckCircle, color: "bg-emerald-50", iconColor: "text-emerald-600" },
-    { label: "Notif. nuevas",  value: noLeidas, icon: Bell, color: "bg-amber-50", iconColor: "text-amber-600" },
+    { label: "Total pedidos",  value: ordenes.length, icon: Package,      accent: "indigo"  as const },
+    { label: "En camino",      value: ordenes.filter(o => o.estado === "ENVIADO").length, icon: Truck, accent: "sky" as const },
+    { label: "Completados",    value: ordenes.filter(o => o.estado === "COMPLETADO").length, icon: CheckCircle, accent: "emerald" as const },
+    { label: "Notif. nuevas",  value: noLeidas, icon: Bell, accent: "amber" as const },
   ];
 
   return (
     <div className="p-8 max-w-5xl">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900">
-          Hola, {user?.perfilComprador?.nombreCompleto?.split(" ")[0] ?? "Comprador"}
-        </h1>
-        <p className="text-sm text-slate-400 mt-0.5">Resumen de tu actividad en NexCom</p>
-      </div>
+      <PageHero
+        titulo={`Hola, ${user?.perfilComprador?.nombreCompleto?.split(" ")[0] ?? "Comprador"} 👋`}
+        subtitulo="Resumen de tu actividad en NexCom"
+        icon={ShoppingBag}
+        tono="indigo"
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {stats.map(({ label, value, icon: Icon, color, iconColor }) => (
-          <div key={label} className="bg-white rounded-2xl border border-slate-200 p-5">
-            <div className={`w-10 h-10 ${color} rounded-xl flex items-center justify-center mb-3`}>
-              <Icon className={`h-5 w-5 ${iconColor}`} />
-            </div>
-            <p className="text-2xl font-bold text-slate-900">{value}</p>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mt-0.5">{label}</p>
-          </div>
+        {stats.map((s, i) => (
+          <StatCard key={s.label} index={i} loading={loadingOrdenes && ordenes.length === 0} {...s} />
         ))}
       </div>
 
       {/* Puntos de fidelidad */}
       {puntos && (
-        <div className="bg-gradient-to-r from-amber-400 to-orange-500 rounded-2xl p-5 mb-8 flex items-center gap-4">
-          <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center shrink-0">
+        <div className="sheen hover-lift relative overflow-hidden bg-gradient-to-r from-amber-400 to-orange-500 rounded-2xl p-5 mb-8 flex items-center gap-4 animate-scale-in">
+          <div className="pointer-events-none absolute -top-8 -right-6 w-32 h-32 rounded-full bg-white/15 blur-xl" />
+          <div className="relative w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center shrink-0 animate-float-soft">
             <Gift className="h-6 w-6 text-white" />
           </div>
-          <div className="flex-1">
+          <div className="relative flex-1">
             <p className="text-xs font-semibold uppercase tracking-wide text-white/80">Puntos NexCom</p>
-            <p className="text-2xl font-extrabold text-white">{puntos.disponibles} pts</p>
+            <p className="text-2xl font-extrabold text-white">
+              <CountUp value={puntos.disponibles} /> pts
+            </p>
             <p className="text-xs text-white/90">Equivalen a Bs. {puntos.valorBs} de descuento en tu próxima compra</p>
           </div>
         </div>

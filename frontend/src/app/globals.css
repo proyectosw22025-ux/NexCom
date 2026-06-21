@@ -49,3 +49,66 @@ body {
   animation: stagger-fade-up 0.35s ease forwards;
   opacity: 0;
 }
+
+/* ── UX-PRO: micro-interacciones premium ─────────────────────────────────── */
+@keyframes fade-in        { from { opacity: 0; } to { opacity: 1; } }
+@keyframes scale-in       { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
+@keyframes shimmer        { 100% { transform: translateX(100%); } }
+@keyframes float-soft     { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes pop-in         { 0% { opacity: 0; transform: scale(.8); } 60% { transform: scale(1.04); } 100% { opacity: 1; transform: scale(1); } }
+
+.animate-fade-in   { animation: fade-in .45s ease forwards; }
+.animate-scale-in  { animation: scale-in .3s cubic-bezier(.22,1,.36,1) forwards; }
+.animate-pop-in    { animation: pop-in .4s cubic-bezier(.22,1,.36,1) forwards; }
+.animate-float-soft { animation: float-soft 4s ease-in-out infinite; }
+
+/* Elevación al pasar el cursor (tarjetas, paneles) */
+.hover-lift {
+  transition: transform .22s cubic-bezier(.22,1,.36,1), box-shadow .22s ease, border-color .22s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 28px -12px rgba(2, 6, 23, .14);
+}
+
+/* Texto con degradado (acentos de marca) */
+.text-gradient {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Skeletons con brillo (carga percibida) */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: #e2e8f0;
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.65), transparent);
+  animation: shimmer 1.6s infinite;
+}
+
+/* Brillo sutil al pasar sobre botones/CTA destacados */
+.sheen { position: relative; overflow: hidden; }
+.sheen::before {
+  content: "";
+  position: absolute;
+  top: 0; left: -75%;
+  width: 50%; height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,.25), transparent);
+  transform: skewX(-20deg);
+  transition: left .6s ease;
+}
+.sheen:hover::before { left: 125%; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in, .animate-scale-in, .animate-pop-in, .animate-float-soft,
+  .animate-stagger-fade-up, .animate-slide-from-right { animation: none; opacity: 1; }
+  .hover-lift:hover { transform: none; }
+}

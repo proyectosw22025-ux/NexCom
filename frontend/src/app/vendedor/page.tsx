@@ -5,10 +5,12 @@ import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
 import { MIS_PRODUCTOS } from "@/graphql/productos/queries";
 import {
-  Package, TrendingUp, Star, Plus, Loader2, Eye, EyeOff,
+  Package, TrendingUp, Star, Plus, Loader2, Eye, EyeOff, Store,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { Badge } from "@/components/ui/Badge";
+import { PageHero } from "@/components/ui/PageHero";
+import { StatCard } from "@/components/ui/StatCard";
 import { OnboardingVendedor } from "@/components/vendedor/OnboardingVendedor";
 import type { ProductoCardData } from "@/components/productos/ProductoCard";
 
@@ -42,12 +44,12 @@ export default function VendedorDashboard() {
 
   return (
     <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900">
-          Hola, {user?.perfilVendedor?.nombreNegocio ?? "vendedor"}
-        </h1>
-        <p className="text-slate-500 mt-1 text-sm">Resumen de tu tienda</p>
-      </div>
+      <PageHero
+        titulo={`Hola, ${user?.perfilVendedor?.nombreNegocio ?? "vendedor"} 🚀`}
+        subtitulo="Resumen y rendimiento de tu tienda"
+        icon={Store}
+        tono="violet"
+      />
 
       {/* Onboarding para vendedores nuevos (se oculta al completarse) */}
       {!loading && (
@@ -59,68 +61,10 @@ export default function VendedorDashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        {/* Productos activos */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center">
-              <Package className="h-5 w-5 text-violet-500" />
-            </div>
-          </div>
-          {loading ? (
-            <div className="flex flex-col gap-1.5">
-              <Loader2 className="h-6 w-6 animate-spin text-slate-300" />
-              <p className="text-xs text-slate-300">Cargando…</p>
-            </div>
-          ) : (
-            <>
-              <p className="text-2xl font-bold text-slate-900 mb-0.5">{activos}</p>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Productos activos</p>
-              {sinStock > 0 && (
-                <p className="text-xs text-amber-600 mt-1 font-medium">{sinStock} sin stock</p>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* Destacados */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
-              <Star className="h-5 w-5 text-amber-500" />
-            </div>
-          </div>
-          {loading ? (
-            <div className="flex flex-col gap-1.5">
-              <Loader2 className="h-6 w-6 animate-spin text-slate-300" />
-              <p className="text-xs text-slate-300">Cargando…</p>
-            </div>
-          ) : (
-            <>
-              <p className="text-2xl font-bold text-slate-900 mb-0.5">{destacados}</p>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Destacados</p>
-            </>
-          )}
-        </div>
-
-        {/* Total vendido */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-              <TrendingUp className="h-5 w-5 text-emerald-500" />
-            </div>
-          </div>
-          {loading ? (
-            <div className="flex flex-col gap-1.5">
-              <Loader2 className="h-6 w-6 animate-spin text-slate-300" />
-              <p className="text-xs text-slate-300">Cargando…</p>
-            </div>
-          ) : (
-            <>
-              <p className="text-2xl font-bold text-slate-900 mb-0.5">{totalVendido}</p>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total vendido</p>
-            </>
-          )}
-        </div>
+        <StatCard index={0} loading={loading} label="Productos activos" value={activos} icon={Package} accent="violet"
+          hint={sinStock > 0 ? `${sinStock} sin stock` : undefined} />
+        <StatCard index={1} loading={loading} label="Destacados" value={destacados} icon={Star} accent="amber" />
+        <StatCard index={2} loading={loading} label="Total vendido" value={totalVendido} icon={TrendingUp} accent="emerald" />
       </div>
 
       {/* Products list */}

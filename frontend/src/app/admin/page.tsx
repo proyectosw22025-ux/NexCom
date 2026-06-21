@@ -5,9 +5,11 @@ import dynamic from "next/dynamic";
 import { useQuery } from "@apollo/client";
 import { useAuth } from "@/context/auth-context";
 import Link from "next/link";
-import { Users, Package, ShoppingBag, Star, ChevronRight, Loader2, TrendingUp, ShieldAlert, Coins } from "lucide-react";
+import { Users, Package, ShoppingBag, Star, ChevronRight, Loader2, TrendingUp, ShieldAlert, Coins, Shield } from "lucide-react";
 import { LISTAR_USUARIOS, TODOS_PRODUCTOS, ESTADISTICAS_ADMIN } from "@/graphql/admin/queries";
 import { Badge } from "@/components/ui/Badge";
+import { PageHero } from "@/components/ui/PageHero";
+import { StatCard } from "@/components/ui/StatCard";
 import { PanelRendimiento } from "@/components/admin/PanelRendimiento";
 
 // Code-split: recharts solo se descarga al montar el dashboard admin.
@@ -77,32 +79,24 @@ export default function AdminPage() {
   const usuariosActivos   = usuarios.filter(u => u.activo).length;
 
   const stats = [
-    { label: "Usuarios",          value: loadingU ? "…" : totalUsuarios,         icon: Users,       color: "bg-slate-100",   iconColor: "text-slate-700",  href: "/admin/usuarios" },
-    { label: "Vendedores",        value: loadingU ? "…" : totalVendedores,        icon: Star,        color: "bg-violet-50",   iconColor: "text-violet-600", href: "/admin/usuarios" },
-    { label: "Compradores",       value: loadingU ? "…" : totalCompradores,       icon: ShoppingBag, color: "bg-indigo-50",   iconColor: "text-indigo-600", href: "/admin/usuarios" },
-    { label: "Productos activos", value: loadingP ? "…" : totalProductosActivos,  icon: Package,     color: "bg-emerald-50",  iconColor: "text-emerald-600", href: "/admin/productos" },
+    { label: "Usuarios",          value: totalUsuarios,         icon: Users,       accent: "slate"   as const, href: "/admin/usuarios",  loading: loadingU },
+    { label: "Vendedores",        value: totalVendedores,       icon: Star,        accent: "violet"  as const, href: "/admin/usuarios",  loading: loadingU },
+    { label: "Compradores",       value: totalCompradores,      icon: ShoppingBag, accent: "indigo"  as const, href: "/admin/usuarios",  loading: loadingU },
+    { label: "Productos activos", value: totalProductosActivos, icon: Package,     accent: "emerald" as const, href: "/admin/productos", loading: loadingP },
   ];
 
   return (
     <div className="p-8 max-w-5xl">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900">Panel de Administración</h1>
-        <p className="text-sm text-slate-400 mt-0.5">
-          Bienvenido, <span className="font-medium text-slate-600">{user?.email}</span>
-        </p>
-      </div>
+      <PageHero
+        titulo="Panel de Administración"
+        subtitulo={`Bienvenido, ${user?.email ?? ""}`}
+        icon={Shield}
+        tono="slate"
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {stats.map(({ label, value, icon: Icon, color, iconColor, href }) => (
-          <Link key={label} href={href} className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md hover:shadow-slate-200/50 transition-all">
-            <div className={`w-10 h-10 ${color} rounded-xl flex items-center justify-center mb-3`}>
-              <Icon className={`h-5 w-5 ${iconColor}`} />
-            </div>
-            <p className="text-2xl font-bold text-slate-900">{value}</p>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mt-0.5">{label}</p>
-          </Link>
-        ))}
+        {stats.map((s, i) => <StatCard key={s.label} index={i} {...s} />)}
       </div>
 
       {/* Ventas de la plataforma + reportes pendientes */}
