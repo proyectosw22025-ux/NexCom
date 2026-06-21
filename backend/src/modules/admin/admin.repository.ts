@@ -3,7 +3,7 @@ import { rangoDesde, rellenarSerieDiaria } from "../../shared/series-diaria.util
 
 const USUARIO_INCLUDE = {
   perfilVendedor: {
-    select: { id: true, nombreNegocio: true, ciudad: true, ratingPromedio: true, totalVentas: true, totalResenias: true },
+    select: { id: true, nombreNegocio: true, ciudad: true, ratingPromedio: true, totalVentas: true, totalResenias: true, verificado: true },
   },
   perfilComprador: {
     select: { id: true, nombreCompleto: true, telefono: true },

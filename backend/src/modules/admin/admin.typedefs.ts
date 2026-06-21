@@ -17,6 +17,7 @@ export const adminTypeDefs = /* GraphQL */ `
     ratingPromedio: String!
     totalVentas:    Int!
     totalResenias:  Int!
+    verificado:     Boolean!
   }
 
   type PerfilCompradorAdmin {

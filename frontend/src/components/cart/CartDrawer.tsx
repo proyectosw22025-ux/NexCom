@@ -167,10 +167,14 @@ export function CartDrawer() {
               <span className="text-sm text-slate-500">Total</span>
               <span className="text-lg font-bold text-slate-900">Bs. {carrito.total}</span>
             </div>
-            <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold
-                               rounded-xl py-3 text-sm transition-colors shadow-sm shadow-indigo-200">
+            <Link
+              href="/checkout"
+              onClick={closeCart}
+              className="block w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold
+                         rounded-xl py-3 text-sm transition-colors shadow-sm shadow-indigo-200"
+            >
               Proceder al pago
-            </button>
+            </Link>
             <button
               onClick={vaciar}
               className="w-full text-slate-500 text-xs hover:text-red-500 transition-colors py-1"
