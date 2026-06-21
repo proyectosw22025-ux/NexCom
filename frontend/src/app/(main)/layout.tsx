@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   ShoppingCart, Menu, X, Store, LogIn, LogOut,
   User, ChevronDown, Boxes, Heart, LayoutDashboard, MessageCircle,
+  Package, ShoppingBag,
 } from "lucide-react";
 import { CartProvider, useCart } from "@/context/cart-context";
 import { useAuth } from "@/context/auth-context";
@@ -19,8 +20,21 @@ function NavbarInner() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { setMenuOpen(false); }, [pathname]);
+  useEffect(() => { setMenuOpen(false); setUserMenuOpen(false); }, [pathname]);
+
+  // Cerrar el menú de usuario al hacer click fuera o presionar Escape
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) setUserMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setUserMenuOpen(false); };
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("mousedown", onClick); document.removeEventListener("keydown", onKey); };
+  }, [userMenuOpen]);
 
   return (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
@@ -72,7 +86,7 @@ function NavbarInner() {
 
           {/* User menu */}
           {user ? (
-            <div className="relative">
+            <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setUserMenuOpen((v) => !v)}
                 aria-label="Menú de usuario"
@@ -86,26 +100,51 @@ function NavbarInner() {
                 <span className="hidden sm:inline font-medium text-slate-700 max-w-[100px] truncate">
                   {user.perfilVendedor?.nombreNegocio ?? user.perfilComprador?.nombreCompleto ?? user.email}
                 </span>
-                <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+                <ChevronDown className={`h-3.5 w-3.5 text-slate-400 transition-transform ${userMenuOpen ? "rotate-180" : ""}`} />
               </button>
 
               {userMenuOpen && (
-                <div className="absolute right-0 mt-1.5 w-52 bg-white rounded-xl border border-slate-200 shadow-lg shadow-slate-200/60 py-1.5 z-50">
-                  {user.rol === "VENDEDOR" && (
-                    <Link href="/vendedor" className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
-                      <Store className="h-4 w-4 text-slate-400" /> Mi Tienda
-                    </Link>
-                  )}
-                  {user.rol === "ADMIN" && (
-                    <Link href="/admin" className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
-                      <LayoutDashboard className="h-4 w-4 text-slate-400" /> Admin
-                    </Link>
-                  )}
-                  {user.rol === "COMPRADOR" && (
-                    <Link href="/favoritos" className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
-                      <Heart className="h-4 w-4 text-slate-400" /> Favoritos
-                    </Link>
-                  )}
+                <div role="menu" className="animate-scale-in origin-top-right absolute right-0 mt-1.5 w-60 bg-white rounded-xl border border-slate-200 shadow-lg shadow-slate-200/60 py-1.5 z-50">
+                  {/* Cabecera: identidad */}
+                  <div className="px-4 py-2.5 border-b border-slate-100">
+                    <p className="text-sm font-semibold text-slate-900 truncate">
+                      {user.perfilVendedor?.nombreNegocio ?? user.perfilComprador?.nombreCompleto ?? "Mi cuenta"}
+                    </p>
+                    <p className="text-xs text-slate-400 truncate">{user.email}</p>
+                  </div>
+
+                  <div className="py-1">
+                    {user.rol === "COMPRADOR" && (
+                      <>
+                        <Link href="/comprador" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                          <LayoutDashboard className="h-4 w-4 text-slate-400" /> Mi Panel
+                        </Link>
+                        <Link href="/comprador/ordenes" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                          <Package className="h-4 w-4 text-slate-400" /> Mis Pedidos
+                        </Link>
+                        <Link href="/favoritos" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                          <Heart className="h-4 w-4 text-slate-400" /> Favoritos
+                        </Link>
+                        <Link href="/comprador/perfil" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                          <User className="h-4 w-4 text-slate-400" /> Mi Perfil
+                        </Link>
+                        <Link href="/productos" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                          <ShoppingBag className="h-4 w-4 text-slate-400" /> Seguir comprando
+                        </Link>
+                      </>
+                    )}
+                    {user.rol === "VENDEDOR" && (
+                      <Link href="/vendedor" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                        <Store className="h-4 w-4 text-slate-400" /> Mi Tienda
+                      </Link>
+                    )}
+                    {user.rol === "ADMIN" && (
+                      <Link href="/admin" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                        <LayoutDashboard className="h-4 w-4 text-slate-400" /> Panel admin
+                      </Link>
+                    )}
+                  </div>
+
                   <hr className="my-1 border-slate-100" />
                   <button
                     onClick={async () => { setUserMenuOpen(false); await logout(); window.location.href = "/"; }}
