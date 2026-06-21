@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "@apollo/client";
 import {
-  ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  ResponsiveContainer, ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   PieChart, Pie, Cell,
 } from "recharts";
 import {
@@ -11,7 +11,6 @@ import {
   BarChart3, Trophy, Star,
 } from "lucide-react";
 import { ANALITICA_ADMIN } from "@/graphql/admin/queries";
-import { PageHero } from "@/components/ui/PageHero";
 
 // ── Tipos ───────────────────────────────────────────────────────────────────
 interface Kpi { valor: string; delta: number }
@@ -98,8 +97,15 @@ function BarrasRank({ titulo, icon: Icon, datos, formato }:
                     {formato === "monto" ? fmtBs(d.monto) : fmtNum(d.valor)}
                   </span>
                 </div>
-                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: DONUT_COLORS[i % DONUT_COLORS.length] }} />
+                <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="animate-grow-x h-full rounded-full shadow-sm"
+                    style={{
+                      width: `${pct}%`,
+                      backgroundImage: `linear-gradient(90deg, ${DONUT_COLORS[i % DONUT_COLORS.length]}, ${DONUT_COLORS[(i + 1) % DONUT_COLORS.length]})`,
+                      animationDelay: `${i * 80}ms`,
+                    }}
+                  />
                 </div>
               </div>
             );
@@ -129,28 +135,24 @@ export default function AnaliticaDashboard() {
   const maxIngVend = Math.max(1, ...(a?.topVendedores ?? []).map((v) => Number(v.ingresos)));
 
   return (
-    <div className="p-8">
-      <PageHero
-        titulo="Analítica de la plataforma"
-        subtitulo="Métricas de negocio, tendencias y rendimiento de NexCom"
-        icon={BarChart3}
-        tono="slate"
-        acciones={
-          <div className="inline-flex bg-white/15 rounded-xl p-1">
-            {PERIODOS.map((p) => (
-              <button
-                key={p.dias}
-                onClick={() => setDias(p.dias)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                  dias === p.dias ? "bg-white text-slate-800" : "text-white/80 hover:text-white"
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-        }
-      />
+    <div className="animate-fade-in">
+      {/* Toolbar: periodo */}
+      <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
+        <p className="text-sm text-slate-500">Métricas de negocio y rendimiento · últimos {dias} días</p>
+        <div className="inline-flex bg-slate-100 rounded-xl p-1">
+          {PERIODOS.map((p) => (
+            <button
+              key={p.dias}
+              onClick={() => setDias(p.dias)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                dias === p.dias ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
@@ -173,6 +175,12 @@ export default function AnaliticaDashboard() {
           ) : (
             <ResponsiveContainer>
               <ComposedChart data={a?.serie ?? []} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="gradIngresos" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#4f46e5" stopOpacity={0.32} />
+                    <stop offset="100%" stopColor="#4f46e5" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                 <XAxis dataKey="fecha" tickFormatter={fmtDia} tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} minTickGap={24} />
                 <YAxis yAxisId="left" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} width={48}
@@ -184,8 +192,8 @@ export default function AnaliticaDashboard() {
                   labelFormatter={(l) => `Día ${fmtDia(String(l))}`}
                 />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Line yAxisId="left"  type="monotone" dataKey="ingresos" name="Ingresos" stroke="#4f46e5" strokeWidth={2.5} dot={false} />
-                <Line yAxisId="right" type="monotone" dataKey="ordenes"  name="Órdenes"  stroke="#10b981" strokeWidth={2.5} dot={false} />
+                <Area yAxisId="left"  type="monotone" dataKey="ingresos" name="Ingresos" stroke="#4f46e5" strokeWidth={2.5} fill="url(#gradIngresos)" dot={false} animationDuration={1100} animationEasing="ease-out" />
+                <Line yAxisId="right" type="monotone" dataKey="ordenes"  name="Órdenes"  stroke="#10b981" strokeWidth={2.5} dot={false} animationDuration={1100} animationEasing="ease-out" />
               </ComposedChart>
             </ResponsiveContainer>
           )}
@@ -203,10 +211,12 @@ export default function AnaliticaDashboard() {
             <p className="text-sm text-slate-400 py-12 text-center">Sin datos en el periodo</p>
           ) : (
             <>
-              <div style={{ width: "100%", height: 180 }}>
+              <div className="chart-3d-donut" style={{ width: "100%", height: 190 }}>
                 <ResponsiveContainer>
                   <PieChart>
-                    <Pie data={donutData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={48} outerRadius={72} paddingAngle={2}>
+                    <Pie data={donutData} dataKey="value" nameKey="name" cx="50%" cy="50%"
+                         innerRadius={46} outerRadius={74} paddingAngle={2} stroke="#fff" strokeWidth={2}
+                         animationDuration={1000} animationEasing="ease-out">
                       {donutData.map((_, i) => <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />)}
                     </Pie>
                     <Tooltip formatter={(v, n) => [fmtNum(v as number), n]} contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 12 }} />

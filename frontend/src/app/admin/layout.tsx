@@ -5,12 +5,11 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { LayoutDashboard, Users, Package, BarChart2, Settings, Shield, LogOut, Wallet, Ticket, LineChart } from "lucide-react";
+import { LayoutDashboard, Users, Package, BarChart2, Settings, Shield, LogOut, Wallet, Ticket } from "lucide-react";
 import { DashboardTopbar } from "@/components/layout/DashboardTopbar";
 
 const NAV = [
   { href: "/admin",               label: "Dashboard",     icon: LayoutDashboard, exact: true },
-  { href: "/admin/analitica",     label: "Analítica",     icon: LineChart },
   { href: "/admin/usuarios",      label: "Usuarios",      icon: Users },
   { href: "/admin/productos",     label: "Productos",     icon: Package },
   { href: "/admin/cupones",       label: "Cupones",       icon: Ticket },

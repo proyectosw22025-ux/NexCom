@@ -107,8 +107,20 @@ body {
 }
 .sheen:hover::before { left: 125%; }
 
+/* Barras que "crecen" (gráficos) + donas con profundidad 3D */
+@keyframes grow-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.animate-grow-x { transform-origin: left center; animation: grow-x .8s cubic-bezier(.22,1,.36,1) forwards; }
+
+.chart-3d-donut {
+  transform: perspective(900px) rotateX(22deg);
+  filter: drop-shadow(0 16px 14px rgba(15, 23, 42, .18));
+  transition: transform .3s ease;
+}
+.chart-3d-donut:hover { transform: perspective(900px) rotateX(14deg); }
+
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in, .animate-scale-in, .animate-pop-in, .animate-float-soft,
-  .animate-stagger-fade-up, .animate-slide-from-right { animation: none; opacity: 1; }
+  .animate-stagger-fade-up, .animate-slide-from-right, .animate-grow-x { animation: none; opacity: 1; transform: none; }
   .hover-lift:hover { transform: none; }
+  .chart-3d-donut { transform: none; filter: none; }
 }
