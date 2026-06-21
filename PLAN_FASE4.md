@@ -24,7 +24,7 @@
 | 4.3.4 | Onboarding guiado del vendedor | ✅ | |
 | 4.3.5 | Auditoría móvil 375px | ✅ | |
 | 4.3.6 | Accesibilidad (teclado + `aria`) | ✅ | |
-| 4.3.7 | Carrito: aviso multi-vendedor / guardar para después | 🟡 | aviso ✅; "guardar para después" ⏳ |
+| 4.3.7 | Carrito: aviso multi-vendedor / guardar para después | ✅ | |
 | 4.4.1 | Subida de imágenes (Cloudinary) | ✅ | credenciales ya conectadas |
 | 4.4.2 | Envíos / logística (costo por zona + retiro) | ✅ | |
 | 4.4.3 | Devoluciones / reembolsos | ✅ | |
@@ -39,10 +39,11 @@
 | 4.6 | Recomendaciones por ciudad | ✅ | "Lo más vendido en {ciudad}" |
 | 4.6 | Modo feria/temporada | ✅ | campañas por fecha boliviana |
 | 4.6 | Programa de fidelidad (puntos) | ✅ | ganar + canjear |
-| 4.6 | Retiro en punto/zona | ✅ | agrupación de envíos por barrio ⏳ |
+| 4.6 | Retiro en punto/zona + agrupación de envíos por barrio | ✅ | |
+| 4.x | Pago con tarjeta en MODO DEMO (sin cobro real) | ✅ | Stripe real → §9 |
 
-**Pendientes (§9 — dependen de tus servicios externos):** pasarela de pago real, Meilisearch, WhatsApp Business API.
-**Pendientes menores de código:** "guardar para después" en el carrito (4.3.7), agrupación de envíos por barrio (4.6).
+**✅ TODO EL CÓDIGO DE LA FASE 4 ESTÁ COMPLETO.** No quedan pendientes de código.
+**Pendientes (§9 — dependen de tus servicios externos, dejados para el final):** vincular pasarela de pago real (Stripe), Meilisearch, WhatsApp Business API. El pago hoy funciona en **modo demo** (incluida tarjeta).
 
 ---
 
@@ -120,7 +121,7 @@ a medio construir en la BD. Bajo "ruido", alto valor de ingeniería.
 
 ---
 
-## 🟡 FASE 4.3 — Agilidad y autonomía del frontend — COMPLETADA (1 subtarea menor pendiente)
+## ✅ FASE 4.3 — Agilidad y autonomía del frontend — COMPLETADA
 
 **Rol estratégico:** reducir la fricción para que el usuario boliviano (mayormente móvil)
 use la plataforma sin ayuda. Mejoras de UX de alto retorno.
@@ -133,7 +134,7 @@ use la plataforma sin ayuda. Mejoras de UX de alto retorno.
 | 4.3.4 | **Onboarding guiado del vendedor** ("publica tu primer producto") | 🛠️ | ✅ |
 | 4.3.5 | **Auditoría móvil 375px** (la mayoría compra desde el celular) | 🛠️ | ✅ |
 | 4.3.6 | **Accesibilidad** (teclado + `aria`) en componentes clave | 🛠️ | ✅ |
-| 4.3.7 | **Carrito**: aviso multi-vendedor + "guardar para después" | 🛠️ | 🟡 aviso ✅ · "guardar para después" ⏳ |
+| 4.3.7 | **Carrito**: aviso multi-vendedor + "guardar para después" | 🛠️ | ✅ |
 
 ---
 
