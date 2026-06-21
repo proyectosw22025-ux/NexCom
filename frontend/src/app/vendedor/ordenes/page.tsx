@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ORDENES_VENDEDOR } from "@/graphql/ordenes/queries";
 import { AVANZAR_ESTADO_ORDEN } from "@/graphql/ordenes/mutations";
 import { Badge } from "@/components/ui/Badge";
-import { Package, Loader2, ChevronRight, ShoppingBag, ArrowRight } from "lucide-react";
+import { Package, Loader2, ChevronRight, ShoppingBag, ArrowRight, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { ApolloError } from "@apollo/client";
 
@@ -15,6 +15,7 @@ interface OrdenVendedor {
   creadoEn: string; compradorId: string;
   items: { id: string; nombreSnapshot: string; cantidad: number }[];
   comprador: CompradorResumen | null;
+  direccionSnapshot: { zona: string | null; ciudad: string } | null;
 }
 
 const estadoBadge: Record<string, "pendiente" | "pagado" | "preparacion" | "enviado" | "entregado" | "completado" | "cancelado"> = {
@@ -43,6 +44,20 @@ export default function VendedorOrdenesPage() {
 
   const ordenes = data?.ordenesVendedor ?? [];
 
+  // Agrupación de envíos por barrio: pedidos por enviar (PAGADO / EN_PREPARACION)
+  // agrupados por ciudad + zona, para organizar las entregas por barrio.
+  const porEnviar = ordenes.filter((o) => PUEDE_AVANZAR.includes(o.estado));
+  const zonas = Object.values(
+    porEnviar.reduce<Record<string, { ciudad: string; zona: string; total: number }>>((acc, o) => {
+      const ciudad = o.direccionSnapshot?.ciudad ?? "Sin ciudad";
+      const zona   = o.direccionSnapshot?.zona?.trim() || "Sin zona";
+      const key    = `${ciudad}|${zona}`;
+      acc[key] ??= { ciudad, zona, total: 0 };
+      acc[key].total += 1;
+      return acc;
+    }, {}),
+  ).sort((a, b) => b.total - a.total);
+
   async function handleAvanzar(id: string) {
     try {
       await avanzar({ variables: { id } });
@@ -60,6 +75,29 @@ export default function VendedorOrdenesPage() {
         <h1 className="text-2xl font-bold text-slate-900">Mis Órdenes</h1>
         <p className="text-sm text-slate-400 mt-0.5">{ordenes.length} orden{ordenes.length !== 1 ? "es" : ""}</p>
       </div>
+
+      {/* Agrupación de envíos por barrio (pedidos por enviar) */}
+      {zonas.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <MapPin className="h-4 w-4 text-indigo-600" />
+            <h2 className="text-sm font-bold text-slate-900">Envíos por zona</h2>
+            <span className="text-xs text-slate-400">· {porEnviar.length} por enviar</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {zonas.map((z) => (
+              <div key={`${z.ciudad}-${z.zona}`} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200">
+                <span className="text-sm font-semibold text-slate-700">{z.zona}</span>
+                <span className="text-xs text-slate-400">{z.ciudad}</span>
+                <span className="min-w-[20px] h-5 px-1.5 bg-indigo-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                  {z.total}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px] text-slate-400 mt-3">Organiza tus entregas agrupando los pedidos del mismo barrio.</p>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 gap-2">
