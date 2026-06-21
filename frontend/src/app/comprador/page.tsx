@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/Badge";
 import { PageHero } from "@/components/ui/PageHero";
 import { StatCard } from "@/components/ui/StatCard";
 import { CountUp } from "@/components/ui/CountUp";
+import { FeedProductos } from "@/components/productos/FeedProductos";
 
 interface Orden {
   id: string;
@@ -85,6 +86,9 @@ export default function CompradorPage() {
           <StatCard key={s.label} index={i} loading={loadingOrdenes && ordenes.length === 0} {...s} />
         ))}
       </div>
+
+      {/* Feed de productos — lo primero que invita a comprar */}
+      <FeedProductos titulo="Recomendados para ti" />
 
       {/* Puntos de fidelidad */}
       {puntos && (

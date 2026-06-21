@@ -5,13 +5,13 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { ShoppingBag, User, Package, LogOut } from "lucide-react";
+import { ShoppingBag, User, Package, LogOut, Store } from "lucide-react";
 import { DashboardTopbar } from "@/components/layout/DashboardTopbar";
 
 const NAV = [
-  { href: "/comprador",          label: "Mi Panel",   icon: ShoppingBag },
+  { href: "/comprador",          label: "Mi Panel",    icon: ShoppingBag },
   { href: "/comprador/ordenes",  label: "Mis Pedidos", icon: Package },
-  { href: "/comprador/perfil",   label: "Mi Perfil",  icon: User },
+  { href: "/comprador/perfil",   label: "Mi Perfil",   icon: User },
 ];
 
 export default function CompradorLayout({ children }: { children: React.ReactNode }) {
@@ -57,7 +57,19 @@ export default function CompradorLayout({ children }: { children: React.ReactNod
           </div>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-0.5">
+        <div className="px-3 pt-4">
+          <Link
+            href="/productos"
+            className="sheen flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold text-white
+                       bg-gradient-to-r from-indigo-500 to-violet-600 shadow-sm shadow-indigo-200
+                       hover:from-indigo-600 hover:to-violet-700 transition-colors"
+          >
+            <Store className="h-4 w-4" />
+            Explorar tienda
+          </Link>
+        </div>
+
+        <nav className="flex-1 px-3 py-3 space-y-0.5">
           {NAV.map(({ href, label, icon: Icon }) => {
             const active = pathname === href || (href !== "/comprador" && pathname.startsWith(href));
             return (

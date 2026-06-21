@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { ShoppingCart, Heart, Package, CheckCircle, Star, BadgeCheck } from "lucide-react";
+import { ShoppingCart, Heart, Package, CheckCircle, Star, BadgeCheck, Eye, Flame } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { useCart } from "@/context/cart-context";
 import { useMutation } from "@apollo/client";
@@ -39,6 +39,9 @@ export function ProductoCard({ producto, index, initialFavorito = false }: { pro
 
   // copia antes de ordenar: no mutar el array de props (puede venir congelado y lanzar en hidratación)
   const imgUrl = [...producto.imagenes].sort((a, b) => a.orden - b.orden)[0]?.url;
+  const precioFmt = Number(producto.precio).toLocaleString("es-BO", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  const enOferta = producto.etiquetas?.some((e) => e.nombre.toLowerCase() === "oferta");
+  const vendidos = producto.totalVendido ?? 0;
 
   async function handleAddToCart(e: React.MouseEvent) {
     e.preventDefault();
@@ -89,9 +92,21 @@ export function ProductoCard({ producto, index, initialFavorito = false }: { pro
             <Package className="h-12 w-12 text-slate-300" />
           </div>
         )}
-        {producto.destacado && (
-          <div className="absolute top-2 left-2">
-            <Badge variant="destacado" size="sm" dot />
+        <div className="absolute top-2 left-2 flex flex-col gap-1">
+          {producto.destacado && <Badge variant="destacado" size="sm" dot />}
+          {enOferta && (
+            <span className="inline-flex items-center gap-0.5 bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+              <Flame className="h-3 w-3" /> Oferta
+            </span>
+          )}
+        </div>
+
+        {/* Quick-view al pasar el cursor */}
+        {producto.stock > 0 && (
+          <div className="pointer-events-none absolute inset-0 flex items-end justify-center pb-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-t from-black/25 via-transparent to-transparent">
+            <span className="translate-y-2 group-hover:translate-y-0 transition-transform duration-300 bg-white/95 backdrop-blur-sm text-slate-800 text-xs font-semibold px-3 py-1.5 rounded-full shadow-md flex items-center gap-1.5">
+              <Eye className="h-3.5 w-3.5" /> Ver detalle
+            </span>
           </div>
         )}
         {user?.rol === "COMPRADOR" && (
@@ -134,13 +149,17 @@ export function ProductoCard({ producto, index, initialFavorito = false }: { pro
           )}
         </div>
 
-        <div className="mt-auto pt-2 flex items-center justify-between gap-2">
-          <div>
-            <p className="text-base font-bold text-slate-900">Bs. {producto.precio}</p>
+        <div className="mt-auto pt-2 flex items-end justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-base font-bold text-slate-900">Bs. {precioFmt}</p>
             {producto.stock === 0 ? (
               <Badge variant="sin-stock" size="sm" />
             ) : producto.stock <= 5 ? (
               <Badge variant="stock-bajo" size="sm" label={`${producto.stock} restantes`} />
+            ) : vendidos > 0 ? (
+              <p className="text-[11px] text-slate-400 flex items-center gap-0.5">
+                <Flame className="h-3 w-3 text-orange-400" /> {vendidos} vendido{vendidos !== 1 ? "s" : ""}
+              </p>
             ) : null}
           </div>
           {user?.rol === "COMPRADOR" && producto.stock > 0 && (
