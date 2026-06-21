@@ -14,7 +14,7 @@ import { puntosDeRetiro } from "@/lib/puntos-retiro";
 import { ApolloError } from "@apollo/client";
 import {
   MapPin, Plus, Tag, ShoppingBag, ChevronRight, Loader2, CheckCircle, X,
-  QrCode, Landmark, Truck, Store, Gift,
+  QrCode, Landmark, Truck, Store, Gift, CreditCard,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Decimal } from "decimal.js";
@@ -48,7 +48,7 @@ export default function CheckoutPage() {
   const [cuponAplicado, setCuponAplicado]   = useState<CuponValidado | null>(null);
   const [validandoCupon, setValidandoCupon] = useState(false);
   const [creandoPago, setCreandoPago]       = useState(false);
-  const [metodoPago, setMetodoPago]         = useState<"qr" | "transferencia" | "contra_entrega">("qr");
+  const [metodoPago, setMetodoPago]         = useState<"tarjeta" | "qr" | "transferencia" | "contra_entrega">("tarjeta");
   const [metodoEntrega, setMetodoEntrega]   = useState<"domicilio" | "retiro_tienda">("domicilio");
   const [puntoRetiro, setPuntoRetiro]       = useState<string>("");
   const [usarPuntos, setUsarPuntos]         = useState(false);
@@ -403,6 +403,7 @@ export default function CheckoutPage() {
             <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide mb-4">Método de pago</h2>
             <div className="space-y-2">
               {([
+                { v: "tarjeta",        icon: CreditCard, t: "Tarjeta de crédito/débito (demo)", d: "Pago simulado — no se realiza ningún cobro real" },
                 { v: "qr",             icon: QrCode,   t: "QR Simple",        d: "Escanea y paga con la app de tu banco" },
                 { v: "transferencia",  icon: Landmark, t: "Transferencia bancaria", d: "Transfiere y sube tu comprobante" },
                 { v: "contra_entrega", icon: Truck,    t: "Pago contra entrega",    d: "Paga en efectivo al recibir tu pedido" },

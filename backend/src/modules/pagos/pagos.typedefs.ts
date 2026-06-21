@@ -17,6 +17,7 @@ export const pagosTypeDefs = /* GraphQL */ `
     qr
     transferencia
     contra_entrega
+    tarjeta
   }
 
   type OrdenSimuladaResult {

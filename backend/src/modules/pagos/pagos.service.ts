@@ -9,7 +9,9 @@ import { fidelidadService } from "../fidelidad/fidelidad.service.js";
 import { costoEnvio, METODOS_ENTREGA } from "../../shared/envios.js";
 import { publishNotificacion } from "../../shared/pubsub.js";
 
-const METODOS_BOLIVIANOS = ["qr", "transferencia", "contra_entrega"];
+// "tarjeta" = pago con tarjeta en MODO DEMO (no procesa cobro real; se confirma como
+// los demás métodos simulados). La integración real con Stripe queda para §9.
+const METODOS_BOLIVIANOS = ["qr", "transferencia", "contra_entrega", "tarjeta"];
 
 type ItemCarrito = {
   productoId: string;
