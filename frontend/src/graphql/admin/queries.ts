@@ -75,6 +75,33 @@ export const ANALITICA_ADMIN = gql`
   }
 `;
 
+export const ANALITICA_PRODUCTOS = gql`
+  query AnaliticaProductos($dias: Int) {
+    analiticaProductos(dias: $dias) {
+      unidades         { valor delta }
+      ingresos         { valor delta }
+      productosActivos
+      sinVentas
+      inventario       { enStock bajo agotado }
+      topProductos     { nombre vendedor unidades ingresos }
+      porCategoria     { etiqueta valor monto }
+    }
+  }
+`;
+
+export const ANALITICA_CLIENTES = gql`
+  query AnaliticaClientes($dias: Int) {
+    analiticaClientes(dias: $dias) {
+      clientesActivos { valor delta }
+      ticketPromedio  { valor delta }
+      nuevos
+      recurrentes
+      frecuencia      { f1 f2 f3 f4 }
+      topClientes     { nombre ordenes gasto ticket }
+    }
+  }
+`;
+
 export const ESTADISTICAS_ADMIN = gql`
   query EstadisticasAdmin($dias: Int) {
     estadisticasAdmin(dias: $dias) {

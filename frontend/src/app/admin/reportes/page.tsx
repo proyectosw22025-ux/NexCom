@@ -8,19 +8,19 @@ import { Badge } from "@/components/ui/Badge";
 import { FilterPills } from "@/components/ui/FilterPills";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHero } from "@/components/ui/PageHero";
-import { BarChart2, Loader2, ChevronRight, LineChart, ShieldAlert } from "lucide-react";
+import { BarChart2, Loader2, ChevronRight, LineChart, ShieldAlert, Boxes, Users } from "lucide-react";
 import Link from "next/link";
 
-// Code-split: el dashboard de analítica (recharts) solo se carga en su pestaña.
-const AnaliticaDashboard = dynamic(() => import("@/components/admin/AnaliticaDashboard"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex flex-col items-center justify-center py-24 gap-2">
-      <Loader2 className="h-6 w-6 animate-spin text-slate-300" />
-      <p className="text-xs text-slate-400">Cargando analítica…</p>
-    </div>
-  ),
-});
+// Code-split: cada dashboard (recharts) solo se carga en su pestaña.
+const cargando = (
+  <div className="flex flex-col items-center justify-center py-24 gap-2">
+    <Loader2 className="h-6 w-6 animate-spin text-slate-300" />
+    <p className="text-xs text-slate-400">Cargando reporte…</p>
+  </div>
+);
+const AnaliticaDashboard = dynamic(() => import("@/components/admin/AnaliticaDashboard"), { ssr: false, loading: () => cargando });
+const ProductosDashboard = dynamic(() => import("@/components/admin/ProductosDashboard"), { ssr: false, loading: () => cargando });
+const ClientesDashboard  = dynamic(() => import("@/components/admin/ClientesDashboard"),  { ssr: false, loading: () => cargando });
 
 interface Reporte {
   id: string; tipo: string; referenciaId: string; motivo: string;
@@ -150,12 +150,16 @@ function Moderacion() {
 }
 
 const TABS = [
-  { key: "analitica",  label: "Analítica",  icon: LineChart },
+  { key: "analitica",  label: "Negocio",    icon: LineChart },
+  { key: "productos",  label: "Productos",  icon: Boxes },
+  { key: "clientes",   label: "Clientes",   icon: Users },
   { key: "moderacion", label: "Moderación", icon: ShieldAlert },
 ] as const;
 
+type TabKey = (typeof TABS)[number]["key"];
+
 export default function AdminReportesPage() {
-  const [tab, setTab] = useState<"analitica" | "moderacion">("analitica");
+  const [tab, setTab] = useState<TabKey>("analitica");
 
   return (
     <div className="p-8 max-w-6xl">
@@ -181,7 +185,10 @@ export default function AdminReportesPage() {
         ))}
       </div>
 
-      {tab === "analitica" ? <AnaliticaDashboard /> : <Moderacion />}
+      {tab === "analitica" && <AnaliticaDashboard />}
+      {tab === "productos" && <ProductosDashboard />}
+      {tab === "clientes"  && <ClientesDashboard />}
+      {tab === "moderacion" && <Moderacion />}
     </div>
   );
 }

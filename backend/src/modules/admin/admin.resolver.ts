@@ -29,6 +29,16 @@ export const adminResolvers = {
       return adminService.getAnalitica(dias ?? 30, ctx.prisma);
     },
 
+    analiticaProductos: (_: unknown, { dias }: { dias?: number }, ctx: NexComContext) => {
+      requireRole(ctx, "ADMIN");
+      return adminService.getAnaliticaProductos(dias ?? 30, ctx.prisma);
+    },
+
+    analiticaClientes: (_: unknown, { dias }: { dias?: number }, ctx: NexComContext) => {
+      requireRole(ctx, "ADMIN");
+      return adminService.getAnaliticaClientes(dias ?? 30, ctx.prisma);
+    },
+
     metricasRendimiento: (_: unknown, __: unknown, ctx: NexComContext) => {
       requireRole(ctx, "ADMIN");
       return snapshotMetricas();

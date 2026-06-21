@@ -96,11 +96,57 @@ export const adminTypeDefs = /* GraphQL */ `
     topVendedores:   [TopVendedorAnalitica!]!
   }
 
+  # ── Reporte: Productos & Inventario ──────────────────────────────────
+  type TopProducto {
+    nombre:   String!
+    vendedor: String!
+    unidades: Int!
+    ingresos: String!
+  }
+  type SaludInventario {
+    enStock: Int!
+    bajo:    Int!
+    agotado: Int!
+  }
+  type AnaliticaProductos {
+    unidades:         KpiDelta!
+    ingresos:         KpiDelta!
+    productosActivos: Int!
+    sinVentas:        Int!
+    inventario:       SaludInventario!
+    topProductos:     [TopProducto!]!
+    porCategoria:     [SegmentoAnalitica!]!
+  }
+
+  # ── Reporte: Clientes & Retención ────────────────────────────────────
+  type FrecuenciaCompra {
+    f1: Int!
+    f2: Int!
+    f3: Int!
+    f4: Int!
+  }
+  type TopCliente {
+    nombre:  String!
+    ordenes: Int!
+    gasto:   String!
+    ticket:  String!
+  }
+  type AnaliticaClientes {
+    clientesActivos: KpiDelta!
+    ticketPromedio:  KpiDelta!
+    nuevos:          Int!
+    recurrentes:     Int!
+    frecuencia:      FrecuenciaCompra!
+    topClientes:     [TopCliente!]!
+  }
+
   extend type Query {
     listarUsuarios(rol: String, activo: Boolean, pagina: Int, limite: Int): PaginatedUsuarios!
     usuarioDetalle(id: ID!): UsuarioAdmin
     estadisticasAdmin(dias: Int): EstadisticasAdmin!
     analiticaAdmin(dias: Int): AnaliticaAdmin!
+    analiticaProductos(dias: Int): AnaliticaProductos!
+    analiticaClientes(dias: Int): AnaliticaClientes!
     metricasRendimiento: MetricasRendimiento!
   }
 
