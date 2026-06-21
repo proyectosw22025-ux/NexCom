@@ -7,6 +7,7 @@ import { TOGGLE_ACTIVO_USUARIO, CAMBIAR_ROL_USUARIO, VERIFICAR_VENDEDOR } from "
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { FilterPills } from "@/components/ui/FilterPills";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Users, Search, Loader2, CheckCircle, XCircle, ToggleLeft, ToggleRight, BadgeCheck } from "lucide-react";
 import { toast } from "sonner";
 import { ApolloError } from "@apollo/client";
@@ -131,10 +132,8 @@ export default function AdminUsuariosPage() {
           <p className="text-sm text-slate-400">Cargando usuarios…</p>
         </div>
       ) : filtrados.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 text-center py-20">
-          <Users className="h-10 w-10 text-slate-200 mx-auto mb-3" />
-          <p className="font-semibold text-slate-700">Sin resultados</p>
-          <p className="text-sm text-slate-400 mt-1">Intenta con otros filtros</p>
+        <div className="bg-white rounded-2xl border border-slate-200">
+          <EmptyState icon={Users} titulo="Sin resultados" subtitulo="Intenta con otros filtros o búsqueda." />
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">

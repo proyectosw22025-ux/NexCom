@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { ShoppingCart, Heart, Package, CheckCircle, Star } from "lucide-react";
+import { ShoppingCart, Heart, Package, CheckCircle, Star, BadgeCheck } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { useCart } from "@/context/cart-context";
 import { useMutation } from "@apollo/client";
@@ -71,7 +71,7 @@ export function ProductoCard({ producto, index, initialFavorito = false }: { pro
     <Link
       href={`/productos/${producto.id}`}
       style={{ animationDelay: `${(index ?? 0) * 55}ms` }}
-      className="animate-stagger-fade-up group bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-lg hover:shadow-slate-200/60 hover:border-slate-300 transition-all duration-200 flex flex-col"
+      className="animate-stagger-fade-up hover-lift group bg-white rounded-2xl border border-slate-200 overflow-hidden hover:border-indigo-200 flex flex-col"
     >
       {/* Image */}
       <div className="relative aspect-square bg-slate-100 overflow-hidden">
@@ -121,7 +121,10 @@ export function ProductoCard({ producto, index, initialFavorito = false }: { pro
           {producto.nombre}
         </h3>
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[11px] text-slate-400 truncate">{producto.vendedor.nombreNegocio}</p>
+          <p className="text-[11px] text-slate-400 truncate flex items-center gap-1">
+            {producto.vendedor.verificado && <BadgeCheck className="h-3 w-3 text-emerald-500 shrink-0" />}
+            {producto.vendedor.nombreNegocio}
+          </p>
           {(producto.vendedor.totalResenias ?? 0) > 0 && producto.vendedor.ratingPromedio && (
             <span className="flex items-center gap-0.5 text-[11px] font-semibold text-slate-500 shrink-0">
               <Star className="h-3 w-3 text-amber-400 fill-amber-400" />

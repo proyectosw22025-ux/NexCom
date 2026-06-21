@@ -5,6 +5,7 @@ import { useQuery, useMutation } from "@apollo/client";
 import { TODOS_PRODUCTOS } from "@/graphql/admin/queries";
 import { TOGGLE_DESTACADO } from "@/graphql/productos/mutations";
 import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Package, Star, Search, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { ApolloError } from "@apollo/client";
@@ -94,9 +95,8 @@ export default function AdminProductosPage() {
           <p className="text-sm text-slate-400">Cargando productos…</p>
         </div>
       ) : filtrados.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 text-center py-20">
-          <Package className="h-10 w-10 text-slate-200 mx-auto mb-3" />
-          <p className="font-semibold text-slate-700">Sin productos</p>
+        <div className="bg-white rounded-2xl border border-slate-200">
+          <EmptyState icon={Package} titulo="Sin productos" subtitulo="No hay productos que coincidan con el filtro." />
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">

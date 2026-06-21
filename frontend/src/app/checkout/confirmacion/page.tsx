@@ -21,13 +21,16 @@ function ConfirmacionContent() {
       <CheckoutStepper current="confirmacion" success={ok} />
 
       <div className="text-center">
-      <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5 ${
-        ok ? "bg-emerald-100" : "bg-red-100"
-      }`}>
-        {ok
-          ? <CheckCircle className="h-8 w-8 text-emerald-600" />
-          : <XCircle    className="h-8 w-8 text-red-500" />
-        }
+      <div className="relative w-20 h-20 mx-auto mb-5">
+        {ok && <span className="absolute inset-0 rounded-2xl bg-emerald-300 animate-ping opacity-50" />}
+        <div className={`relative w-20 h-20 rounded-2xl flex items-center justify-center animate-pop-in ${
+          ok ? "bg-emerald-100" : "bg-red-100"
+        }`}>
+          {ok
+            ? <CheckCircle className="h-9 w-9 text-emerald-600" />
+            : <XCircle    className="h-9 w-9 text-red-500" />
+          }
+        </div>
       </div>
 
       <h1 className="text-2xl font-bold text-slate-900 mb-2">
