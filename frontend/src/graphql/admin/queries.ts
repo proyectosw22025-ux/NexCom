@@ -58,6 +58,23 @@ export const LISTAR_REPORTES = gql`
   }
 `;
 
+export const ANALITICA_ADMIN = gql`
+  query AnaliticaAdmin($dias: Int) {
+    analiticaAdmin(dias: $dias) {
+      ingresos       { valor delta }
+      ordenes        { valor delta }
+      ticketPromedio { valor delta }
+      comision       { valor delta }
+      usuariosNuevos { valor delta }
+      serie          { fecha ingresos ordenes }
+      porMetodoPago  { etiqueta valor monto }
+      porEstado      { etiqueta valor monto }
+      porCiudad      { etiqueta valor monto }
+      topVendedores  { nombreNegocio ingresos ventas rating }
+    }
+  }
+`;
+
 export const ESTADISTICAS_ADMIN = gql`
   query EstadisticasAdmin($dias: Int) {
     estadisticasAdmin(dias: $dias) {
