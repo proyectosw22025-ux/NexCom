@@ -1,6 +1,9 @@
 import type { PrismaClient } from "@prisma/client";
 import { rangoDesde, rellenarSerieDiaria } from "../../shared/series-diaria.util.js";
 
+// Días tras el ENVÍO sin confirmar (ni disputa) para auto-liberar los fondos al vendedor.
+export const DIAS_AUTO_LIBERACION = 7;
+
 const ordenInclude = {
   items:            true,
   pago:             true,
@@ -38,6 +41,8 @@ function mapOrden(o: ReturnType<typeof rawOrden>) {
       creadoEn: h.creadoEn.toISOString(),
     })),
     direccionSnapshot: o.direccionSnapshot as Record<string, unknown> | null,
+    autoLiberaEn:      o.autoLiberaEn ? o.autoLiberaEn.toISOString() : null,
+    fondosLiberadosEn: o.fondosLiberadosEn ? o.fondosLiberadosEn.toISOString() : null,
   };
 }
 
@@ -48,6 +53,7 @@ function rawOrden(o: {
   costoEnvio: { toString(): string }; metodoEntrega: string; puntoRetiro: string | null;
   total: { toString(): string }; notas: string | null;
   stripePaymentIntentId: string | null; direccionSnapshot: unknown;
+  codigoEntrega: string | null; autoLiberaEn: Date | null; fondosLiberadosEn: Date | null;
   creadoEn: Date; actualizadoEn: Date;
   items: Array<{ id: string; productoId: string; nombreSnapshot: string; cantidad: number; precioUnitario: { toString(): string }; subtotal: { toString(): string } }>;
   pago: { id: string; monto: { toString(): string }; moneda: string; metodo: string; estado: string; creadoEn: Date } | null;
@@ -108,6 +114,10 @@ export const ordenesRepository = {
         data:    {
           estado: estadoNuevo as never,
           ...(comprobanteUrl ? { comprobanteUrl } : {}),
+          // Al ENVIAR arranca la ventana de auto-liberación de la garantía.
+          ...(estadoNuevo === "ENVIADO"
+            ? { autoLiberaEn: new Date(Date.now() + DIAS_AUTO_LIBERACION * 86_400_000) }
+            : {}),
         },
         include: ordenVendedorInclude,
       });
@@ -160,7 +170,7 @@ export const ordenesRepository = {
     const updated = await prisma.$transaction(async (tx) => {
       const o = await tx.orden.update({
         where:   { id },
-        data:    { estado: "ENTREGADO" },
+        data:    { estado: "ENTREGADO", fondosLiberadosEn: new Date() },
         include: ordenInclude,
       });
       await tx.historialEstadoOrden.create({

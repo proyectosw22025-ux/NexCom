@@ -6,10 +6,11 @@ import { saldosService } from "./saldos.service.js";
 
 vi.mock("./saldos.repository.js", () => ({
   saldosRepository: {
-    existeMovimiento:      vi.fn(),
-    crearMovimiento:       vi.fn(),
-    findVentaPorOrden:     vi.fn(),
-    sumarMovimientos:      vi.fn(),
+    existeMovimiento:       vi.fn(),
+    crearMovimiento:        vi.fn(),
+    findVentaPorOrden:      vi.fn(),
+    findMovimientoPorOrden: vi.fn(),
+    sumarMovimientos:       vi.fn(),
     sumarRetiros:          vi.fn(),
     listMovimientos:       vi.fn(),
     crearRetiro:           vi.fn(),
@@ -24,28 +25,54 @@ vi.mock("../../shared/pubsub.js", () => ({ publishNotificacion: vi.fn() }));
 
 const prisma = {} as PrismaClient;
 
-describe("saldosService.registrarVenta (comisión por plan)", () => {
+describe("saldosService.registrarRetencion (escrow, comisión por plan)", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("FREE: retiene 10% de comisión y acredita el 90% neto", async () => {
+  it("FREE: retiene 10% de comisión y RETIENE el 90% neto en garantía", async () => {
     vi.mocked(saldosRepository.existeMovimiento).mockResolvedValue(false);
-    await saldosService.registrarVenta("v1", "orden-1", "100.00", "FREE", prisma);
+    await saldosService.registrarRetencion("v1", "orden-1", "100.00", "FREE", prisma);
     expect(saldosRepository.crearMovimiento).toHaveBeenCalledWith(
-      expect.objectContaining({ tipo: "VENTA", monto: "90", comision: "10" }), prisma,
+      expect.objectContaining({ tipo: "RETENCION", monto: "90", comision: "10" }), prisma,
     );
   });
 
   it("PRO: retiene solo 5% de comisión", async () => {
     vi.mocked(saldosRepository.existeMovimiento).mockResolvedValue(false);
-    await saldosService.registrarVenta("v1", "orden-2", "200.00", "PRO", prisma);
+    await saldosService.registrarRetencion("v1", "orden-2", "200.00", "PRO", prisma);
     expect(saldosRepository.crearMovimiento).toHaveBeenCalledWith(
-      expect.objectContaining({ tipo: "VENTA", monto: "190", comision: "10" }), prisma,
+      expect.objectContaining({ tipo: "RETENCION", monto: "190", comision: "10" }), prisma,
     );
   });
 
-  it("es idempotente: no acredita dos veces la misma orden", async () => {
+  it("es idempotente: no retiene dos veces la misma orden", async () => {
     vi.mocked(saldosRepository.existeMovimiento).mockResolvedValue(true);
-    await saldosService.registrarVenta("v1", "orden-1", "100.00", "FREE", prisma);
+    await saldosService.registrarRetencion("v1", "orden-1", "100.00", "FREE", prisma);
+    expect(saldosRepository.crearMovimiento).not.toHaveBeenCalled();
+  });
+});
+
+describe("saldosService.liberarFondos (retenido → disponible)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("libera exactamente el neto retenido de la orden", async () => {
+    vi.mocked(saldosRepository.existeMovimiento).mockResolvedValue(false);
+    vi.mocked(saldosRepository.findMovimientoPorOrden).mockResolvedValue({ monto: "90", comision: "10" } as never);
+    await saldosService.liberarFondos("v1", "orden-1", prisma);
+    expect(saldosRepository.crearMovimiento).toHaveBeenCalledWith(
+      expect.objectContaining({ tipo: "LIBERACION", monto: "90" }), prisma,
+    );
+  });
+
+  it("es idempotente: no libera dos veces la misma orden", async () => {
+    vi.mocked(saldosRepository.existeMovimiento).mockResolvedValue(true);
+    await saldosService.liberarFondos("v1", "orden-1", prisma);
+    expect(saldosRepository.crearMovimiento).not.toHaveBeenCalled();
+  });
+
+  it("no libera si no hay retención previa", async () => {
+    vi.mocked(saldosRepository.existeMovimiento).mockResolvedValue(false);
+    vi.mocked(saldosRepository.findMovimientoPorOrden).mockResolvedValue(null);
+    await saldosService.liberarFondos("v1", "orden-x", prisma);
     expect(saldosRepository.crearMovimiento).not.toHaveBeenCalled();
   });
 });
@@ -73,16 +100,23 @@ describe("saldosService.registrarReembolso (clawback exacto)", () => {
 describe("saldosService.getSaldo", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("disponible = (ventas - reembolsos) - (pendiente + pagado)", async () => {
-    vi.mocked(saldosRepository.sumarMovimientos).mockImplementation(async (_v, tipo) =>
-      tipo === "VENTA" ? { monto: "500", comision: "50" } : { monto: "90", comision: "0" },
-    );
+  it("separa retenido (escrow) de disponible y aplica retiros", async () => {
+    const map: Record<string, { monto: string; comision: string }> = {
+      VENTA:      { monto: "100", comision: "0"  }, // legacy → disponible
+      RETENCION:  { monto: "500", comision: "50" }, // entra a retenido
+      LIBERACION: { monto: "300", comision: "0"  }, // 300 ya liberado
+      REEMBOLSO:  { monto: "0",   comision: "0"  },
+    };
+    vi.mocked(saldosRepository.sumarMovimientos).mockImplementation(async (_v, tipo) => map[tipo]);
     vi.mocked(saldosRepository.sumarRetiros).mockImplementation(async (_v, estado) =>
-      estado === "PENDIENTE" ? "100" : "200",
+      estado === "PENDIENTE" ? "50" : "100",
     );
     const s = await saldosService.getSaldo("v1", prisma);
-    // generado = 500 - 90 = 410; disponible = 410 - 100 - 200 = 110
-    expect(s).toMatchObject({ generado: "410.00", enRevision: "100.00", retirado: "200.00", disponible: "110.00" });
+    // retenido = 500 - 300 = 200; disponible = 100 + 300 - 50 - 100 = 250; generado = 100 + 500 = 600
+    expect(s).toMatchObject({
+      retenido: "200.00", disponible: "250.00", generado: "600.00",
+      enRevision: "50.00", retirado: "100.00", comisionTotal: "50.00",
+    });
   });
 });
 

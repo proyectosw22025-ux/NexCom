@@ -1,6 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
 
-type Tipo = "VENTA" | "REEMBOLSO";
+type Tipo = "VENTA" | "RETENCION" | "LIBERACION" | "REEMBOLSO";
 
 export const saldosRepository = {
   async existeMovimiento(ordenId: string, tipo: Tipo, prisma: PrismaClient) {
@@ -15,9 +15,16 @@ export const saldosRepository = {
     return prisma.movimientoSaldo.create({ data });
   },
 
-  /** Monto neto (VENTA) acreditado por una orden — para revertir exactamente al reembolsar. */
+  /** Monto neto de un movimiento por orden y tipo (p. ej. RETENCION) — para liberar/reembolsar exacto. */
+  async findMovimientoPorOrden(ordenId: string, tipo: Tipo, prisma: PrismaClient) {
+    return prisma.movimientoSaldo.findFirst({ where: { ordenId, tipo }, select: { monto: true, comision: true } });
+  },
+
+  /** Compat: monto neto acreditado por una orden (RETENCION nuevo, o VENTA legacy). */
   async findVentaPorOrden(ordenId: string, prisma: PrismaClient) {
-    return prisma.movimientoSaldo.findFirst({ where: { ordenId, tipo: "VENTA" }, select: { monto: true } });
+    return prisma.movimientoSaldo.findFirst({
+      where: { ordenId, tipo: { in: ["RETENCION", "VENTA"] } }, select: { monto: true },
+    });
   },
 
   async sumarMovimientos(vendedorId: string, tipo: Tipo, prisma: PrismaClient) {

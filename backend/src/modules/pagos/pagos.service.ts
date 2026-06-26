@@ -8,6 +8,7 @@ import { saldosService } from "../saldos/saldos.service.js";
 import { fidelidadService } from "../fidelidad/fidelidad.service.js";
 import { costoEnvio, METODOS_ENTREGA } from "../../shared/envios.js";
 import { publishNotificacion } from "../../shared/pubsub.js";
+import { generarCodigoEntrega } from "../../shared/codigo-entrega.util.js";
 
 // "tarjeta" = pago con tarjeta en MODO DEMO (no procesa cobro real; se confirma como
 // los demás métodos simulados). La integración real con Stripe queda para §9.
@@ -235,10 +236,14 @@ export const pagosService = {
     const metodo = orden.pago?.metodo ?? "qr";
     await pagosRepository.confirmarPagoSimulado(ordenId, orden.pago?.id ?? null, compradorId, metodo, prisma);
 
-    // Acreditar el neto (tras comisión de plataforma) al saldo del vendedor
-    await saldosService.registrarVenta(
+    // Compra Protegida: RETENER el neto en garantía (no disponible para el vendedor
+    // hasta la confirmación de entrega) y generar el código de entrega del comprador.
+    await saldosService.registrarRetencion(
       orden.vendedor!.id, ordenId, orden.total.toString(), orden.vendedor!.plan ?? "FREE", prisma,
     );
+    if (!orden.codigoEntrega) {
+      await prisma.orden.update({ where: { id: ordenId }, data: { codigoEntrega: generarCodigoEntrega() } });
+    }
 
     // Fidelidad: debitar puntos canjeados y acreditar puntos ganados (sobre el gasto neto)
     if (orden.puntosUsados > 0) {

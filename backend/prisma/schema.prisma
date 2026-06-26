@@ -45,8 +45,10 @@ enum EstadoDevolucion {
 }
 
 enum TipoMovimientoSaldo {
-  VENTA     // crédito: neto tras comisión de plataforma
-  REEMBOLSO // débito: reversa del neto al reembolsar una devolución
+  VENTA      // (legacy) crédito directo a disponible — compatibilidad con datos previos
+  RETENCION  // crédito a fondos RETENIDOS (escrow) al confirmarse el pago
+  LIBERACION // mueve retenido → disponible al confirmar la entrega
+  REEMBOLSO  // débito: reversa del neto (cancelación/disputa)
 }
 
 enum TipoMovimientoPuntos {
@@ -517,6 +519,12 @@ model Orden {
   stripePaymentIntentId String?     @unique @map("stripe_payment_intent_id")
   comprobanteUrl        String?     @map("comprobante_url")
   notas                 String?
+  // ── Escrow / confirmación de entrega (Compra Protegida) ──────────────
+  codigoEntrega         String?     @map("codigo_entrega")          // PIN de entrega; visible SOLO para el comprador
+  intentosCodigo        Int         @default(0) @map("intentos_codigo")        // anti–fuerza bruta (handshake)
+  codigoBloqueadoHasta  DateTime?   @map("codigo_bloqueado_hasta")  // lockout temporal tras N fallos
+  fondosLiberadosEn     DateTime?   @map("fondos_liberados_en")     // marca de liberación (idempotencia)
+  autoLiberaEn          DateTime?   @map("auto_libera_en")          // límite de auto-liberación (se fija al ENVIAR)
   // JSON inmutable: snapshot de la dirección al momento de la compra
   direccionSnapshot     Json?       @map("direccion_snapshot")
   creadoEn              DateTime    @default(now()) @map("creado_en")
@@ -835,4 +843,23 @@ model Notificacion {
   @@index([usuarioId, leido])
   @@index([creadoEn])
   @@map("notificaciones")
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLA 27: EVENTOS DE SEGURIDAD (audit log inmutable, append-only)
+// Registro de acciones sensibles: liberación de fondos, intentos de
+// código fallidos, retiros, etc. Sin FKs para desacoplar el log.
+// ══════════════════════════════════════════════════════════════
+
+model EventoSeguridad {
+  id        String   @id @default(cuid())
+  tipo      String   // LIBERACION | LIBERACION_AUTO | INTENTO_CODIGO_FALLIDO | CODIGO_BLOQUEADO | ...
+  usuarioId String?  @map("usuario_id")
+  ordenId   String?  @map("orden_id")
+  metadata  Json?
+  creadoEn  DateTime @default(now()) @map("creado_en")
+
+  @@index([tipo, creadoEn])
+  @@index([ordenId])
+  @@map("eventos_seguridad")
 }

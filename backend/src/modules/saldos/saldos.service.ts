@@ -19,23 +19,44 @@ function dosDecimales(d: Decimal) {
 export const saldosService = {
   // ── Acreditación (llamado desde otros módulos) ───────────────────────────────
 
-  /** Acredita el neto de una venta al saldo del vendedor. Idempotente por orden. */
-  async registrarVenta(vendedorId: string, ordenId: string, total: string, plan: string, prisma: PrismaClient) {
-    if (await saldosRepository.existeMovimiento(ordenId, "VENTA", prisma)) return;
+  /**
+   * RETIENE el neto de una venta en garantía (escrow) al confirmarse el pago.
+   * No queda disponible para el vendedor hasta la confirmación de entrega.
+   * Idempotente por orden.
+   */
+  async registrarRetencion(vendedorId: string, ordenId: string, total: string, plan: string, prisma: PrismaClient) {
+    if (await saldosRepository.existeMovimiento(ordenId, "RETENCION", prisma)) return;
     const rate    = COMISION_POR_PLAN[plan] ?? COMISION_DEFECTO;
     const totalD  = new Decimal(total);
     const comision = totalD.mul(rate).toDecimalPlaces(2);
     const neto    = totalD.minus(comision);
     await saldosRepository.crearMovimiento(
       {
-        vendedorId, tipo: "VENTA", monto: neto.toString(), comision: comision.toString(),
-        ordenId, descripcion: `Venta orden #${ordenId.slice(-6).toUpperCase()}`,
+        vendedorId, tipo: "RETENCION", monto: neto.toString(), comision: comision.toString(),
+        ordenId, descripcion: `Retención orden #${ordenId.slice(-6).toUpperCase()}`,
       },
       prisma,
     );
   },
 
-  /** Revierte exactamente el neto acreditado al reembolsar una devolución. Idempotente. */
+  /**
+   * LIBERA los fondos retenidos de una orden (retenido → disponible) al confirmarse
+   * la entrega. Idempotente: no libera dos veces ni libera sin retención previa.
+   */
+  async liberarFondos(vendedorId: string, ordenId: string, prisma: PrismaClient) {
+    if (await saldosRepository.existeMovimiento(ordenId, "LIBERACION", prisma)) return;
+    const ret = await saldosRepository.findMovimientoPorOrden(ordenId, "RETENCION", prisma);
+    if (!ret) return; // sin retención (p. ej. orden legacy con VENTA directa) → nada que liberar
+    await saldosRepository.crearMovimiento(
+      {
+        vendedorId, tipo: "LIBERACION", monto: ret.monto.toString(), comision: "0",
+        ordenId, descripcion: `Liberación orden #${ordenId.slice(-6).toUpperCase()}`,
+      },
+      prisma,
+    );
+  },
+
+  /** Revierte exactamente el neto retenido al reembolsar una devolución. Idempotente. */
   async registrarReembolso(vendedorId: string, ordenId: string, prisma: PrismaClient) {
     if (await saldosRepository.existeMovimiento(ordenId, "REEMBOLSO", prisma)) return;
     const venta = await saldosRepository.findVentaPorOrden(ordenId, prisma);
@@ -52,22 +73,34 @@ export const saldosService = {
   // ── Consultas del vendedor ───────────────────────────────────────────────────
 
   async getSaldo(vendedorId: string, prisma: PrismaClient) {
-    const [ventas, reembolsos, pendiente, pagado] = await Promise.all([
-      saldosRepository.sumarMovimientos(vendedorId, "VENTA", prisma),
-      saldosRepository.sumarMovimientos(vendedorId, "REEMBOLSO", prisma),
+    const [ventas, retencion, liberacion, reembolsos, pendiente, pagado] = await Promise.all([
+      saldosRepository.sumarMovimientos(vendedorId, "VENTA", prisma),      // legacy: directo a disponible
+      saldosRepository.sumarMovimientos(vendedorId, "RETENCION", prisma),  // entra a retenido
+      saldosRepository.sumarMovimientos(vendedorId, "LIBERACION", prisma), // retenido → disponible
+      saldosRepository.sumarMovimientos(vendedorId, "REEMBOLSO", prisma),  // revierte retenido
       saldosRepository.sumarRetiros(vendedorId, "PENDIENTE", prisma),
       saldosRepository.sumarRetiros(vendedorId, "PAGADO", prisma),
     ]);
-    const generado   = new Decimal(ventas.monto).minus(reembolsos.monto);
+    const venta      = new Decimal(ventas.monto);
+    const ret        = new Decimal(retencion.monto);
+    const lib         = new Decimal(liberacion.monto);
+    const reembolso  = new Decimal(reembolsos.monto);
     const enRevision = new Decimal(pendiente);
     const retirado   = new Decimal(pagado);
-    const disponible = generado.minus(enRevision).minus(retirado);
+
+    // En garantía (escrow): retenido aún no liberado ni reembolsado.
+    const retenido   = ret.minus(lib).minus(reembolso);
+    // Disponible para retiro: ventas legacy + lo liberado, menos retiros.
+    const disponible = venta.plus(lib).minus(enRevision).minus(retirado);
+    // Neto histórico generado (incluye lo que sigue retenido).
+    const generado   = venta.plus(ret).minus(reembolso);
     return {
       disponible:    dosDecimales(disponible),
+      retenido:      dosDecimales(retenido),
       generado:      dosDecimales(generado),
       enRevision:    dosDecimales(enRevision),
       retirado:      dosDecimales(retirado),
-      comisionTotal: dosDecimales(new Decimal(ventas.comision)),
+      comisionTotal: dosDecimales(new Decimal(ventas.comision).plus(retencion.comision)),
     };
   },
 

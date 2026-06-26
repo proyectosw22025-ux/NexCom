@@ -56,6 +56,10 @@ export const ordenesTypeDefs = /* GraphQL */ `
     notas:                 String
     direccionSnapshot:     DireccionSnapshot
     stripePaymentIntentId: String
+    # Compra Protegida — visibles para el COMPRADOR dueño de la orden
+    codigoEntrega:         String   # PIN de entrega (solo el comprador lo ve)
+    autoLiberaEn:          String   # fecha de auto-liberación de la garantía
+    fondosLiberadosEn:     String   # null mientras los fondos siguen retenidos
     creadoEn:              String!
     actualizadoEn:         String!
     items:                 [ItemOrden!]!
@@ -72,6 +76,9 @@ export const ordenesTypeDefs = /* GraphQL */ `
     total:             String!
     notas:             String
     direccionSnapshot: DireccionSnapshot
+    # El vendedor NO ve el código de entrega; sí la ventana/estado de la garantía
+    autoLiberaEn:      String
+    fondosLiberadosEn: String
     creadoEn:          String!
     actualizadoEn:     String!
     items:             [ItemOrden!]!
@@ -104,5 +111,7 @@ export const ordenesTypeDefs = /* GraphQL */ `
   extend type Mutation {
     avanzarEstadoOrden(id: ID!, notas: String, comprobanteUrl: String): OrdenVendedor!
     marcarOrdenEntregada(id: ID!): Orden!
+    # Handshake de entrega: el vendedor ingresa el código que el comprador le muestra
+    confirmarEntregaConCodigo(id: ID!, codigo: String!): OrdenVendedor!
   }
 `;

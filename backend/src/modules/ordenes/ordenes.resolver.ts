@@ -66,5 +66,17 @@ export const ordenesResolvers = {
       }
       return ordenesService.marcarEntregada(id, ctx.user.perfilCompradorId, ctx.user.id, ctx.prisma);
     },
+
+    confirmarEntregaConCodigo: (
+      _: unknown,
+      { id, codigo }: { id: string; codigo: string },
+      ctx: NexComContext,
+    ) => {
+      requireRole(ctx, "VENDEDOR");
+      if (!ctx.user?.perfilVendedorId) {
+        throw new GraphQLError("Perfil de vendedor no encontrado.", { extensions: { code: "NOT_FOUND" } });
+      }
+      return ordenesService.confirmarEntregaConCodigo(id, ctx.user.perfilVendedorId, ctx.user.id, codigo, ctx.prisma);
+    },
   },
 };

@@ -24,7 +24,7 @@ vi.mock("../cupones/cupones.service.js", () => ({
 }));
 
 vi.mock("../saldos/saldos.service.js", () => ({
-  saldosService: { registrarVenta: vi.fn(), registrarReembolso: vi.fn() },
+  saldosService: { registrarRetencion: vi.fn(), liberarFondos: vi.fn(), registrarReembolso: vi.fn() },
 }));
 
 vi.mock("../fidelidad/fidelidad.service.js", () => ({
@@ -187,7 +187,10 @@ describe("pagosService — flujo boliviano simulado", () => {
       id: "n1", tipo: "X", titulo: "t", mensaje: "m", leido: false, url: null, ordenId: "orden-1",
       creadoEn: new Date(),
     });
-    const prismaConNotif = { notificacion: { create: notifCreate } } as unknown as PrismaClient;
+    const prismaConNotif = {
+      notificacion: { create: notifCreate },
+      orden: { update: vi.fn().mockResolvedValue({}) }, // genera código de entrega
+    } as unknown as PrismaClient;
 
     vi.mocked(pagosRepository.findOrdenConParticipantes).mockResolvedValue({
       id: "orden-1", estado: "PENDIENTE_PAGO", total: { toString: () => "100" },
