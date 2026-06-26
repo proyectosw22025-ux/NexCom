@@ -17,6 +17,7 @@ import { valoracionesResolvers }   from "../modules/valoraciones/valoraciones.re
 import { notificacionesResolvers }  from "../modules/notificaciones/notificaciones.resolver.js";
 import { mensajesResolvers }         from "../modules/mensajes/mensajes.resolver.js";
 import { devolucionesResolvers }     from "../modules/devoluciones/devoluciones.resolver.js";
+import { disputasResolvers }         from "../modules/disputas/disputas.resolver.js";
 import { saldosResolvers }           from "../modules/saldos/saldos.resolver.js";
 import { facturasResolvers }         from "../modules/facturas/facturas.resolver.js";
 import { uploadsResolvers }          from "../modules/uploads/uploads.resolver.js";
@@ -55,6 +56,7 @@ export const resolvers = mergeResolvers([
   notificacionesResolvers,
   mensajesResolvers,
   devolucionesResolvers,
+  disputasResolvers,
   saldosResolvers,
   facturasResolvers,
   uploadsResolvers,

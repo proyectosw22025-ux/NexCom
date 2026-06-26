@@ -147,7 +147,7 @@ export const ordenesService = {
    */
   async _procesarAutoLiberaciones(vendedorId: string, prisma: PrismaClient) {
     const vencidas = await prisma.orden.findMany({
-      where:  { vendedorId, estado: "ENVIADO", fondosLiberadosEn: null, autoLiberaEn: { lte: new Date() } },
+      where:  { vendedorId, estado: "ENVIADO", fondosLiberadosEn: null, disputaAbierta: false, autoLiberaEn: { lte: new Date() } },
       select: { id: true },
     });
     for (const o of vencidas) {

@@ -525,6 +525,7 @@ model Orden {
   codigoBloqueadoHasta  DateTime?   @map("codigo_bloqueado_hasta")  // lockout temporal tras N fallos
   fondosLiberadosEn     DateTime?   @map("fondos_liberados_en")     // marca de liberación (idempotencia)
   autoLiberaEn          DateTime?   @map("auto_libera_en")          // límite de auto-liberación (se fija al ENVIAR)
+  disputaAbierta        Boolean     @default(false) @map("disputa_abierta") // congela la auto-liberación
   // JSON inmutable: snapshot de la dirección al momento de la compra
   direccionSnapshot     Json?       @map("direccion_snapshot")
   creadoEn              DateTime    @default(now()) @map("creado_en")
@@ -540,6 +541,7 @@ model Orden {
   notificaciones   Notificacion[]
   usoCupon         UsoCupon?
   devolucion       Devolucion?
+  disputa          Disputa?
   factura          Factura?
 
   @@index([compradorId, estado])
@@ -862,4 +864,35 @@ model EventoSeguridad {
   @@index([tipo, creadoEn])
   @@index([ordenId])
   @@map("eventos_seguridad")
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLA 28: DISPUTAS (reclamos durante la garantía — mediación admin)
+// El comprador abre un reclamo (p. ej. "no recibí") mientras el pago sigue
+// retenido; congela la auto-liberación y el ADMIN media: reembolso desde el
+// escrow (a favor del comprador) o liberación (a favor del vendedor).
+// compradorId/vendedorId/resueltoPorId son strings sueltos (sin FK) para
+// desacoplar; el detalle se obtiene vía la relación con la orden.
+// ══════════════════════════════════════════════════════════════
+
+model Disputa {
+  id             String   @id @default(cuid())
+  ordenId        String   @unique @map("orden_id")
+  compradorId    String   @map("comprador_id")
+  vendedorId     String   @map("vendedor_id")
+  motivo         String   // NO_RECIBIDO | PRODUCTO_INCORRECTO | DANADO | OTRO
+  descripcion    String?
+  evidenciaUrl   String?  @map("evidencia_url")
+  estado         String   @default("ABIERTA") // ABIERTA | RESUELTA_COMPRADOR | RESUELTA_VENDEDOR
+  resolucionNota String?  @map("resolucion_nota")
+  resueltoPorId  String?  @map("resuelto_por_id") // usuarioId del admin
+  resueltoEn     DateTime? @map("resuelto_en")
+  creadoEn       DateTime @default(now()) @map("creado_en")
+  actualizadoEn  DateTime @updatedAt      @map("actualizado_en")
+
+  orden Orden @relation(fields: [ordenId], references: [id])
+
+  @@index([estado, creadoEn])
+  @@index([compradorId])
+  @@map("disputas")
 }

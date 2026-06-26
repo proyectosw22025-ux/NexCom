@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { TimelineEstados } from "@/components/ordenes/TimelineEstados";
 import { CodigoEntregaCard } from "@/components/ordenes/CodigoEntregaCard";
+import { ReclamoComprador } from "@/components/disputas/ReclamoComprador";
 import { DevolucionComprador } from "@/components/devoluciones/DevolucionComprador";
 import { FacturaOrden } from "@/components/facturas/FacturaOrden";
 import {
@@ -123,6 +124,14 @@ export default function CompradorOrdenDetallePage() {
         {orden.codigoEntrega && !orden.fondosLiberadosEn &&
           ["PAGADO", "EN_PREPARACION", "ENVIADO"].includes(orden.estado) && (
           <CodigoEntregaCard codigo={orden.codigoEntrega} estado={orden.estado} autoLiberaEn={orden.autoLiberaEn} />
+        )}
+
+        {/* Reclamo de Compra Protegida (no-entrega / problema) */}
+        {["PAGADO", "EN_PREPARACION", "ENVIADO", "CANCELADO"].includes(orden.estado) && (
+          <ReclamoComprador
+            ordenId={orden.id}
+            puedeAbrir={!orden.fondosLiberadosEn && ["PAGADO", "EN_PREPARACION", "ENVIADO"].includes(orden.estado)}
+          />
         )}
 
         {/* Productos */}
