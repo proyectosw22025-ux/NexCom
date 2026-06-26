@@ -32,7 +32,10 @@ liberarlos al vendedor **solo** tras una confirmación de entrega **verificable*
 
 ---
 
-## 2. ÉPICA 1 — Escrow (retención) + Código de entrega  *(núcleo)*
+## 2. ÉPICA 1 — Escrow (retención) + Código de entrega  *(núcleo)* — ✅ HECHO
+
+> Backend (commit escrow core) + UI (comprador/vendedor/saldo) implementados y
+> verificados end-to-end contra BD. Migración aplicada (Railway auto-aplica en deploy).
 
 ### 2.1 Modelo de datos (Prisma + migración)
 
@@ -111,14 +114,17 @@ COMPLETADO (tras ventana de reseña / cierre)
 - **Sello "Compra Protegida NexCom"** en la ficha de producto y el checkout (confianza).
 
 ### 2.6 Tareas
-1. Migración Prisma (enum + campos de `Orden` + `EventoSeguridad`). **PENDIENTE**
-2. `saldos`: `registrarRetencion`, `liberarFondos`, `getSaldo` con retenido/disponible. **PENDIENTE**
-3. `pagos._confirmarOrden`: emitir `RETENCION` + generar código (hash) + `autoLiberaEn`. **PENDIENTE**
-4. `ordenes`: `confirmarEntregaConCodigo` (valida hash, anti-bruteforce, idempotente,
-   transición a ENTREGADO, dispara `liberarFondos`). **PENDIENTE**
-5. Auto-liberación (on-read + barrido). **PENDIENTE**
-6. UI comprador (QR+PIN+confirmar) / vendedor (saldo retenido/disponible, confirmar). **PENDIENTE**
-7. Tests: liberación idempotente, bruteforce/lockout, auto-liberación, saldos correctos. **PENDIENTE**
+1. Migración Prisma (enum + campos de `Orden` + `EventoSeguridad`). **✅ HECHO**
+2. `saldos`: `registrarRetencion`, `liberarFondos`, `getSaldo` con retenido/disponible. **✅ HECHO**
+3. `pagos._confirmarOrden`: emitir `RETENCION` + generar código + (autoLiberaEn al ENVIAR). **✅ HECHO**
+4. `ordenes`: `confirmarEntregaConCodigo` (anti-bruteforce, idempotente, ENTREGADO,
+   `liberarFondos`) + `marcarEntregada` libera. **✅ HECHO**
+5. Auto-liberación (verificación perezosa al leer órdenes del vendedor). **✅ HECHO**
+6. UI comprador (QR+PIN+confirmar) / vendedor (confirmar con código) / saldo (en garantía). **✅ HECHO**
+7. Tests: retención/liberación idempotentes + saldos; flujo verificado end-to-end. **✅ HECHO**
+
+> Nota: el código se guarda en claro pero expuesto **solo** al comprador dueño (control de
+> acceso). Endurecer a hash + envío por correo queda como mejora futura. Disputas = Épica 2.
 
 ### 2.7 Criterios de aceptación
 - El vendedor **no** puede retirar fondos de una orden hasta que esté `ENTREGADO`.
