@@ -134,7 +134,11 @@ COMPLETADO (tras ventana de reseña / cierre)
 
 ---
 
-## 3. ÉPICA 2 — Disputas / Reclamos con mediación  *(protege al comprador)*
+## 3. ÉPICA 2 — Disputas / Reclamos con mediación  *(protege al comprador)* — ✅ HECHO
+
+> Módulo `disputas` (4 capas) + UI comprador/admin. El comprador reclama durante la
+> garantía; el admin media (reembolso desde escrow o liberación). Auto-liberación
+> congelada con disputa abierta. Migración aplicada. Verificado end-to-end.
 
 - El comprador abre **reclamo** dentro de la ventana (motivos: *no recibí*, *producto
   incorrecto/dañado*) con **evidencia (foto)** → `disputaAbierta = true` (congela
