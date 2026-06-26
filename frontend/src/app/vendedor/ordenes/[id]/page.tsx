@@ -1,14 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useQuery, useMutation } from "@apollo/client";
 import Link from "next/link";
 import { ORDEN_VENDEDOR } from "@/graphql/ordenes/queries";
-import { AVANZAR_ESTADO_ORDEN } from "@/graphql/ordenes/mutations";
+import { AVANZAR_ESTADO_ORDEN, CONFIRMAR_ENTREGA_CON_CODIGO } from "@/graphql/ordenes/mutations";
 import { Badge } from "@/components/ui/Badge";
 import { TimelineEstados } from "@/components/ordenes/TimelineEstados";
 import { CambiarEstadoModal, transicionDisponible } from "@/components/ordenes/CambiarEstadoModal";
-import { ArrowLeft, Loader2, Package, MapPin, CreditCard, Clock, User, ArrowRight } from "lucide-react";
+import { ArrowLeft, Loader2, Package, MapPin, CreditCard, Clock, User, ArrowRight, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { ApolloError } from "@apollo/client";
 
@@ -22,6 +23,7 @@ interface CompradorResumen { id: string; nombreCompleto: string; telefono: strin
 interface OrdenVendedor {
   id: string; estado: string; subtotal: string; total: string; notas: string | null;
   creadoEn: string; actualizadoEn: string; compradorId: string;
+  autoLiberaEn: string | null; fondosLiberadosEn: string | null;
   direccionSnapshot: DireccionSnapshot | null;
   items: ItemOrden[];
   pago: { monto: string; moneda: string; metodo: string; estado: string } | null;
@@ -53,6 +55,20 @@ export default function VendedorOrdenDetallePage() {
     variables: { id }, fetchPolicy: "cache-and-network",
   });
   const [avanzar, { loading: avanzando }] = useMutation(AVANZAR_ESTADO_ORDEN);
+  const [confirmarCodigo, { loading: confirmando }] = useMutation(CONFIRMAR_ENTREGA_CON_CODIGO);
+  const [codigo, setCodigo] = useState("");
+
+  async function handleConfirmarCodigo() {
+    try {
+      await confirmarCodigo({ variables: { id, codigo } });
+      toast.success("Entrega confirmada. Tu pago fue liberado de la garantía.");
+      setCodigo("");
+      refetch();
+    } catch (err: unknown) {
+      const msg = err instanceof ApolloError ? (err.graphQLErrors[0]?.message ?? "Error.") : "Error.";
+      toast.error(msg);
+    }
+  }
 
   async function handleAvanzar(input: { notas?: string; comprobanteUrl?: string }) {
     try {
@@ -173,6 +189,44 @@ export default function VendedorOrdenDetallePage() {
           </h2>
           <TimelineEstados historial={orden.historialEstados} estadoActual={orden.estado} />
         </div>
+
+        {/* Confirmar entrega con código (handshake) — el pago está retenido en garantía */}
+        {orden.estado === "ENVIADO" && !orden.fondosLiberadosEn && (
+          <div className="bg-white rounded-2xl border border-emerald-200 p-6">
+            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide mb-1.5 flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-emerald-600" /> Confirmar entrega
+            </h2>
+            <p className="text-xs text-slate-500 mb-4">
+              Al entregar el producto, pide al comprador su <strong>código de entrega</strong> (lo ve en su pedido)
+              e ingrésalo aquí para confirmar la entrega y liberar tu pago retenido.
+            </p>
+            <div className="flex gap-2">
+              <input
+                value={codigo}
+                onChange={(e) => setCodigo(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                inputMode="numeric"
+                placeholder="••••••"
+                className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-center text-lg font-bold
+                           tracking-[0.4em] tabular-nums focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400"
+              />
+              <button
+                onClick={handleConfirmarCodigo}
+                disabled={confirmando || codigo.length < 6}
+                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50
+                           text-white font-semibold px-5 rounded-xl text-sm transition-colors shadow-sm shadow-emerald-200"
+              >
+                {confirmando ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                Confirmar
+              </button>
+            </div>
+            {orden.autoLiberaEn && (
+              <p className="text-[11px] text-slate-400 mt-3">
+                Si el comprador no confirma, el pago se libera automáticamente el{" "}
+                {new Date(orden.autoLiberaEn).toLocaleDateString("es-BO", { day: "2-digit", month: "short", year: "numeric" })}.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Acción */}
         {puedeAvanzar && (

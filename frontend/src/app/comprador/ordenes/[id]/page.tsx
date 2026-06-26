@@ -10,6 +10,7 @@ import { CREAR_VALORACION } from "@/graphql/valoraciones/mutations";
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { TimelineEstados } from "@/components/ordenes/TimelineEstados";
+import { CodigoEntregaCard } from "@/components/ordenes/CodigoEntregaCard";
 import { DevolucionComprador } from "@/components/devoluciones/DevolucionComprador";
 import { FacturaOrden } from "@/components/facturas/FacturaOrden";
 import {
@@ -28,6 +29,7 @@ interface HistorialEstado { id: string; estadoAnterior: string | null; estadoNue
 interface Orden {
   id: string; estado: string; subtotal: string; descuentoCupon: string; costoEnvio: string; metodoEntrega: string; puntoRetiro: string | null; total: string;
   notas: string | null; creadoEn: string; actualizadoEn: string;
+  codigoEntrega: string | null; autoLiberaEn: string | null; fondosLiberadosEn: string | null;
   direccionSnapshot: DireccionSnapshot | null;
   items: ItemOrden[];
   pago: { monto: string; moneda: string; metodo: string; estado: string } | null;
@@ -117,6 +119,12 @@ export default function CompradorOrdenDetallePage() {
       </div>
 
       <div className="space-y-5">
+        {/* Compra Protegida: código de entrega (mientras el pago sigue retenido) */}
+        {orden.codigoEntrega && !orden.fondosLiberadosEn &&
+          ["PAGADO", "EN_PREPARACION", "ENVIADO"].includes(orden.estado) && (
+          <CodigoEntregaCard codigo={orden.codigoEntrega} estado={orden.estado} autoLiberaEn={orden.autoLiberaEn} />
+        )}
+
         {/* Productos */}
         <div className="bg-white rounded-2xl border border-slate-200 p-6">
           <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide mb-4 flex items-center gap-2">
@@ -197,7 +205,7 @@ export default function CompradorOrdenDetallePage() {
         {orden.estado === "ENVIADO" && (
           <ConfirmDialog
             title="Confirmar entrega"
-            description="¿Confirmas que recibiste tu pedido? Esta acción no se puede deshacer."
+            description="¿Confirmas que recibiste tu pedido? Esto liberará el pago retenido al vendedor y no se puede deshacer."
             confirmLabel="Sí, lo recibí"
             onConfirm={handleEntregada}
             trigger={

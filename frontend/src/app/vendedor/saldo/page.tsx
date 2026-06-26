@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, ApolloError } from "@apollo/client";
-import { Wallet, Loader2, ArrowDownCircle, ArrowUpCircle, TrendingUp, Send } from "lucide-react";
+import { Wallet, Loader2, ArrowDownCircle, ArrowUpCircle, TrendingUp, Send, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { MI_SALDO, SOLICITAR_RETIRO } from "@/graphql/saldos";
 import { formatRelativeTime } from "@/lib/format-relative-time";
 
-interface Saldo { disponible: string; generado: string; enRevision: string; retirado: string; comisionTotal: string }
+interface Saldo { disponible: string; retenido: string; generado: string; enRevision: string; retirado: string; comisionTotal: string }
 interface Movimiento { id: string; tipo: string; monto: string; comision: string; ordenIdCorto: string | null; descripcion: string; creadoEn: string }
 interface Retiro { id: string; monto: string; estado: string; banco: string; numeroCuenta: string; titular: string; notaAdmin: string | null; creadoEn: string }
 
@@ -53,10 +53,17 @@ export default function VendedorSaldoPage() {
       </div>
 
       {/* Saldo destacado */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div className="bg-gradient-to-br from-indigo-600 to-violet-600 rounded-2xl p-5 text-white md:col-span-1">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+        <div className="bg-gradient-to-br from-indigo-600 to-violet-600 rounded-2xl p-5 text-white">
           <p className="text-xs font-semibold uppercase tracking-wide text-indigo-100">Disponible para retirar</p>
           <p className="text-3xl font-extrabold mt-2">Bs. {saldo?.disponible ?? "0.00"}</p>
+        </div>
+        <div className="bg-gradient-to-br from-emerald-50 to-white rounded-2xl border border-emerald-200 p-5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 flex items-center gap-1.5">
+            <ShieldCheck className="h-3.5 w-3.5" /> En garantía
+          </p>
+          <p className="text-2xl font-bold text-slate-900 mt-2">Bs. {saldo?.retenido ?? "0.00"}</p>
+          <p className="text-xs text-slate-400 mt-1">Se libera al confirmarse la entrega</p>
         </div>
         <div className="bg-white rounded-2xl border border-slate-200 p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">En revisión</p>
@@ -142,18 +149,30 @@ export default function VendedorSaldoPage() {
             ) : (
               <ul className="divide-y divide-slate-50">
                 {movimientos.map((m) => {
-                  const esVenta = m.tipo === "VENTA";
+                  const esDebito   = m.tipo === "REEMBOLSO";
+                  const esRetenido = m.tipo === "RETENCION";
+                  const conComision = (m.tipo === "VENTA" || m.tipo === "RETENCION") && parseFloat(m.comision) > 0;
+                  const chip = esDebito ? "bg-red-50" : esRetenido ? "bg-amber-50" : "bg-emerald-50";
+                  const monto = esDebito ? "text-red-600" : esRetenido ? "text-amber-600" : "text-emerald-600";
                   return (
                     <li key={m.id} className="flex items-center gap-3 px-5 py-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${esVenta ? "bg-emerald-50" : "bg-red-50"}`}>
-                        {esVenta ? <ArrowDownCircle className="h-4 w-4 text-emerald-600" /> : <ArrowUpCircle className="h-4 w-4 text-red-500" />}
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${chip}`}>
+                        {esDebito
+                          ? <ArrowUpCircle className="h-4 w-4 text-red-500" />
+                          : esRetenido
+                            ? <ShieldCheck className="h-4 w-4 text-amber-500" />
+                            : <ArrowDownCircle className="h-4 w-4 text-emerald-600" />}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-slate-900 truncate">{m.descripcion}</p>
-                        <p className="text-xs text-slate-400">{formatRelativeTime(m.creadoEn)}{esVenta && parseFloat(m.comision) > 0 ? ` · comisión Bs. ${m.comision}` : ""}</p>
+                        <p className="text-xs text-slate-400">
+                          {formatRelativeTime(m.creadoEn)}
+                          {esRetenido ? " · en garantía" : ""}
+                          {conComision ? ` · comisión Bs. ${m.comision}` : ""}
+                        </p>
                       </div>
-                      <span className={`text-sm font-bold shrink-0 ${esVenta ? "text-emerald-600" : "text-red-500"}`}>
-                        {esVenta ? "+" : "−"}Bs. {m.monto}
+                      <span className={`text-sm font-bold shrink-0 ${monto}`}>
+                        {esDebito ? "−" : "+"}Bs. {m.monto}
                       </span>
                     </li>
                   );

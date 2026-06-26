@@ -8,7 +8,7 @@ const RETIRO_FIELDS = gql`
 
 export const MI_SALDO = gql`
   query MiSaldo {
-    miSaldo { disponible generado enRevision retirado comisionTotal }
+    miSaldo { disponible retenido generado enRevision retirado comisionTotal }
     misMovimientos { id tipo monto comision ordenIdCorto descripcion creadoEn }
     misRetiros { ...RetiroFields }
   }

@@ -14,6 +14,9 @@ const ORDEN_FIELDS = gql`
     creadoEn
     actualizadoEn
     stripePaymentIntentId
+    codigoEntrega
+    autoLiberaEn
+    fondosLiberadosEn
     direccionSnapshot {
       alias destinatario calle zona ciudad departamento referencia
     }
@@ -43,6 +46,7 @@ export const ORDENES_VENDEDOR = gql`
   query OrdenesVendedor {
     ordenesVendedor {
       id estado subtotal total notas creadoEn actualizadoEn compradorId
+      autoLiberaEn fondosLiberadosEn
       direccionSnapshot { alias destinatario calle zona ciudad departamento referencia }
       items { id productoId nombreSnapshot cantidad precioUnitario subtotal }
       pago { id monto moneda metodo estado }
@@ -56,6 +60,7 @@ export const ORDEN_VENDEDOR = gql`
   query OrdenVendedor($id: ID!) {
     ordenVendedor(id: $id) {
       id estado subtotal total notas creadoEn actualizadoEn compradorId
+      autoLiberaEn fondosLiberadosEn
       direccionSnapshot { alias destinatario calle zona ciudad departamento referencia }
       items { id productoId nombreSnapshot cantidad precioUnitario subtotal }
       pago { id monto moneda metodo estado }
