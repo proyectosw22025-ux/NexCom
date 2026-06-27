@@ -168,15 +168,16 @@ comprador (abrir+evidencia) · UI admin (cola de mediación) · tests. **PENDIEN
 
 ---
 
-## 5. ÉPICA 4 — Innovación / anti-fraude  *(opcional, alto valor)*
+## 5. ÉPICA 4 — Innovación / anti-fraude  *(alto valor)* — 🟡 PARCIAL
 
-- **Scoring de riesgo** por usuario: señales (tasa de cancelaciones, reclamos, velocidad de
-  órdenes, dispositivos) → bandera de riesgo para revisión del admin.
-- **KYC ligero del vendedor** antes del **primer retiro**: CI/NIT verificado por el admin
-  (ya existe `perfilVendedor.verificado`; ligarlo a la habilitación de retiros).
-- **Sello "Compra Protegida"** + página explicativa (marketing de confianza).
-- **Seguimiento logístico simulado**: timeline de envío (origen→destino) con estados y ETA,
-  coherente con la idea de logística entre ciudades.
+- ✅ **Scoring de riesgo de vendedores**: `calcularRiesgoVendedor` (cancelaciones + disputas +
+  disputas perdidas + KYC) → score 0–100 / nivel + factores. Query `riesgoVendedores` y panel
+  rankeado en `/admin/seguridad`. Tests unitarios del scoring.
+- ✅ **KYC ligero ligado a retiros**: `verificarVendedor` (admin) + `solicitarRetiro` exige
+  vendedor verificado; banner en el panel de saldo. Test del gate.
+- ✅ **Sello "Compra Protegida"** en el carrito (confianza).
+- ⏳ **Seguimiento logístico simulado** (timeline origen→destino + ETA) — pendiente (UX, sin
+  impacto de seguridad; se puede sumar luego).
 
 ---
 
