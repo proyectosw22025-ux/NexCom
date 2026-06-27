@@ -11,6 +11,8 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "res.cloudinary.com" },
       // Generador de QR del checkout simulado
       { protocol: "https", hostname: "api.qrserver.com" },
+      // Imágenes temáticas de marketplace (hero / categorías) — Unsplash CDN
+      { protocol: "https", hostname: "images.unsplash.com" },
       { protocol: "http",  hostname: "localhost" },
     ],
   },

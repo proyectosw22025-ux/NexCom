@@ -1,5 +1,7 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ShoppingBag, Store, ShieldCheck, MapPin, QrCode, Gift, ArrowRight } from "lucide-react";
+import { HERO_IMG, imagenCategoria, CATEGORIAS_DESTACADAS } from "@/lib/marketplace-images";
 
 const features = [
   {
@@ -71,49 +73,91 @@ export default function HomePage() {
       </nav>
 
       {/* ── Hero ────────────────────────────────────────────── */}
-      <section className="relative flex-1 flex flex-col items-center justify-center text-center px-6 py-24 overflow-hidden">
-        {/* Fondo con degradado de marca */}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-indigo-50/60 via-white to-slate-50" />
-        <div className="pointer-events-none absolute top-0 left-1/4 w-72 h-72 rounded-full bg-indigo-200/40 blur-3xl" />
-        <div className="pointer-events-none absolute top-20 right-1/4 w-72 h-72 rounded-full bg-violet-200/40 blur-3xl" />
+      <section className="relative overflow-hidden">
+        {/* Fondo vivo: degradado animado + blobs orbitales */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-indigo-50 via-white to-violet-50 animate-gradient" />
+        <div className="pointer-events-none absolute top-10 -left-12 w-80 h-80 rounded-full bg-indigo-300/30 blur-3xl animate-blob" />
+        <div className="pointer-events-none absolute bottom-0 right-0 w-96 h-96 rounded-full bg-violet-300/30 blur-3xl animate-blob" style={{ animationDelay: "-5s" }} />
 
-        <div className="relative animate-fade-in">
-          <span className="inline-flex items-center gap-2 text-xs font-bold text-indigo-600
-                           bg-white border border-indigo-100 px-4 py-1.5 rounded-full mb-8 shadow-sm shadow-indigo-100">
-            <MapPin className="h-3.5 w-3.5" />
-            Marketplace boliviano para microempresas
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-          </span>
-          <h1 className="text-5xl sm:text-6xl font-extrabold tracking-tight text-slate-900 mb-5 max-w-2xl leading-[1.08] mx-auto">
-            El marketplace<br />
-            <span className="text-gradient">que conecta Bolivia</span>
-          </h1>
-          <p className="text-base text-slate-500 leading-relaxed max-w-xl mx-auto mb-10">
-            Compra y vende con microempresas locales: pago en bolivianos (QR, transferencia o contra entrega),
-            envíos por zona y recompensas en cada compra.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link
-              href="/productos"
-              className="sheen inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-8 py-3 rounded-xl transition-colors shadow-md shadow-indigo-200"
-            >
-              Explorar productos <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link
-              href="/registro"
-              className="border border-slate-200 bg-white text-slate-700 font-semibold px-8 py-3 rounded-xl hover:bg-slate-50 transition-colors"
-            >
-              Crear cuenta gratis
-            </Link>
+        <div className="relative max-w-6xl mx-auto px-6 py-16 lg:py-24 grid lg:grid-cols-2 gap-12 items-center">
+          {/* Columna texto */}
+          <div className="animate-fade-in text-center lg:text-left">
+            <span className="inline-flex items-center gap-2 text-xs font-bold text-indigo-600
+                             bg-white border border-indigo-100 px-4 py-1.5 rounded-full mb-7 shadow-sm shadow-indigo-100">
+              <MapPin className="h-3.5 w-3.5" />
+              Marketplace boliviano para microempresas
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+            </span>
+            <h1 className="text-5xl sm:text-6xl font-extrabold tracking-tight text-slate-900 mb-5 leading-[1.08]">
+              El marketplace<br />
+              <span className="text-gradient">que conecta Bolivia</span>
+            </h1>
+            <p className="text-base text-slate-500 leading-relaxed max-w-xl mx-auto lg:mx-0 mb-9">
+              Compra y vende con microempresas locales: pago en bolivianos (QR, transferencia o contra entrega),
+              envíos por zona y <strong className="text-slate-700">Compra Protegida</strong> en cada pedido.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
+              <Link
+                href="/productos"
+                className="sheen inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-8 py-3 rounded-xl transition-colors shadow-md shadow-indigo-200"
+              >
+                Explorar productos <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/registro"
+                className="border border-slate-200 bg-white text-slate-700 font-semibold px-8 py-3 rounded-xl hover:bg-slate-50 transition-colors"
+              >
+                Crear cuenta gratis
+              </Link>
+            </div>
+            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 mt-9">
+              {beneficios.map(({ icon: Icon, label }) => (
+                <span key={label} className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-full">
+                  <Icon className="h-3.5 w-3.5 text-indigo-500" /> {label}
+                </span>
+              ))}
+            </div>
           </div>
 
-          {/* Chips de beneficios */}
-          <div className="flex flex-wrap items-center justify-center gap-2 mt-10">
-            {beneficios.map(({ icon: Icon, label }) => (
-              <span key={label} className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-full">
-                <Icon className="h-3.5 w-3.5 text-indigo-500" /> {label}
-              </span>
-            ))}
+          {/* Columna imagen con profundidad 3D + capas flotantes */}
+          <div className="relative hidden lg:block animate-reveal-zoom" style={{ perspective: "1200px" }}>
+            <div
+              className="relative rounded-[1.75rem] overflow-hidden shadow-2xl shadow-indigo-300/40 border-4 border-white"
+              style={{ transform: "rotateY(-9deg) rotateX(4deg)" }}
+            >
+              <Image
+                src={HERO_IMG} alt="Compras en NexCom" width={680} height={520} priority
+                className="object-cover w-full h-[460px]"
+              />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-indigo-900/25 to-transparent" />
+            </div>
+
+            {/* Tarjeta flotante: Compra Protegida */}
+            <div className="absolute -left-6 top-12 bg-white rounded-2xl shadow-xl shadow-slate-300/40 p-3 flex items-center gap-2.5 animate-float-y">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center shrink-0">
+                <ShieldCheck className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-900 leading-tight">Compra Protegida</p>
+                <p className="text-[10px] text-slate-400">Pago retenido hasta la entrega</p>
+              </div>
+            </div>
+
+            {/* Tarjeta flotante: puntos */}
+            <div className="absolute -right-5 bottom-14 bg-white rounded-2xl shadow-xl shadow-slate-300/40 p-3 flex items-center gap-2.5 animate-float-y-2">
+              <div className="w-9 h-9 rounded-xl bg-amber-400 flex items-center justify-center shrink-0">
+                <Gift className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-900 leading-tight">+1.420 pts</p>
+                <p className="text-[10px] text-slate-400">Recompensas NexCom</p>
+              </div>
+            </div>
+
+            {/* Pastilla flotante: métodos de pago */}
+            <div className="absolute right-10 -top-4 bg-white rounded-xl shadow-lg px-3 py-1.5 animate-float-y" style={{ animationDelay: "-2.5s" }}>
+              <p className="text-[11px] font-bold text-slate-700">QR · Transferencia · Efectivo</p>
+            </div>
           </div>
         </div>
       </section>
@@ -127,6 +171,39 @@ export default function HomePage() {
               <p className="text-2xl font-extrabold text-gradient">{value}</p>
               <p className="text-xs text-slate-500 mt-0.5">{label}</p>
             </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Categorías con imagen ───────────────────────────── */}
+      <section className="max-w-6xl mx-auto px-6 py-16 w-full">
+        <div className="flex items-end justify-between mb-7">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900">Explora por categoría</h2>
+            <p className="text-sm text-slate-500 mt-1">Todo lo que vende Bolivia, en un solo lugar</p>
+          </div>
+          <Link href="/productos" className="link-underline text-sm font-semibold text-indigo-600 hidden sm:inline">
+            Ver todo
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          {CATEGORIAS_DESTACADAS.map((c, i) => (
+            <Link
+              key={c.slug}
+              href="/productos"
+              style={{ animationDelay: `${i * 70}ms` }}
+              className="animate-stagger-fade-up hover-lift group relative rounded-2xl overflow-hidden aspect-[4/5] border border-slate-200 shadow-sm"
+            >
+              <Image
+                src={imagenCategoria(c.slug)} alt={c.nombre} fill sizes="(max-width:640px) 50vw, 20vw"
+                className="object-cover group-hover:scale-110 transition-transform duration-[600ms] ease-out"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-3">
+                <span className="text-2xl drop-shadow">{c.emoji}</span>
+                <p className="text-white font-bold text-sm leading-tight mt-0.5">{c.nombre}</p>
+              </div>
+            </Link>
           ))}
         </div>
       </section>

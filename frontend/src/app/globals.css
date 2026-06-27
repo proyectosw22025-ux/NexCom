@@ -118,9 +118,51 @@ body {
 }
 .chart-3d-donut:hover { transform: perspective(900px) rotateX(14deg); }
 
+/* ── UI 2026: profundidad 3D + movimientos fluidos (inspiración MercadoLibre/Amazon) ── */
+
+/* Tarjeta con tilt 3D (el transform lo fija el JS según el cursor) */
+.card-3d {
+  transform-style: preserve-3d;
+  transition: transform .18s cubic-bezier(.22,1,.36,1), box-shadow .25s ease, border-color .25s ease;
+  will-change: transform;
+}
+.card-3d:hover { box-shadow: 0 22px 40px -16px rgba(2, 6, 23, .22); }
+/* Capa que "flota" hacia el usuario dentro de una tarjeta con tilt */
+.layer-pop { transform: translateZ(40px); }
+
+/* Flotación continua suave (hero, chips) */
+@keyframes float-y     { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes float-y-2   { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-16px); } }
+.animate-float-y   { animation: float-y 5s ease-in-out infinite; }
+.animate-float-y-2 { animation: float-y-2 7s ease-in-out infinite; }
+
+/* Degradado animado (fondos vivos) */
+@keyframes gradient-pan { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+.animate-gradient { background-size: 200% 200%; animation: gradient-pan 8s ease infinite; }
+
+/* Brillo orbital decorativo (blobs del hero) */
+@keyframes blob { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(18px,-12px) scale(1.08); } 66% { transform: translate(-14px,10px) scale(.95); } }
+.animate-blob { animation: blob 12s ease-in-out infinite; }
+
+/* Micro-interacción satisfactoria al agregar al carrito */
+@keyframes cart-pop { 0% { transform: scale(1); } 35% { transform: scale(1.18) rotate(-4deg); } 100% { transform: scale(1) rotate(0); } }
+.animate-cart-pop { animation: cart-pop .45s cubic-bezier(.22,1,.36,1); }
+
+/* Aparición con leve zoom (imágenes / heros) */
+@keyframes reveal-zoom { from { opacity: 0; transform: scale(1.06); } to { opacity: 1; transform: scale(1); } }
+.animate-reveal-zoom { animation: reveal-zoom .7s cubic-bezier(.22,1,.36,1) both; }
+
+/* Subrayado animado en enlaces de marca */
+.link-underline { background-image: linear-gradient(#4f46e5,#4f46e5); background-size: 0% 2px; background-repeat: no-repeat; background-position: 0 100%; transition: background-size .3s ease; }
+.link-underline:hover { background-size: 100% 2px; }
+
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in, .animate-scale-in, .animate-pop-in, .animate-float-soft,
-  .animate-stagger-fade-up, .animate-slide-from-right, .animate-grow-x { animation: none; opacity: 1; transform: none; }
+  .animate-stagger-fade-up, .animate-slide-from-right, .animate-grow-x,
+  .animate-float-y, .animate-float-y-2, .animate-gradient, .animate-blob,
+  .animate-cart-pop, .animate-reveal-zoom { animation: none; opacity: 1; transform: none; }
   .hover-lift:hover { transform: none; }
+  .card-3d { transition: box-shadow .25s ease; }
+  .card-3d:hover { transform: none !important; }
   .chart-3d-donut { transform: none; filter: none; }
 }

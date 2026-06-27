@@ -7,7 +7,7 @@ import { useAuth } from "@/context/auth-context";
 import { useCart } from "@/context/cart-context";
 import { useMutation } from "@apollo/client";
 import { TOGGLE_FAVORITO } from "@/graphql/favoritos/mutations";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { toast } from "sonner";
 import { ApolloError } from "@apollo/client";
 import { Badge } from "@/components/ui/Badge";
@@ -36,6 +36,20 @@ export function ProductoCard({ producto, index, initialFavorito = false }: { pro
   const [imgLoaded, setImgLoaded]   = useState(false);
 
   const [toggleFavorito] = useMutation(TOGGLE_FAVORITO);
+  const cardRef = useRef<HTMLAnchorElement>(null);
+
+  // Tilt 3D que sigue al cursor (profundidad con propósito; se desactiva con reduced-motion vía CSS)
+  function handleTilt(e: React.MouseEvent) {
+    const el = cardRef.current;
+    if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const r = el.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width - 0.5;
+    const py = (e.clientY - r.top) / r.height - 0.5;
+    el.style.transform = `perspective(900px) rotateY(${px * 6}deg) rotateX(${-py * 6}deg) translateY(-4px)`;
+  }
+  function resetTilt() {
+    if (cardRef.current) cardRef.current.style.transform = "";
+  }
 
   // copia antes de ordenar: no mutar el array de props (puede venir congelado y lanzar en hidratación)
   const imgUrl = [...producto.imagenes].sort((a, b) => a.orden - b.orden)[0]?.url;
@@ -72,9 +86,12 @@ export function ProductoCard({ producto, index, initialFavorito = false }: { pro
 
   return (
     <Link
+      ref={cardRef}
       href={`/productos/${producto.id}`}
+      onMouseMove={handleTilt}
+      onMouseLeave={resetTilt}
       style={{ animationDelay: `${(index ?? 0) * 55}ms` }}
-      className="animate-stagger-fade-up hover-lift group bg-white rounded-2xl border border-slate-200 overflow-hidden hover:border-indigo-200 flex flex-col"
+      className="animate-stagger-fade-up card-3d group bg-white rounded-2xl border border-slate-200 overflow-hidden hover:border-indigo-200 flex flex-col"
     >
       {/* Image */}
       <div className="relative aspect-square bg-slate-100 overflow-hidden">
@@ -167,7 +184,7 @@ export function ProductoCard({ producto, index, initialFavorito = false }: { pro
               onClick={handleAddToCart}
               disabled={adding || added}
               className={`shrink-0 flex items-center gap-1.5 text-white text-xs font-semibold px-3 py-2 rounded-xl
-                         transition-colors shadow-sm ${
+                         transition-colors shadow-sm ${added ? "animate-cart-pop" : ""} ${
                            added
                              ? "bg-emerald-500 shadow-emerald-200"
                              : "bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 shadow-indigo-200"
