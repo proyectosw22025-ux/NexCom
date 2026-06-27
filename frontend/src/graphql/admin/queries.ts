@@ -102,6 +102,14 @@ export const ANALITICA_CLIENTES = gql`
   }
 `;
 
+export const RIESGO_VENDEDORES = gql`
+  query RiesgoVendedores {
+    riesgoVendedores {
+      vendedorId nombre verificado ordenes cancelados disputas score nivel factores
+    }
+  }
+`;
+
 export const EVENTOS_SEGURIDAD = gql`
   query EventosSeguridad($tipo: String, $limite: Int) {
     eventosSeguridad(tipo: $tipo, limite: $limite) {

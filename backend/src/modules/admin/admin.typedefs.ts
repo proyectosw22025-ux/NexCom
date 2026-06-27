@@ -150,6 +150,19 @@ export const adminTypeDefs = /* GraphQL */ `
     creadoEn:  String!
   }
 
+  # ── Riesgo / antifraude ──────────────────────────────────────────────
+  type RiesgoVendedor {
+    vendedorId: ID!
+    nombre:     String!
+    verificado: Boolean!
+    ordenes:    Int!
+    cancelados: Int!
+    disputas:   Int!
+    score:      Int!
+    nivel:      String!   # BAJO | MEDIO | ALTO
+    factores:   [String!]!
+  }
+
   extend type Query {
     listarUsuarios(rol: String, activo: Boolean, pagina: Int, limite: Int): PaginatedUsuarios!
     usuarioDetalle(id: ID!): UsuarioAdmin
@@ -158,11 +171,13 @@ export const adminTypeDefs = /* GraphQL */ `
     analiticaProductos(dias: Int): AnaliticaProductos!
     analiticaClientes(dias: Int): AnaliticaClientes!
     eventosSeguridad(tipo: String, limite: Int): [EventoSeguridad!]!
+    riesgoVendedores: [RiesgoVendedor!]!
     metricasRendimiento: MetricasRendimiento!
   }
 
   extend type Mutation {
     toggleActivoUsuario(id: ID!):              UsuarioAdmin!
     cambiarRolUsuario(id: ID!, rol: String!):  UsuarioAdmin!
+    verificarVendedor(vendedorId: ID!, verificado: Boolean!): UsuarioAdmin!
   }
 `;

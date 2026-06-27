@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { X, ShoppingCart, Trash2, ShoppingBag, BookmarkPlus, Plus } from "lucide-react";
+import { X, ShoppingCart, Trash2, ShoppingBag, BookmarkPlus, Plus, ShieldCheck } from "lucide-react";
 import { useCart } from "@/context/cart-context";
 import { QuantityStepper } from "@/components/ui/QuantityStepper";
 import { AvisoMultiVendedor } from "@/components/cart/AvisoMultiVendedor";
@@ -175,6 +175,10 @@ export function CartDrawer() {
             >
               Proceder al pago
             </Link>
+            <p className="flex items-center justify-center gap-1.5 text-[11px] text-emerald-700">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Compra Protegida: tu pago se libera al confirmar la entrega
+            </p>
             <button
               onClick={vaciar}
               className="w-full text-slate-500 text-xs hover:text-red-500 transition-colors py-1"

@@ -46,6 +46,11 @@ export const saldosRepository = {
     });
   },
 
+  async getVerificado(vendedorId: string, prisma: PrismaClient) {
+    const v = await prisma.perfilVendedor.findUnique({ where: { id: vendedorId }, select: { verificado: true } });
+    return v?.verificado ?? false;
+  },
+
   async crearRetiro(
     data: { vendedorId: string; monto: string; banco: string; numeroCuenta: string; titular: string },
     prisma: PrismaClient,

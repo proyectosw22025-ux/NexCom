@@ -13,6 +13,7 @@ vi.mock("./saldos.repository.js", () => ({
     sumarMovimientos:       vi.fn(),
     sumarRetiros:          vi.fn(),
     listMovimientos:       vi.fn(),
+    getVerificado:         vi.fn(),
     crearRetiro:           vi.fn(),
     listRetirosByVendedor: vi.fn(),
     listRetirosPendientes: vi.fn(),
@@ -128,6 +129,7 @@ describe("saldosService.solicitarRetiro", () => {
       tipo === "VENTA" ? { monto: disp, comision: "0" } : { monto: "0", comision: "0" },
     );
     vi.mocked(saldosRepository.sumarRetiros).mockResolvedValue("0");
+    vi.mocked(saldosRepository.getVerificado).mockResolvedValue(true); // KYC ok por defecto
   };
 
   it("crea el retiro cuando el monto está dentro del saldo disponible", async () => {
@@ -161,6 +163,15 @@ describe("saldosService.solicitarRetiro", () => {
     await expect(
       saldosService.solicitarRetiro("v1", { monto: "100", banco: "", numeroCuenta: "1", titular: "Ana" }, prisma),
     ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
+  });
+
+  it("rechaza el retiro si el vendedor no está verificado (KYC)", async () => {
+    saldoDisponible("1000");
+    vi.mocked(saldosRepository.getVerificado).mockResolvedValue(false);
+    await expect(
+      saldosService.solicitarRetiro("v1", { monto: "100", banco: "Bisa", numeroCuenta: "1", titular: "Ana" }, prisma),
+    ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
+    expect(saldosRepository.crearRetiro).not.toHaveBeenCalled();
   });
 });
 

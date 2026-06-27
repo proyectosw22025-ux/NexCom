@@ -134,6 +134,11 @@ export const saldosService = {
     if (monto.lte(0))           throw bad("El monto debe ser mayor a cero.");
     if (monto.lt(MIN_RETIRO))   throw bad(`El retiro mínimo es Bs. ${MIN_RETIRO.toFixed(2)}.`);
 
+    // KYC: solo vendedores verificados por la plataforma pueden retirar fondos.
+    if (!(await saldosRepository.getVerificado(vendedorId, prisma))) {
+      throw bad("Tu cuenta debe estar verificada por la plataforma antes de retirar. Contacta a soporte.");
+    }
+
     const saldo = await this.getSaldo(vendedorId, prisma);
     if (monto.gt(new Decimal(saldo.disponible))) {
       throw bad(`El monto supera tu saldo disponible (Bs. ${saldo.disponible}).`);

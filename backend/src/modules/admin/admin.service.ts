@@ -3,6 +3,8 @@ import { Decimal } from "decimal.js";
 import type { PrismaClient } from "@prisma/client";
 import { adminRepository } from "./admin.repository.js";
 import { getConfigNumber } from "../../shared/config.util.js";
+import { calcularRiesgoVendedor } from "./riesgo.util.js";
+import { publishNotificacion } from "../../shared/pubsub.js";
 
 const ROLES_VALIDOS = ["ADMIN", "VENDEDOR", "COMPRADOR"];
 
@@ -90,6 +92,46 @@ export const adminService = {
       })),
       porCategoria:     raw.porCategoria.map(mapSeg),
     };
+  },
+
+  async getRiesgoVendedores(prisma: PrismaClient) {
+    const rows = await adminRepository.senalesRiesgoVendedores(prisma);
+    return rows
+      .map((r) => {
+        const riesgo = calcularRiesgoVendedor({
+          total: r.total, cancelados: r.cancelados, disputas: r.disputas,
+          disputasPerdidas: r.disputas_perdidas, verificado: r.verificado,
+        });
+        return {
+          vendedorId: r.id, nombre: r.nombre, verificado: r.verificado,
+          ordenes: r.total, cancelados: r.cancelados, disputas: r.disputas,
+          score: riesgo.score, nivel: riesgo.nivel, factores: riesgo.factores,
+        };
+      })
+      .sort((a, b) => b.score - a.score);
+  },
+
+  async verificarVendedor(vendedorId: string, verificado: boolean, prisma: PrismaClient) {
+    let usuarioId: string;
+    try {
+      ({ usuarioId } = await adminRepository.setVendedorVerificado(vendedorId, verificado, prisma));
+    } catch {
+      throw new GraphQLError("Vendedor no encontrado.", { extensions: { code: "NOT_FOUND" } });
+    }
+    try {
+      await prisma.eventoSeguridad.create({ data: { tipo: "VENDEDOR_VERIFICADO", usuarioId, metadata: { vendedorId, verificado } } });
+    } catch { /* auditoría best-effort */ }
+    if (verificado) {
+      const n = await prisma.notificacion.create({
+        data: { usuarioId, tipo: "CUENTA_VERIFICADA", titulo: "Cuenta verificada",
+          mensaje: "Tu tienda fue verificada por la plataforma. Ya puedes solicitar retiros.", url: "/vendedor/saldo" },
+      });
+      publishNotificacion(usuarioId, {
+        id: n.id, tipo: n.tipo, titulo: n.titulo, mensaje: n.mensaje,
+        leido: n.leido, url: n.url, ordenId: n.ordenId, creadoEn: n.creadoEn.toISOString(),
+      });
+    }
+    return adminRepository.findById(usuarioId, prisma);
   },
 
   async getEventosSeguridad(tipo: string | null, limite: number, prisma: PrismaClient) {

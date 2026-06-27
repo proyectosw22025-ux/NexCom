@@ -21,7 +21,7 @@ export interface UsuarioSesion {
   email:           string;
   rol:             Rol;
   verificado:      boolean;
-  perfilVendedor?: { id: string; nombreNegocio: string } | null;
+  perfilVendedor?: { id: string; nombreNegocio: string; verificado?: boolean } | null;
   perfilComprador?:{ id: string; nombreCompleto: string } | null;
 }
 

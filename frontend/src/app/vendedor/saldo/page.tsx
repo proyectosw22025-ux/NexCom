@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, ApolloError } from "@apollo/client";
-import { Wallet, Loader2, ArrowDownCircle, ArrowUpCircle, TrendingUp, Send, ShieldCheck } from "lucide-react";
+import { Wallet, Loader2, ArrowDownCircle, ArrowUpCircle, TrendingUp, Send, ShieldCheck, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { MI_SALDO, SOLICITAR_RETIRO } from "@/graphql/saldos";
 import { formatRelativeTime } from "@/lib/format-relative-time";
+import { useAuth } from "@/context/auth-context";
 
 interface Saldo { disponible: string; retenido: string; generado: string; enRevision: string; retirado: string; comisionTotal: string }
 interface Movimiento { id: string; tipo: string; monto: string; comision: string; ordenIdCorto: string | null; descripcion: string; creadoEn: string }
@@ -23,6 +24,8 @@ export default function VendedorSaldoPage() {
   );
   const [solicitar, { loading: enviando }] = useMutation(SOLICITAR_RETIRO);
   const [form, setForm] = useState({ monto: "", banco: "", numeroCuenta: "", titular: "" });
+  const { user } = useAuth();
+  const verificado = user?.perfilVendedor?.verificado ?? true; // hasta saberlo, no alarmar
 
   const saldo = data?.miSaldo;
   const movimientos = data?.misMovimientos ?? [];
@@ -51,6 +54,20 @@ export default function VendedorSaldoPage() {
         </h1>
         <p className="text-slate-500 mt-1 text-sm">Tus ganancias netas tras la comisión de la plataforma</p>
       </div>
+
+      {/* KYC: aviso si la cuenta aún no está verificada para retirar */}
+      {!verificado && (
+        <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6">
+          <ShieldAlert className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-amber-800">Verificación pendiente</p>
+            <p className="text-xs text-amber-700 mt-0.5">
+              Tu tienda aún no está verificada por la plataforma. Podrás solicitar retiros una vez que el equipo
+              verifique tu cuenta (KYC). Tus ventas se siguen acreditando normalmente.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Saldo destacado */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">

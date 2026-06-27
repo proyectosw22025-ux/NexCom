@@ -44,6 +44,11 @@ export const adminResolvers = {
       return adminService.getEventosSeguridad(tipo ?? null, limite ?? 100, ctx.prisma);
     },
 
+    riesgoVendedores: (_: unknown, __: unknown, ctx: NexComContext) => {
+      requireRole(ctx, "ADMIN");
+      return adminService.getRiesgoVendedores(ctx.prisma);
+    },
+
     metricasRendimiento: (_: unknown, __: unknown, ctx: NexComContext) => {
       requireRole(ctx, "ADMIN");
       return snapshotMetricas();
@@ -54,6 +59,15 @@ export const adminResolvers = {
     toggleActivoUsuario: (_: unknown, { id }: { id: string }, ctx: NexComContext) => {
       requireRole(ctx, "ADMIN");
       return adminService.toggleActivo(id, ctx.user!.id, ctx.prisma);
+    },
+
+    verificarVendedor: (
+      _: unknown,
+      { vendedorId, verificado }: { vendedorId: string; verificado: boolean },
+      ctx: NexComContext,
+    ) => {
+      requireRole(ctx, "ADMIN");
+      return adminService.verificarVendedor(vendedorId, verificado, ctx.prisma);
     },
 
     cambiarRolUsuario: (

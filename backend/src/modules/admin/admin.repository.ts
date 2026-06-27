@@ -300,4 +300,27 @@ export const adminRepository = {
       take:    Math.min(Math.max(limite, 1), 200),
     });
   },
+
+  /** Señales de riesgo por vendedor con actividad (subconsultas → sin productos cartesianos). */
+  async senalesRiesgoVendedores(prisma: PrismaClient) {
+    return prisma.$queryRaw<Array<{
+      id: string; nombre: string; verificado: boolean;
+      total: number; cancelados: number; disputas: number; disputas_perdidas: number;
+    }>>`
+      SELECT v.id, v.nombre_negocio AS nombre, v.verificado,
+        (SELECT COUNT(*) FROM ordenes o WHERE o.vendedor_id = v.id)::int                                           AS total,
+        (SELECT COUNT(*) FROM ordenes o WHERE o.vendedor_id = v.id AND o.estado = 'CANCELADO')::int                AS cancelados,
+        (SELECT COUNT(*) FROM disputas d WHERE d.vendedor_id = v.id)::int                                          AS disputas,
+        (SELECT COUNT(*) FROM disputas d WHERE d.vendedor_id = v.id AND d.estado = 'RESUELTA_COMPRADOR')::int      AS disputas_perdidas
+      FROM perfiles_vendedor v
+      WHERE EXISTS (SELECT 1 FROM ordenes o WHERE o.vendedor_id = v.id)
+    `;
+  },
+
+  /** Activa/desactiva la verificación (KYC) de un vendedor por su perfilVendedor.id. */
+  async setVendedorVerificado(vendedorId: string, verificado: boolean, prisma: PrismaClient) {
+    return prisma.perfilVendedor.update({
+      where: { id: vendedorId }, data: { verificado }, select: { usuarioId: true },
+    });
+  },
 };
