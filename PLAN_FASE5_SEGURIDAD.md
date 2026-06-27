@@ -153,16 +153,18 @@ comprador (abrir+evidencia) · UI admin (cola de mediación) · tests. **PENDIEN
 
 ---
 
-## 4. ÉPICA 3 — Seguridad de cuenta y plataforma  *(endurecimiento)*
+## 4. ÉPICA 3 — Seguridad de cuenta y plataforma  *(endurecimiento)* — 🟡 PARCIAL
 
-- **OTP por email** en acciones sensibles: **solicitud de retiro** y **cambio de datos de
-  cobro** (reusa el `mailer` ya existente).
-- **Rate limiting** en endpoints críticos: `login`, `confirmarEntregaConCodigo`, `crearRetiro`
-  (reusa Redis/Upstash).
-- **Audit log de seguridad** (`EventoSeguridad`) consultable por el admin.
-- **Endurecer idempotencia** y validación de montos (ya hay base sólida; auditar bordes).
+- ✅ **Throttling de login por cuenta** (Redis): 5 fallos/15min → bloqueo 15min; complementa
+  el rate-limit global por IP; falla en abierto si Redis cae. Audita LOGIN_FALLIDO/BLOQUEADO.
+- ✅ **Audit log consultable por el admin**: query `eventosSeguridad` + página `/admin/seguridad`
+  (timeline con filtros). Evento `RETIRO_SOLICITADO` añadido.
+- ✅ **Confirmar entrega con código** ya tenía anti-bruteforce por orden (Épica 1).
+- ⏳ **OTP por email en retiros / cambio de datos de cobro** — **PENDIENTE: requiere SMTP
+  (MAIL_*) configurado en producción.** Sin un mailer operativo, el OTP dejaría a los
+  vendedores sin poder retirar. Implementar tras confirmar el correo saliente.
 
-**Tareas:** OTP retiros · rate-limit (middleware Redis) · panel admin de eventos · tests. **PENDIENTE**
+**Tareas:** throttling ✅ · panel auditoría ✅ · tests ✅ · OTP retiros ⏳ (config externa).
 
 ---
 
