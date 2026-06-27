@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { LayoutDashboard, Users, Package, BarChart2, Settings, Shield, LogOut, Wallet, Ticket, ShieldAlert } from "lucide-react";
+import { LayoutDashboard, Users, Package, BarChart2, Settings, Shield, LogOut, Wallet, Ticket, ShieldAlert, ShieldCheck } from "lucide-react";
 import { DashboardTopbar } from "@/components/layout/DashboardTopbar";
 
 const NAV = [
@@ -15,6 +15,7 @@ const NAV = [
   { href: "/admin/cupones",       label: "Cupones",       icon: Ticket },
   { href: "/admin/retiros",       label: "Retiros",       icon: Wallet },
   { href: "/admin/disputas",      label: "Disputas",      icon: ShieldAlert },
+  { href: "/admin/seguridad",     label: "Seguridad",     icon: ShieldCheck },
   { href: "/admin/reportes",      label: "Reportes",      icon: BarChart2 },
   { href: "/admin/configuracion", label: "Configuración", icon: Settings },
 ];

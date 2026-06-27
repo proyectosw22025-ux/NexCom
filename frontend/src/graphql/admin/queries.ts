@@ -102,6 +102,14 @@ export const ANALITICA_CLIENTES = gql`
   }
 `;
 
+export const EVENTOS_SEGURIDAD = gql`
+  query EventosSeguridad($tipo: String, $limite: Int) {
+    eventosSeguridad(tipo: $tipo, limite: $limite) {
+      id tipo usuarioId ordenId metadata creadoEn
+    }
+  }
+`;
+
 export const ESTADISTICAS_ADMIN = gql`
   query EstadisticasAdmin($dias: Int) {
     estadisticasAdmin(dias: $dias) {

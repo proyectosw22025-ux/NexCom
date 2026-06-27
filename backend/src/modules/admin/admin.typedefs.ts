@@ -140,6 +140,16 @@ export const adminTypeDefs = /* GraphQL */ `
     topClientes:     [TopCliente!]!
   }
 
+  # ── Auditoría de seguridad ───────────────────────────────────────────
+  type EventoSeguridad {
+    id:        ID!
+    tipo:      String!
+    usuarioId: String
+    ordenId:   String
+    metadata:  String   # JSON serializado
+    creadoEn:  String!
+  }
+
   extend type Query {
     listarUsuarios(rol: String, activo: Boolean, pagina: Int, limite: Int): PaginatedUsuarios!
     usuarioDetalle(id: ID!): UsuarioAdmin
@@ -147,6 +157,7 @@ export const adminTypeDefs = /* GraphQL */ `
     analiticaAdmin(dias: Int): AnaliticaAdmin!
     analiticaProductos(dias: Int): AnaliticaProductos!
     analiticaClientes(dias: Int): AnaliticaClientes!
+    eventosSeguridad(tipo: String, limite: Int): [EventoSeguridad!]!
     metricasRendimiento: MetricasRendimiento!
   }
 

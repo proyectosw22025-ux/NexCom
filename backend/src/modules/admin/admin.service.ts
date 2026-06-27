@@ -92,6 +92,18 @@ export const adminService = {
     };
   },
 
+  async getEventosSeguridad(tipo: string | null, limite: number, prisma: PrismaClient) {
+    const rows = await adminRepository.eventosSeguridad(tipo?.trim() || null, limite || 100, prisma);
+    return rows.map((e) => ({
+      id: e.id,
+      tipo: e.tipo,
+      usuarioId: e.usuarioId ?? null,
+      ordenId: e.ordenId ?? null,
+      metadata: e.metadata != null ? JSON.stringify(e.metadata) : null,
+      creadoEn: e.creadoEn.toISOString(),
+    }));
+  },
+
   async getAnaliticaClientes(dias: number, prisma: PrismaClient) {
     const rango = Math.min(Math.max(dias, 1), 90);
     const r = await adminRepository.analiticaClientes(rango, prisma);

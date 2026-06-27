@@ -291,4 +291,13 @@ export const adminRepository = {
       topClientes,
     };
   },
+
+  /** Audit log de seguridad (append-only), opcionalmente filtrado por tipo. */
+  async eventosSeguridad(tipo: string | null, limite: number, prisma: PrismaClient) {
+    return prisma.eventoSeguridad.findMany({
+      where:   tipo ? { tipo } : undefined,
+      orderBy: { creadoEn: "desc" },
+      take:    Math.min(Math.max(limite, 1), 200),
+    });
+  },
 };

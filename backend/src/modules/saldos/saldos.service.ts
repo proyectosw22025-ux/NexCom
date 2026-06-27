@@ -142,6 +142,12 @@ export const saldosService = {
     const retiro = await saldosRepository.crearRetiro(
       { vendedorId, monto: monto.toString(), banco, numeroCuenta, titular }, prisma,
     );
+    // Auditoría de seguridad (acción sensible sobre fondos)
+    try {
+      await prisma.eventoSeguridad.create({
+        data: { tipo: "RETIRO_SOLICITADO", metadata: { vendedorId, monto: monto.toFixed(2), banco } },
+      });
+    } catch { /* la auditoría no debe bloquear la operación */ }
     return mapRetiro(retiro);
   },
 

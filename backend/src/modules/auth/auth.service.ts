@@ -19,6 +19,7 @@ import {
   type LoginInput,
 } from "./auth.validators.js";
 import * as repo from "./auth.repository.js";
+import { segundosBloqueo, registrarFallo, limpiarFallos } from "../../shared/login-throttle.js";
 
 // Costo de bcrypt: 10 es el estándar OWASP. Reduce el tiempo de CPU del login
 // ~2-4× frente a 12 en CPU compartida, manteniendo seguridad adecuada.
@@ -30,6 +31,23 @@ function badInput(message: string): never {
   throw new GraphQLError(message, {
     extensions: { code: "BAD_USER_INPUT" },
   });
+}
+
+/** Registra un evento de seguridad de login (best-effort; nunca rompe el flujo). */
+async function registrarEventoLogin(
+  prisma: PrismaClient, tipo: string, email: string, metadata?: Record<string, unknown>,
+): Promise<void> {
+  try {
+    await prisma.eventoSeguridad.create({ data: { tipo, metadata: { email, ...metadata } } });
+  } catch {
+    /* la auditoría no debe bloquear el login */
+  }
+}
+
+/** Cuenta un intento fallido y audita (LOGIN_FALLIDO, o LOGIN_BLOQUEADO si gatilla). */
+async function fallarLogin(prisma: PrismaClient, email: string): Promise<void> {
+  const { bloqueado, intentos } = await registrarFallo(email);
+  await registrarEventoLogin(prisma, bloqueado ? "LOGIN_BLOQUEADO" : "LOGIN_FALLIDO", email, { intentos });
 }
 
 type UsuarioConPerfil = NonNullable<Awaited<ReturnType<typeof repo.findUsuarioConPerfil>>>;
@@ -100,12 +118,29 @@ export async function login(rawInput: unknown, prisma: PrismaClient, dispositivo
     badInput(result.error.issues.map((i) => i.message).join(". "));
   }
   const input = result.data as LoginInput;
+  const email = input.email;
+
+  // Anti–fuerza bruta por cuenta: si está bloqueada, no se evalúa la contraseña.
+  const bloqueo = await segundosBloqueo(email);
+  if (bloqueo > 0) {
+    await registrarEventoLogin(prisma, "LOGIN_BLOQUEADO", email);
+    throw new GraphQLError(
+      `Demasiados intentos fallidos. Vuelve a intentar en ${Math.ceil(bloqueo / 60)} minuto(s).`,
+      { extensions: { code: "TOO_MANY_REQUESTS" } },
+    );
+  }
 
   const usuario = await repo.findUsuarioByEmailConPerfil(input.email, prisma);
-  if (!usuario) badInput("Credenciales incorrectas.");
+  if (!usuario) {
+    await fallarLogin(prisma, email);
+    badInput("Credenciales incorrectas.");
+  }
 
   const passwordOk = await bcrypt.compare(input.password, usuario.passwordHash);
-  if (!passwordOk) badInput("Credenciales incorrectas.");
+  if (!passwordOk) {
+    await fallarLogin(prisma, email);
+    badInput("Credenciales incorrectas.");
+  }
 
   if (!usuario.activo) {
     throw new GraphQLError("Tu cuenta ha sido desactivada. Contacta soporte.", {
@@ -127,6 +162,7 @@ export async function login(rawInput: unknown, prisma: PrismaClient, dispositivo
     await repo.updatePasswordHash(usuario.id, nuevoHash, prisma);
   }
 
+  await limpiarFallos(email); // login correcto → resetea el contador anti-bruteforce
   return buildAuthPayload(usuario, prisma, dispositivo);
 }
 
