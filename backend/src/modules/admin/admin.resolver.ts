@@ -61,15 +61,6 @@ export const adminResolvers = {
       return adminService.toggleActivo(id, ctx.user!.id, ctx.prisma);
     },
 
-    verificarVendedor: (
-      _: unknown,
-      { vendedorId, verificado }: { vendedorId: string; verificado: boolean },
-      ctx: NexComContext,
-    ) => {
-      requireRole(ctx, "ADMIN");
-      return adminService.verificarVendedor(vendedorId, verificado, ctx.prisma);
-    },
-
     cambiarRolUsuario: (
       _: unknown,
       { id, rol }: { id: string; rol: string },

@@ -178,6 +178,5 @@ export const adminTypeDefs = /* GraphQL */ `
   extend type Mutation {
     toggleActivoUsuario(id: ID!):              UsuarioAdmin!
     cambiarRolUsuario(id: ID!, rol: String!):  UsuarioAdmin!
-    verificarVendedor(vendedorId: ID!, verificado: Boolean!): UsuarioAdmin!
   }
 `;

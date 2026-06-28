@@ -317,10 +317,4 @@ export const adminRepository = {
     `;
   },
 
-  /** Activa/desactiva la verificación (KYC) de un vendedor por su perfilVendedor.id. */
-  async setVendedorVerificado(vendedorId: string, verificado: boolean, prisma: PrismaClient) {
-    return prisma.perfilVendedor.update({
-      where: { id: vendedorId }, data: { verificado }, select: { usuarioId: true },
-    });
-  },
 };
