@@ -13,6 +13,7 @@ import { useAuth } from "@/context/auth-context";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { SearchBar } from "@/components/busqueda/SearchBar";
 import { NotificationBell } from "@/components/notificaciones/NotificationBell";
+import { ThemeMenu } from "@/components/layout/ThemeMenu";
 
 function NavbarInner() {
   const { user, logout } = useAuth();
@@ -56,6 +57,9 @@ function NavbarInner() {
 
         {/* Right actions */}
         <div className="flex items-center gap-2 ml-auto">
+          {/* Tema / apariencia */}
+          <ThemeMenu />
+
           {/* Cart */}
           {user?.rol === "COMPRADOR" && (
             <button

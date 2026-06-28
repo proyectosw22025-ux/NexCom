@@ -4,7 +4,11 @@ import { Toaster } from "sonner";
 import { ApolloClientProvider } from "@/lib/apollo-provider";
 import { AuthProvider } from "@/context/auth-context";
 import { CartProvider } from "@/context/cart-context";
+import { UiPrefsProvider } from "@/context/ui-prefs-context";
 import "./globals.css";
+
+// Aplica el tema antes del primer paint (sin parpadeo / sin mismatch de hidratación)
+const themeScript = `(function(){try{var m=localStorage.getItem('nexcom-modo')||'auto';var s=localStorage.getItem('nexcom-skin')||'joven';var r=m;if(m==='auto'){var h=new Date().getHours();r=(h>=19||h<7)?'oscuro':'claro';}var el=document.documentElement;el.setAttribute('data-theme',r==='oscuro'?'dark':'light');el.setAttribute('data-skin',s);}catch(e){}})();`;
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -37,13 +41,18 @@ export const viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className={`${inter.className} antialiased bg-slate-50 text-slate-900`}>
         <ApolloClientProvider>
           <AuthProvider>
-            <CartProvider>
-              {children}
-              <Toaster position="top-right" richColors closeButton />
-            </CartProvider>
+            <UiPrefsProvider>
+              <CartProvider>
+                {children}
+                <Toaster position="top-right" richColors closeButton />
+              </CartProvider>
+            </UiPrefsProvider>
           </AuthProvider>
         </ApolloClientProvider>
       </body>
