@@ -44,7 +44,7 @@ export function OnboardingVendedor({ totalProductos, destacados }: OnboardingVen
   const siguiente = pasos.find((p) => !p.hecho);
 
   return (
-    <div className="bg-gradient-to-br from-indigo-50 to-violet-50 rounded-2xl border border-indigo-100 p-5 mb-8">
+    <div className="surface-brand-soft rounded-2xl border border-indigo-100 p-5 mb-8">
       <div className="flex items-start justify-between gap-4 mb-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shrink-0">

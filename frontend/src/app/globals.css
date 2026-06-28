@@ -200,6 +200,22 @@ body {
 [data-theme="dark"] .text-slate-500 { color: #93a1b5 !important; }
 [data-theme="dark"] .text-slate-400 { color: #6b7a90 !important; }
 
+/* Superficies temáticas: un único origen por superficie, coherente en claro y
+   oscuro. Evita el bug "texto claro sobre fondo claro" de los degradados claros. */
+.surface-hero        { background: linear-gradient(135deg, #eef2ff, #ffffff, #f5f3ff); }
+.surface-emerald     { background: linear-gradient(135deg, #ecfdf5, #ffffff); }
+.surface-brand-soft  { background: linear-gradient(135deg, #eef2ff, #f5f3ff); }
+[data-theme="dark"] .surface-hero       { background: linear-gradient(135deg, #0b1220, #0f172a, #171430); }
+[data-theme="dark"] .surface-emerald    { background: linear-gradient(135deg, #0e1f1a, #0f172a); }
+[data-theme="dark"] .surface-brand-soft { background: linear-gradient(135deg, #11162b, #171430); }
+
+/* Blancos translúcidos usados como superficie clara → oscuros en modo noche */
+[data-theme="dark"] .bg-white\/95 { background-color: rgba(15,23,42,.95) !important; }
+[data-theme="dark"] .bg-white\/90 { background-color: rgba(15,23,42,.90) !important; }
+[data-theme="dark"] .bg-white\/80 { background-color: rgba(15,23,42,.82) !important; }
+[data-theme="dark"] .bg-white\/70 { background-color: rgba(15,23,42,.72) !important; }
+[data-theme="dark"] .bg-white\/50 { background-color: rgba(30,41,59,.55) !important; }
+
 /* Skin "Adulto": experiencia más sobria y calmada (sin movimiento decorativo) */
 [data-skin="adulto"] .animate-gradient,
 [data-skin="adulto"] .animate-blob,

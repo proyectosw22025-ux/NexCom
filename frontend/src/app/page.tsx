@@ -75,7 +75,7 @@ export default function HomePage() {
       {/* ── Hero ────────────────────────────────────────────── */}
       <section className="relative overflow-hidden">
         {/* Fondo vivo: degradado animado + blobs orbitales */}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-indigo-50 via-white to-violet-50 animate-gradient" />
+        <div className="surface-hero animate-gradient pointer-events-none absolute inset-0" />
         <div className="pointer-events-none absolute top-10 -left-12 w-80 h-80 rounded-full bg-indigo-300/30 blur-3xl animate-blob" />
         <div className="pointer-events-none absolute bottom-0 right-0 w-96 h-96 rounded-full bg-violet-300/30 blur-3xl animate-blob" style={{ animationDelay: "-5s" }} />
 

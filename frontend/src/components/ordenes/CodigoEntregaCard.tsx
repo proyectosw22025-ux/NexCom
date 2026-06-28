@@ -15,7 +15,7 @@ export function CodigoEntregaCard({ codigo, estado, autoLiberaEn }:
     : null;
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-6">
+    <div className="surface-emerald relative overflow-hidden rounded-2xl border border-emerald-200 p-6">
       <div className="pointer-events-none absolute -top-10 -right-8 w-36 h-36 rounded-full bg-emerald-100/60 blur-2xl" />
 
       <div className="relative flex items-center gap-2 mb-4">

@@ -150,7 +150,7 @@ export default function AdminPage() {
         <div className="flex flex-col gap-6">
 
         {/* Comisión del marketplace (modelo de negocio) */}
-        <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5">
+        <div className="surface-emerald rounded-2xl border border-emerald-200 p-5">
           <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center mb-3">
             <Coins className="h-5 w-5 text-emerald-600" />
           </div>

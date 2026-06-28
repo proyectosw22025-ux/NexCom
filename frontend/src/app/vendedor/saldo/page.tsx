@@ -75,7 +75,7 @@ export default function VendedorSaldoPage() {
           <p className="text-xs font-semibold uppercase tracking-wide text-indigo-100">Disponible para retirar</p>
           <p className="text-3xl font-extrabold mt-2">Bs. {saldo?.disponible ?? "0.00"}</p>
         </div>
-        <div className="bg-gradient-to-br from-emerald-50 to-white rounded-2xl border border-emerald-200 p-5">
+        <div className="surface-emerald rounded-2xl border border-emerald-200 p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 flex items-center gap-1.5">
             <ShieldCheck className="h-3.5 w-3.5" /> En garantía
           </p>
