@@ -108,18 +108,19 @@ describe("auth.service.login", () => {
     });
   });
 
-  it("rechaza el login si el email no está verificado", async () => {
+  it("permite el login sin email verificado (verificación por correo desactivada)", async () => {
+    // Mientras VERIFICACION_EMAIL_ACTIVA sea false (sin SMTP en producción),
+    // las cuentas no verificadas deben poder iniciar sesión con normalidad.
     vi.mocked(repo.findUsuarioByEmailConPerfil).mockResolvedValue({
       ...usuarioBase,
       verificado: false,
+      perfilVendedor: null,
+      perfilComprador: { id: "perfil-1" },
     } as never);
     vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
+    vi.mocked(repo.saveRefreshToken).mockResolvedValue({} as never);
 
-    await expect(
-      login({ email: usuarioBase.email, password: "password123" }, prisma),
-    ).rejects.toMatchObject({
-      message: "Debes verificar tu email antes de iniciar sesión.",
-      extensions: { code: "UNVERIFIED_EMAIL" },
-    });
+    const r = await login({ email: usuarioBase.email, password: "password123" }, prisma);
+    expect(r.accessToken).toEqual(expect.any(String));
   });
 });

@@ -72,6 +72,7 @@ interface CreateUsuarioData {
   email:        string;
   passwordHash: string;
   rol:          "VENDEDOR" | "COMPRADOR";
+  verificado?:  boolean; // true mientras la verificación por correo está desactivada
   datosVendedor?: {
     nombreNegocio: string;
     descripcion?:  string;
@@ -96,6 +97,7 @@ export async function createUsuarioConPerfil(
         email:        data.email,
         passwordHash: data.passwordHash,
         rol:          data.rol,
+        verificado:   data.verificado ?? false,
         ...(data.rol === "VENDEDOR" && data.datosVendedor
           ? {
               perfilVendedor: {

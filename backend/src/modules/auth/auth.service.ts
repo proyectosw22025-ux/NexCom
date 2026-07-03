@@ -25,6 +25,13 @@ import { segundosBloqueo, registrarFallo, limpiarFallos } from "../../shared/log
 // ~2-4× frente a 12 en CPU compartida, manteniendo seguridad adecuada.
 const BCRYPT_COST = 10;
 
+// Verificación de email por correo. DESACTIVADA mientras no haya SMTP operativo
+// en producción: con ella activa y el correo caído, los usuarios nuevos quedaban
+// bloqueados al cerrar sesión (no podían verificar → no podían volver a entrar).
+// Al configurar el SMTP real, cambiar a true: el registro vuelve a crear cuentas
+// sin verificar + enviar el correo, y el login vuelve a exigir verificación.
+const VERIFICACION_EMAIL_ACTIVA = false;
+
 // ── Helpers privados ──────────────────────────────────────────────────────────
 
 function badInput(message: string): never {
@@ -89,24 +96,28 @@ export async function register(rawInput: unknown, prisma: PrismaClient, disposit
       email: input.email,
       passwordHash,
       rol:   input.rol,
+      // Sin verificación por correo activa, la cuenta nace lista para usarse.
+      verificado: !VERIFICACION_EMAIL_ACTIVA,
       datosVendedor:  input.datosVendedor,
       datosComprador: input.datosComprador,
     },
     prisma
   );
 
-  // Token de verificación (24 horas)
-  const verifyToken = crypto.randomBytes(32).toString("hex");
-  const expiraEn    = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  await repo.createTokenVerificacion(
-    { usuarioId: usuario.id, token: verifyToken, tipo: "EMAIL_VERIFICACION", expiraEn },
-    prisma
-  );
-  // Fuera del camino crítico: el token ya está persistido; el email viaja en
-  // segundo plano (cola con reintentos / fallback). No retrasa la respuesta.
-  void sendVerificationEmail(usuario.email, verifyToken).catch((err) =>
-    console.error("[Auth] Falló el envío del email de verificación:", (err as Error).message),
-  );
+  if (VERIFICACION_EMAIL_ACTIVA) {
+    // Token de verificación (24 horas)
+    const verifyToken = crypto.randomBytes(32).toString("hex");
+    const expiraEn    = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await repo.createTokenVerificacion(
+      { usuarioId: usuario.id, token: verifyToken, tipo: "EMAIL_VERIFICACION", expiraEn },
+      prisma
+    );
+    // Fuera del camino crítico: el token ya está persistido; el email viaja en
+    // segundo plano (cola con reintentos / fallback). No retrasa la respuesta.
+    void sendVerificationEmail(usuario.email, verifyToken).catch((err) =>
+      console.error("[Auth] Falló el envío del email de verificación:", (err as Error).message),
+    );
+  }
 
   // createUsuarioConPerfil ya devuelve el usuario con perfiles incluidos
   return buildAuthPayload(usuario, prisma, dispositivo);
@@ -150,7 +161,7 @@ export async function login(rawInput: unknown, prisma: PrismaClient, dispositivo
     });
   }
 
-  if (!usuario.verificado) {
+  if (VERIFICACION_EMAIL_ACTIVA && !usuario.verificado) {
     throw new GraphQLError("Debes verificar tu email antes de iniciar sesión.", {
       extensions: { code: "UNVERIFIED_EMAIL" },
     });

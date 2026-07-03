@@ -261,13 +261,14 @@ export const pagosService = {
       { usuarioId: orden.vendedor!.usuarioId, tipo: "NUEVA_ORDEN", titulo: "Nueva orden recibida",
         mensaje: `Tienes una nueva orden #${idCorto}.`, url: `/vendedor/ordenes/${ordenId}` },
     ];
-    for (const e of eventos) {
+    // En paralelo: las notificaciones a comprador y vendedor son independientes
+    await Promise.all(eventos.map(async (e) => {
       const notif = await prisma.notificacion.create({ data: { ...e, ordenId } });
       publishNotificacion(e.usuarioId, {
         id: notif.id, tipo: notif.tipo, titulo: notif.titulo, mensaje: notif.mensaje,
         leido: notif.leido, url: notif.url, ordenId: notif.ordenId, creadoEn: notif.creadoEn.toISOString(),
       });
-    }
+    }));
   },
 
   /** Confirma el pago simulado de una o varias órdenes (QR / transferencia). */

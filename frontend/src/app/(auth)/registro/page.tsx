@@ -66,11 +66,11 @@ export default function RegistroPage() {
       if (!payload) throw new Error("Respuesta inesperada.");
 
       login(payload.accessToken, payload.refreshToken, payload.usuario);
-      toast.success("¡Cuenta creada! Revisa tu email para verificarla.", {
-        description: "Puedes seguir navegando mientras tanto.",
-        duration: 6000,
+      toast.success("¡Cuenta creada! Bienvenido a NexCom.", {
+        description: "Tu cuenta ya está lista para usarse.",
+        duration: 5000,
       });
-      router.push(data.rol === "VENDEDOR" ? "/vendedor" : "/");
+      router.push(data.rol === "VENDEDOR" ? "/vendedor" : "/productos");
 
     } catch (err: unknown) {
       const msg = err instanceof ApolloError
