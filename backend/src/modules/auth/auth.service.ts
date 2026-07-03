@@ -102,12 +102,14 @@ export async function register(rawInput: unknown, prisma: PrismaClient, disposit
     { usuarioId: usuario.id, token: verifyToken, tipo: "EMAIL_VERIFICACION", expiraEn },
     prisma
   );
-  await sendVerificationEmail(usuario.email, verifyToken);
+  // Fuera del camino crítico: el token ya está persistido; el email viaja en
+  // segundo plano (cola con reintentos / fallback). No retrasa la respuesta.
+  void sendVerificationEmail(usuario.email, verifyToken).catch((err) =>
+    console.error("[Auth] Falló el envío del email de verificación:", (err as Error).message),
+  );
 
-  const usuarioConPerfil = await repo.findUsuarioConPerfil(usuario.id, prisma);
-  if (!usuarioConPerfil) throw new GraphQLError("Error interno", { extensions: { code: "INTERNAL_SERVER_ERROR" } });
-
-  return buildAuthPayload(usuarioConPerfil, prisma, dispositivo);
+  // createUsuarioConPerfil ya devuelve el usuario con perfiles incluidos
+  return buildAuthPayload(usuario, prisma, dispositivo);
 }
 
 // ── login ─────────────────────────────────────────────────────────────────────
@@ -233,7 +235,12 @@ export async function requestPasswordReset(email: string, prisma: PrismaClient):
     { usuarioId: usuario.id, token, tipo: "RESET_PASSWORD", expiraEn },
     prisma
   );
-  await sendPasswordResetEmail(usuario.email, token);
+  // En segundo plano: además de acelerar, evita el canal lateral de tiempo
+  // (si se esperara al SMTP, la respuesta tardaría más cuando el email existe
+  // → permitiría enumerar cuentas midiendo la latencia).
+  void sendPasswordResetEmail(usuario.email, token).catch((err) =>
+    console.error("[Auth] Falló el envío del email de reset:", (err as Error).message),
+  );
   return true;
 }
 

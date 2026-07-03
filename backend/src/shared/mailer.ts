@@ -9,6 +9,11 @@ const transporter = nodemailer.createTransport({
     user: env.MAIL_USER,
     pass: env.MAIL_PASS,
   },
+  // Acotar el peor caso: los defaults de nodemailer esperan hasta 2 minutos si
+  // el SMTP no responde; con esto ningún envío (worker o fallback) cuelga >10s.
+  connectionTimeout: 5_000,
+  greetingTimeout:   5_000,
+  socketTimeout:     10_000,
 });
 
 /** Envío real (lo ejecuta el worker de la cola). Tolera SMTP no configurado en dev. */

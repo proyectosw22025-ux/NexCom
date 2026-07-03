@@ -89,37 +89,38 @@ export async function createUsuarioConPerfil(
   prisma: PrismaClient
 ) {
   return prisma.$transaction(async (tx) => {
-    const usuario = await tx.usuario.create({
+    // Un solo INSERT anidado (usuario + perfil): menos viajes a la BD que crear
+    // por separado, y devuelve los perfiles ya incluidos (evita re-consultar).
+    return tx.usuario.create({
       data: {
         email:        data.email,
         passwordHash: data.passwordHash,
         rol:          data.rol,
+        ...(data.rol === "VENDEDOR" && data.datosVendedor
+          ? {
+              perfilVendedor: {
+                create: {
+                  nombreNegocio: data.datosVendedor.nombreNegocio,
+                  descripcion:   data.datosVendedor.descripcion,
+                  telefono:      data.datosVendedor.telefono,
+                  ciudad:        data.datosVendedor.ciudad ?? "Santa Cruz",
+                },
+              },
+            }
+          : {}),
+        ...(data.rol === "COMPRADOR" && data.datosComprador
+          ? {
+              perfilComprador: {
+                create: {
+                  nombreCompleto: data.datosComprador.nombreCompleto,
+                  telefono:       data.datosComprador.telefono,
+                },
+              },
+            }
+          : {}),
       },
+      include: { perfilVendedor: true, perfilComprador: true },
     });
-
-    if (data.rol === "VENDEDOR" && data.datosVendedor) {
-      await tx.perfilVendedor.create({
-        data: {
-          usuarioId:    usuario.id,
-          nombreNegocio: data.datosVendedor.nombreNegocio,
-          descripcion:  data.datosVendedor.descripcion,
-          telefono:     data.datosVendedor.telefono,
-          ciudad:       data.datosVendedor.ciudad ?? "Santa Cruz",
-        },
-      });
-    }
-
-    if (data.rol === "COMPRADOR" && data.datosComprador) {
-      await tx.perfilComprador.create({
-        data: {
-          usuarioId:      usuario.id,
-          nombreCompleto: data.datosComprador.nombreCompleto,
-          telefono:       data.datosComprador.telefono,
-        },
-      });
-    }
-
-    return usuario;
   });
 }
 
