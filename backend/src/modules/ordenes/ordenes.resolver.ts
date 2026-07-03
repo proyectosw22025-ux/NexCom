@@ -67,16 +67,24 @@ export const ordenesResolvers = {
       return ordenesService.marcarEntregada(id, ctx.user.perfilCompradorId, ctx.user.id, ctx.prisma);
     },
 
-    confirmarEntregaConCodigo: (
+    iniciarRecojo: (_: unknown, { id }: { id: string }, ctx: NexComContext) => {
+      requireRole(ctx, "COMPRADOR"); // 1. usuario autenticado
+      if (!ctx.user?.perfilCompradorId) {
+        throw new GraphQLError("Perfil de comprador no encontrado.", { extensions: { code: "NOT_FOUND" } });
+      }
+      return ordenesService.iniciarRecojo(id, ctx.user.perfilCompradorId, ctx.prisma);
+    },
+
+    confirmarRecojo: (
       _: unknown,
-      { id, codigo }: { id: string; codigo: string },
+      { id, codigoQr, otp }: { id: string; codigoQr: string; otp: string },
       ctx: NexComContext,
     ) => {
-      requireRole(ctx, "VENDEDOR");
-      if (!ctx.user?.perfilVendedorId) {
-        throw new GraphQLError("Perfil de vendedor no encontrado.", { extensions: { code: "NOT_FOUND" } });
+      requireRole(ctx, "COMPRADOR"); // 1. usuario autenticado
+      if (!ctx.user?.perfilCompradorId) {
+        throw new GraphQLError("Perfil de comprador no encontrado.", { extensions: { code: "NOT_FOUND" } });
       }
-      return ordenesService.confirmarEntregaConCodigo(id, ctx.user.perfilVendedorId, ctx.user.id, codigo, ctx.prisma);
+      return ordenesService.confirmarRecojo(id, ctx.user.perfilCompradorId, ctx.user.id, codigoQr, otp, ctx.prisma);
     },
   },
 };

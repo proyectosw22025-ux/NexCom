@@ -5,18 +5,17 @@ import { useParams } from "next/navigation";
 import { useQuery, useMutation } from "@apollo/client";
 import Link from "next/link";
 import { MI_ORDEN } from "@/graphql/ordenes/queries";
-import { MARCAR_ORDEN_ENTREGADA } from "@/graphql/ordenes/mutations";
 import { CREAR_VALORACION } from "@/graphql/valoraciones/mutations";
 import { Badge } from "@/components/ui/Badge";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { TimelineEstados } from "@/components/ordenes/TimelineEstados";
-import { CodigoEntregaCard } from "@/components/ordenes/CodigoEntregaCard";
+import { CompraProtegidaCard } from "@/components/ordenes/CompraProtegidaCard";
+import { RecogerPedido } from "@/components/ordenes/RecogerPedido";
 import { ReclamoComprador } from "@/components/disputas/ReclamoComprador";
 import { DevolucionComprador } from "@/components/devoluciones/DevolucionComprador";
 import { FacturaOrden } from "@/components/facturas/FacturaOrden";
 import {
   ArrowLeft, Loader2, Package, MapPin, CreditCard,
-  CheckCircle, Star, Send, Clock,
+  Star, Send, Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ApolloError } from "@apollo/client";
@@ -57,7 +56,6 @@ export default function CompradorOrdenDetallePage() {
     variables: { id }, fetchPolicy: "cache-and-network",
   });
 
-  const [marcarEntregada, { loading: marcando }] = useMutation(MARCAR_ORDEN_ENTREGADA);
   const [crearValoracion, { loading: valorando }] = useMutation(CREAR_VALORACION);
 
   const [calificacion, setCalificacion] = useState(5);
@@ -65,17 +63,6 @@ export default function CompradorOrdenDetallePage() {
   const [showVal, setShowVal]           = useState(false);
 
   const orden = data?.miOrden;
-
-  async function handleEntregada() {
-    try {
-      await marcarEntregada({ variables: { id } });
-      toast.success("¡Pedido confirmado como entregado!");
-      refetch();
-    } catch (err: unknown) {
-      const msg = err instanceof ApolloError ? (err.graphQLErrors[0]?.message ?? "Error.") : "Error.";
-      toast.error(msg);
-    }
-  }
 
   async function handleValorar(e: React.FormEvent) {
     e.preventDefault();
@@ -120,10 +107,14 @@ export default function CompradorOrdenDetallePage() {
       </div>
 
       <div className="space-y-5">
-        {/* Compra Protegida: código de entrega (mientras el pago sigue retenido) */}
-        {orden.codigoEntrega && !orden.fondosLiberadosEn &&
-          ["PAGADO", "EN_PREPARACION", "ENVIADO"].includes(orden.estado) && (
-          <CodigoEntregaCard codigo={orden.codigoEntrega} estado={orden.estado} autoLiberaEn={orden.autoLiberaEn} />
+        {/* Compra Protegida: estado de la garantía (mientras el pago sigue retenido) */}
+        {!orden.fondosLiberadosEn && ["PAGADO", "EN_PREPARACION", "ENVIADO"].includes(orden.estado) && (
+          <CompraProtegidaCard estado={orden.estado} autoLiberaEn={orden.autoLiberaEn} />
+        )}
+
+        {/* Recojo con escaneo del QR del paquete (flujo principal de entrega) */}
+        {orden.estado === "ENVIADO" && !orden.fondosLiberadosEn && (
+          <RecogerPedido ordenId={orden.id} onEntregado={() => refetch()} />
         )}
 
         {/* Reclamo de Compra Protegida (no-entrega / problema) */}
@@ -209,27 +200,6 @@ export default function CompradorOrdenDetallePage() {
           </h2>
           <TimelineEstados historial={orden.historialEstados} estadoActual={orden.estado} />
         </div>
-
-        {/* Acciones */}
-        {orden.estado === "ENVIADO" && (
-          <ConfirmDialog
-            title="Confirmar entrega"
-            description="¿Confirmas que recibiste tu pedido? Esto liberará el pago retenido al vendedor y no se puede deshacer."
-            confirmLabel="Sí, lo recibí"
-            onConfirm={handleEntregada}
-            trigger={
-              <button
-                disabled={marcando}
-                className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700
-                           disabled:opacity-50 text-white font-semibold px-6 py-3 rounded-xl text-sm
-                           transition-colors shadow-sm shadow-emerald-200"
-              >
-                {marcando ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
-                Confirmar que recibí mi pedido
-              </button>
-            }
-          />
-        )}
 
         {/* Valoración */}
         {orden.estado === "ENTREGADO" && (

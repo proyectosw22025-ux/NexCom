@@ -60,7 +60,7 @@ export const ORDEN_VENDEDOR = gql`
   query OrdenVendedor($id: ID!) {
     ordenVendedor(id: $id) {
       id estado subtotal total notas creadoEn actualizadoEn compradorId
-      autoLiberaEn fondosLiberadosEn
+      codigoEntrega autoLiberaEn fondosLiberadosEn
       direccionSnapshot { alias destinatario calle zona ciudad departamento referencia }
       items { id productoId nombreSnapshot cantidad precioUnitario subtotal }
       pago { id monto moneda metodo estado }

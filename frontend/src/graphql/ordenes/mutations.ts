@@ -17,9 +17,18 @@ export const MARCAR_ORDEN_ENTREGADA = gql`
   }
 `;
 
-export const CONFIRMAR_ENTREGA_CON_CODIGO = gql`
-  mutation ConfirmarEntregaConCodigo($id: ID!, $codigo: String!) {
-    confirmarEntregaConCodigo(id: $id, codigo: $codigo) {
+export const INICIAR_RECOJO = gql`
+  mutation IniciarRecojo($id: ID!) {
+    iniciarRecojo(id: $id) {
+      otp
+      expiraEn
+    }
+  }
+`;
+
+export const CONFIRMAR_RECOJO = gql`
+  mutation ConfirmarRecojo($id: ID!, $codigoQr: String!, $otp: String!) {
+    confirmarRecojo(id: $id, codigoQr: $codigoQr, otp: $otp) {
       id estado actualizadoEn fondosLiberadosEn
     }
   }

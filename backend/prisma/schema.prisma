@@ -520,9 +520,11 @@ model Orden {
   comprobanteUrl        String?     @map("comprobante_url")
   notas                 String?
   // ── Escrow / confirmación de entrega (Compra Protegida) ──────────────
-  codigoEntrega         String?     @map("codigo_entrega")          // PIN de entrega; visible SOLO para el comprador
-  intentosCodigo        Int         @default(0) @map("intentos_codigo")        // anti–fuerza bruta (handshake)
+  codigoEntrega         String?     @map("codigo_entrega")          // código del QR del PAQUETE (el vendedor lo imprime y empaca)
+  intentosCodigo        Int         @default(0) @map("intentos_codigo")        // anti–fuerza bruta (escaneo)
   codigoBloqueadoHasta  DateTime?   @map("codigo_bloqueado_hasta")  // lockout temporal tras N fallos
+  otpEntrega            String?     @map("otp_entrega")             // OTP temporal de la sesión de recojo (2º factor)
+  otpEntregaExp         DateTime?   @map("otp_entrega_exp")         // expiración del OTP (minutos)
   fondosLiberadosEn     DateTime?   @map("fondos_liberados_en")     // marca de liberación (idempotencia)
   autoLiberaEn          DateTime?   @map("auto_libera_en")          // límite de auto-liberación (se fija al ENVIAR)
   disputaAbierta        Boolean     @default(false) @map("disputa_abierta") // congela la auto-liberación

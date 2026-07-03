@@ -56,8 +56,8 @@ export const ordenesTypeDefs = /* GraphQL */ `
     notas:                 String
     direccionSnapshot:     DireccionSnapshot
     stripePaymentIntentId: String
-    # Compra Protegida — visibles para el COMPRADOR dueño de la orden
-    codigoEntrega:         String   # PIN de entrega (solo el comprador lo ve)
+    # Compra Protegida (lado comprador)
+    codigoEntrega:         String   # SIEMPRE null: el código vive en el QR físico del paquete (posesión = prueba)
     autoLiberaEn:          String   # fecha de auto-liberación de la garantía
     fondosLiberadosEn:     String   # null mientras los fondos siguen retenidos
     creadoEn:              String!
@@ -76,7 +76,8 @@ export const ordenesTypeDefs = /* GraphQL */ `
     total:             String!
     notas:             String
     direccionSnapshot: DireccionSnapshot
-    # El vendedor NO ve el código de entrega; sí la ventana/estado de la garantía
+    # El VENDEDOR sí ve el código: genera la etiqueta QR y la empaca con el producto
+    codigoEntrega:     String
     autoLiberaEn:      String
     fondosLiberadosEn: String
     creadoEn:          String!
@@ -108,10 +109,18 @@ export const ordenesTypeDefs = /* GraphQL */ `
     ventasVendedorPorDia(dias: Int): [VentaDia!]!
   }
 
+  # Sesión de recojo: OTP temporal (2º factor) para el escaneo del QR del paquete
+  type SesionRecojo {
+    otp:      String!
+    expiraEn: String!
+  }
+
   extend type Mutation {
     avanzarEstadoOrden(id: ID!, notas: String, comprobanteUrl: String): OrdenVendedor!
+    # Respaldo sin cámara: el comprador confirma manualmente la recepción
     marcarOrdenEntregada(id: ID!): Orden!
-    # Handshake de entrega: el vendedor ingresa el código que el comprador le muestra
-    confirmarEntregaConCodigo(id: ID!, codigo: String!): OrdenVendedor!
+    # Recojo con escaneo (flujo principal): iniciar sesión OTP → escanear QR del paquete
+    iniciarRecojo(id: ID!): SesionRecojo!
+    confirmarRecojo(id: ID!, codigoQr: String!, otp: String!): Orden!
   }
 `;

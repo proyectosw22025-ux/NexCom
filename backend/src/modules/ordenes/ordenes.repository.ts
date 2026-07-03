@@ -43,6 +43,9 @@ function mapOrden(o: ReturnType<typeof rawOrden>) {
     direccionSnapshot: o.direccionSnapshot as Record<string, unknown> | null,
     autoLiberaEn:      o.autoLiberaEn ? o.autoLiberaEn.toISOString() : null,
     fondosLiberadosEn: o.fondosLiberadosEn ? o.fondosLiberadosEn.toISOString() : null,
+    // El código del paquete NUNCA se expone al comprador: su prueba de entrega es
+    // escanear el QR físico. Los mappers del vendedor lo re-exponen (imprime la etiqueta).
+    codigoEntrega:     null as string | null,
   };
 }
 
@@ -86,6 +89,7 @@ export const ordenesRepository = {
     });
     return ordenes.map((o) => ({
       ...mapOrden(o),
+      codigoEntrega: o.codigoEntrega, // el vendedor imprime la etiqueta QR del paquete
       comprador: o.comprador ?? null,
     }));
   },
@@ -96,7 +100,7 @@ export const ordenesRepository = {
       include: ordenVendedorInclude,
     });
     if (!o) return null;
-    return { ...mapOrden(o), comprador: o.comprador ?? null };
+    return { ...mapOrden(o), codigoEntrega: o.codigoEntrega, comprador: o.comprador ?? null };
   },
 
   async avanzarEstado(
@@ -132,7 +136,7 @@ export const ordenesRepository = {
       });
       return o;
     });
-    return { ...mapOrden(updated), comprador: updated.comprador ?? null };
+    return { ...mapOrden(updated), codigoEntrega: updated.codigoEntrega, comprador: updated.comprador ?? null };
   },
 
   /**
