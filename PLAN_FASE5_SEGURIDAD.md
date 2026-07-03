@@ -126,6 +126,16 @@ COMPLETADO (tras ventana de reseña / cierre)
 > Nota: el código se guarda en claro pero expuesto **solo** al comprador dueño (control de
 > acceso). Endurecer a hash + envío por correo queda como mejora futura. Disputas = Épica 2.
 
+> **REDISEÑO (jul 2026, implementado):** la mecánica se invirtió al flujo definitivo de
+> recojo por escaneo: el QR viaja **físicamente con el paquete** (el VENDEDOR imprime la
+> etiqueta `EtiquetaPaquete` y solo él ve el código; al comprador nunca se le expone).
+> El COMPRADOR confirma con `iniciarRecojo` (OTP temporal 10 min) + `confirmarRecojo`
+> (escaneo con cámara / código manual), que valida 5 condiciones: autenticado, pertenencia,
+> QR válido (anti–fuerza bruta), QR no usado y OTP vigente → ENTREGADO + LIBERACION.
+> `confirmarEntregaConCodigo` (handshake del vendedor) se eliminó: con el vendedor
+> conociendo el código, le habría permitido auto-liberarse los fondos. Extras: aviso al
+> comprador al ENVIAR y cierre automático ENTREGADO→COMPLETADO a los 7 días.
+
 ### 2.7 Criterios de aceptación
 - El vendedor **no** puede retirar fondos de una orden hasta que esté `ENTREGADO`.
 - Confirmar con código correcto libera **exactamente una vez** (sin doble crédito).
