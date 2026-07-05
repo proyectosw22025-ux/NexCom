@@ -24,19 +24,19 @@ export const adminResolvers = {
       return adminService.getEstadisticas(dias ?? 7, ctx.prisma);
     },
 
-    analiticaAdmin: (_: unknown, { dias }: { dias?: number }, ctx: NexComContext) => {
+    analiticaAdmin: (_: unknown, args: { dias?: number; desde?: string; hasta?: string }, ctx: NexComContext) => {
       requireRole(ctx, "ADMIN");
-      return adminService.getAnalitica(dias ?? 30, ctx.prisma);
+      return adminService.getAnalitica(args, ctx.prisma);
     },
 
-    analiticaProductos: (_: unknown, { dias }: { dias?: number }, ctx: NexComContext) => {
+    analiticaProductos: (_: unknown, args: { dias?: number; desde?: string; hasta?: string }, ctx: NexComContext) => {
       requireRole(ctx, "ADMIN");
-      return adminService.getAnaliticaProductos(dias ?? 30, ctx.prisma);
+      return adminService.getAnaliticaProductos(args, ctx.prisma);
     },
 
-    analiticaClientes: (_: unknown, { dias }: { dias?: number }, ctx: NexComContext) => {
+    analiticaClientes: (_: unknown, args: { dias?: number; desde?: string; hasta?: string }, ctx: NexComContext) => {
       requireRole(ctx, "ADMIN");
-      return adminService.getAnaliticaClientes(dias ?? 30, ctx.prisma);
+      return adminService.getAnaliticaClientes(args, ctx.prisma);
     },
 
     eventosSeguridad: (_: unknown, { tipo, limite }: { tipo?: string; limite?: number }, ctx: NexComContext) => {

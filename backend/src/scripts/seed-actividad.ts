@@ -169,9 +169,10 @@ async function main() {
   const previas = await prisma.orden.findMany({ where: { notas: SENTINEL }, select: { id: true } });
   if (previas.length) {
     const ids = previas.map((o) => o.id);
+    await prisma.movimientoSaldo.deleteMany({ where: { ordenId: { in: ids } } }); // ledger de las demo
     await prisma.pago.deleteMany({ where: { ordenId: { in: ids } } });
     await prisma.orden.deleteMany({ where: { id: { in: ids } } }); // items/historial: cascade
-    console.log(`  ↺ ${ids.length} órdenes demo previas eliminadas`);
+    console.log(`  ↺ ${ids.length} órdenes demo previas eliminadas (con su ledger)`);
   }
 
   // Pesos: compradores recurrentes (algunos compran mucho más)
@@ -179,6 +180,7 @@ async function main() {
 
   const ventasPorProducto: Record<string, number> = {};
   const ventasPorVendedor: Record<string, number> = {};
+  const movimientos: Prisma.MovimientoSaldoCreateManyInput[] = [];
   let totalOrdenes = 0;
   const now = new Date();
 
@@ -218,7 +220,7 @@ async function main() {
       const ciudad = Math.random() < 0.7 ? comp.ciudad : ven.ciudad;
       if (estado !== "CANCELADO") ventasPorVendedor[ven.perfilId] = (ventasPorVendedor[ven.perfilId] ?? 0) + 1;
 
-      await prisma.orden.create({
+      const creada = await prisma.orden.create({
         data: {
           compradorId: comp.perfilId, vendedorId: ven.perfilId, estado,
           subtotal: new Prisma.Decimal(subtotal), descuentoCupon: new Prisma.Decimal(descuento),
@@ -233,8 +235,34 @@ async function main() {
           } },
         },
       });
+
+      // Ledger coherente con el escrow: toda venta pagada RETIENE (comisión 10%
+      // plan FREE); las ya entregadas/completadas además LIBERAN el neto.
+      if (estado !== "CANCELADO") {
+        const comision = Math.round(total * 0.10 * 100) / 100;
+        const neto     = Math.round((total - comision) * 100) / 100;
+        movimientos.push({
+          vendedorId: ven.perfilId, tipo: "RETENCION", monto: new Prisma.Decimal(neto),
+          comision: new Prisma.Decimal(comision), ordenId: creada.id,
+          descripcion: `Retención orden #${creada.id.slice(-6).toUpperCase()}`, creadoEn: fecha,
+        });
+        if (estado === "ENTREGADO" || estado === "COMPLETADO") {
+          movimientos.push({
+            vendedorId: ven.perfilId, tipo: "LIBERACION", monto: new Prisma.Decimal(neto),
+            comision: new Prisma.Decimal(0), ordenId: creada.id,
+            descripcion: `Liberación orden #${creada.id.slice(-6).toUpperCase()}`,
+            creadoEn: new Date(fecha.getTime() + rint(1, 4) * 86_400_000),
+          });
+        }
+      }
       totalOrdenes++;
     }
+  }
+
+  // ── Ledger de saldos (retenciones/liberaciones de las ventas demo) ─────────
+  if (movimientos.length) {
+    await prisma.movimientoSaldo.createMany({ data: movimientos });
+    console.log(`  ✓ ${movimientos.length} movimientos de ledger (retención/liberación)`);
   }
 
   // ── Actualizar contadores agregados ────────────────────────────────────────

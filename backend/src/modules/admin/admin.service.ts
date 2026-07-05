@@ -1,9 +1,26 @@
 import { GraphQLError } from "graphql";
 import { Decimal } from "decimal.js";
 import type { PrismaClient } from "@prisma/client";
-import { adminRepository } from "./admin.repository.js";
+import { adminRepository, resolverRango, type RangoReporte, type RangoResuelto } from "./admin.repository.js";
 import { getConfigNumber } from "../../shared/config.util.js";
 import { calcularRiesgoVendedor } from "./riesgo.util.js";
+
+/** Valida el rango de un reporte (fechas ISO y desde ≤ hasta) y lo resuelve. */
+function validarRango(p: RangoReporte): RangoResuelto {
+  const esFecha = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(Date.parse(s));
+  if ((p.desde && !p.hasta) || (!p.desde && p.hasta)) {
+    throw new GraphQLError("Indica ambas fechas del rango (desde y hasta).", { extensions: { code: "BAD_USER_INPUT" } });
+  }
+  if (p.desde && p.hasta) {
+    if (!esFecha(p.desde) || !esFecha(p.hasta)) {
+      throw new GraphQLError("Fechas inválidas: usa el formato YYYY-MM-DD.", { extensions: { code: "BAD_USER_INPUT" } });
+    }
+    if (p.desde > p.hasta) {
+      throw new GraphQLError("El inicio del rango no puede ser posterior al fin.", { extensions: { code: "BAD_USER_INPUT" } });
+    }
+  }
+  return resolverRango(p);
+}
 
 const ROLES_VALIDOS = ["ADMIN", "VENDEDOR", "COMPRADOR"];
 
@@ -44,10 +61,9 @@ export const adminService = {
     return { ...base, comisionPorcentaje, comisionPeriodo };
   },
 
-  async getAnalitica(dias: number, prisma: PrismaClient) {
-    const rango = Math.min(Math.max(dias, 1), 90);
+  async getAnalitica(params: RangoReporte, prisma: PrismaClient) {
     const [raw, comisionPct] = await Promise.all([
-      adminRepository.analitica(rango, prisma),
+      adminRepository.analitica(validarRango(params), prisma),
       getConfigNumber("comision_plataforma", prisma).then((v) => v || 0),
     ]);
 
@@ -73,12 +89,23 @@ export const adminService = {
         ventas: v.ventas,
         rating: new Decimal(v.rating || "0").toFixed(2),
       })),
+      // Ganancia de la plataforma por tienda (desde el ledger, no un % teórico)
+      comisionPorVendedor: raw.comisionVend.map((c) => {
+        const bruto = new Decimal(c.bruto);
+        const comision = new Decimal(c.comision);
+        return {
+          nombre: c.nombre,
+          ventas: c.ventas,
+          bruto: bruto.toFixed(2),
+          comision: comision.toFixed(2),
+          tasa: bruto.gt(0) ? comision.div(bruto).mul(100).toDecimalPlaces(1).toNumber() : 0,
+        };
+      }),
     };
   },
 
-  async getAnaliticaProductos(dias: number, prisma: PrismaClient) {
-    const rango = Math.min(Math.max(dias, 1), 90);
-    const raw = await adminRepository.analiticaProductos(rango, prisma);
+  async getAnaliticaProductos(params: RangoReporte, prisma: PrismaClient) {
+    const raw = await adminRepository.analiticaProductos(validarRango(params), prisma);
     return {
       unidades:         kpi(raw.kpi.uni_cur, raw.kpi.uni_prev, 0),
       ingresos:         kpi(raw.kpi.ing_cur, raw.kpi.ing_prev),
@@ -122,9 +149,8 @@ export const adminService = {
     }));
   },
 
-  async getAnaliticaClientes(dias: number, prisma: PrismaClient) {
-    const rango = Math.min(Math.max(dias, 1), 90);
-    const r = await adminRepository.analiticaClientes(rango, prisma);
+  async getAnaliticaClientes(params: RangoReporte, prisma: PrismaClient) {
+    const r = await adminRepository.analiticaClientes(validarRango(params), prisma);
     const ticketCur  = r.act.ord_cur  ? r.act.gasto_cur  / r.act.ord_cur  : 0;
     const ticketPrev = r.act.ord_prev ? r.act.gasto_prev / r.act.ord_prev : 0;
     return {

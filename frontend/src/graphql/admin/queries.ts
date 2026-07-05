@@ -59,8 +59,8 @@ export const LISTAR_REPORTES = gql`
 `;
 
 export const ANALITICA_ADMIN = gql`
-  query AnaliticaAdmin($dias: Int) {
-    analiticaAdmin(dias: $dias) {
+  query AnaliticaAdmin($dias: Int, $desde: String, $hasta: String) {
+    analiticaAdmin(dias: $dias, desde: $desde, hasta: $hasta) {
       ingresos       { valor delta }
       ordenes        { valor delta }
       ticketPromedio { valor delta }
@@ -71,13 +71,14 @@ export const ANALITICA_ADMIN = gql`
       porEstado      { etiqueta valor monto }
       porCiudad      { etiqueta valor monto }
       topVendedores  { nombreNegocio ingresos ventas rating }
+      comisionPorVendedor { nombre ventas bruto comision tasa }
     }
   }
 `;
 
 export const ANALITICA_PRODUCTOS = gql`
-  query AnaliticaProductos($dias: Int) {
-    analiticaProductos(dias: $dias) {
+  query AnaliticaProductos($dias: Int, $desde: String, $hasta: String) {
+    analiticaProductos(dias: $dias, desde: $desde, hasta: $hasta) {
       unidades         { valor delta }
       ingresos         { valor delta }
       productosActivos
@@ -90,8 +91,8 @@ export const ANALITICA_PRODUCTOS = gql`
 `;
 
 export const ANALITICA_CLIENTES = gql`
-  query AnaliticaClientes($dias: Int) {
-    analiticaClientes(dias: $dias) {
+  query AnaliticaClientes($dias: Int, $desde: String, $hasta: String) {
+    analiticaClientes(dias: $dias, desde: $desde, hasta: $hasta) {
       clientesActivos { valor delta }
       ticketPromedio  { valor delta }
       nuevos

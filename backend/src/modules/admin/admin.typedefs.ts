@@ -83,6 +83,15 @@ export const adminTypeDefs = /* GraphQL */ `
     rating:        String!
   }
 
+  # Ganancia de la plataforma por tienda (comisión real cobrada, desde el ledger)
+  type ComisionVendedor {
+    nombre:   String!
+    ventas:   Int!
+    bruto:    String!  # ventas brutas acreditadas (neto + comisión)
+    comision: String!  # lo que ganó la plataforma con esta tienda
+    tasa:     Float!   # % efectivo (comisión / bruto)
+  }
+
   type AnaliticaAdmin {
     ingresos:        KpiDelta!
     ordenes:         KpiDelta!
@@ -94,6 +103,7 @@ export const adminTypeDefs = /* GraphQL */ `
     porEstado:       [SegmentoAnalitica!]!
     porCiudad:       [SegmentoAnalitica!]!
     topVendedores:   [TopVendedorAnalitica!]!
+    comisionPorVendedor: [ComisionVendedor!]!
   }
 
   # ── Reporte: Productos & Inventario ──────────────────────────────────
@@ -167,9 +177,10 @@ export const adminTypeDefs = /* GraphQL */ `
     listarUsuarios(rol: String, activo: Boolean, pagina: Int, limite: Int): PaginatedUsuarios!
     usuarioDetalle(id: ID!): UsuarioAdmin
     estadisticasAdmin(dias: Int): EstadisticasAdmin!
-    analiticaAdmin(dias: Int): AnaliticaAdmin!
-    analiticaProductos(dias: Int): AnaliticaProductos!
-    analiticaClientes(dias: Int): AnaliticaClientes!
+    # Periodo: preset (dias) o rango personalizado (desde/hasta, YYYY-MM-DD, ambos)
+    analiticaAdmin(dias: Int, desde: String, hasta: String): AnaliticaAdmin!
+    analiticaProductos(dias: Int, desde: String, hasta: String): AnaliticaProductos!
+    analiticaClientes(dias: Int, desde: String, hasta: String): AnaliticaClientes!
     eventosSeguridad(tipo: String, limite: Int): [EventoSeguridad!]!
     riesgoVendedores: [RiesgoVendedor!]!
     metricasRendimiento: MetricasRendimiento!

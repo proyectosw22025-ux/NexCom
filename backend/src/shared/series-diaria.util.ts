@@ -22,9 +22,13 @@ export function rangoDesde(dias: number): Date {
   ));
 }
 
-/** Rellena con ceros los días sin actividad dentro del rango de `dias`. */
-export function rellenarSerieDiaria(rows: FilaSerieDia[], dias: number): FilaSerieDia[] {
-  const desde = rangoDesde(dias);
+/**
+ * Rellena con ceros los días sin actividad dentro del rango de `dias`.
+ * Por defecto el rango termina hoy; `desdeArg` permite series sobre un rango
+ * de fechas arbitrario (filtros personalizados de los reportes del admin).
+ */
+export function rellenarSerieDiaria(rows: FilaSerieDia[], dias: number, desdeArg?: Date): FilaSerieDia[] {
+  const desde = desdeArg ?? rangoDesde(dias);
   const porFecha = new Map(rows.map((r) => [r.fecha, r]));
   const serie: FilaSerieDia[] = [];
   for (let i = 0; i < dias; i++) {

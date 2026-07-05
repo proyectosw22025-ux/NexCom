@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { Boxes, Package, Coins, TrendingUp, AlertTriangle, PieChart as PieIcon, Trophy, Layers } from "lucide-react";
 import { ANALITICA_PRODUCTOS } from "@/graphql/admin/queries";
-import { KpiCard, Card, Donut3D, PeriodoToolbar, fmtBs, fmtNum, DONUT_COLORS } from "./analitica-ui";
+import { KpiCard, Card, Donut3D, PeriodoToolbar, type RangoReporte, fmtBs, fmtNum, DONUT_COLORS } from "./analitica-ui";
 
 interface Kpi { valor: string; delta: number }
 interface Seg { etiqueta: string; valor: number; monto: string }
@@ -21,9 +21,9 @@ interface Data {
 const INV_COLORS = ["#10b981", "#f59e0b", "#f43f5e"]; // en stock / bajo / agotado
 
 export default function ProductosDashboard() {
-  const [dias, setDias] = useState(30);
+  const [rango, setRango] = useState<RangoReporte>({ dias: 30 });
   const { data, loading } = useQuery<{ analiticaProductos: Data }>(ANALITICA_PRODUCTOS, {
-    variables: { dias }, fetchPolicy: "cache-and-network",
+    variables: { ...rango }, fetchPolicy: "cache-and-network",
   });
   const a = data?.analiticaProductos;
 
@@ -41,7 +41,7 @@ export default function ProductosDashboard() {
 
   return (
     <div className="animate-fade-in">
-      <PeriodoToolbar dias={dias} setDias={setDias} texto="Rendimiento del catálogo e inventario" />
+      <PeriodoToolbar rango={rango} setRango={setRango} texto="Rendimiento del catálogo e inventario" />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <KpiCard index={0} label="Unidades vendidas" valor={a?.unidades.valor ?? "0"} delta={a?.unidades.delta ?? 0} icon={Boxes} />

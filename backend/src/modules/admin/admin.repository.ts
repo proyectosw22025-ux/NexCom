@@ -1,6 +1,25 @@
 import type { PrismaClient } from "@prisma/client";
 import { rangoDesde, rellenarSerieDiaria } from "../../shared/series-diaria.util.js";
 
+// ── Rango de los reportes ─────────────────────────────────────────────────────
+// Fuente única de verdad para el periodo analizado: preset (últimos N días) o
+// rango de fechas personalizado [desde, hasta] inclusive. `hastaFin` es exclusivo
+// (día siguiente a `hasta`) para comparar con timestamps. El periodo "anterior"
+// de los deltas es la ventana del mismo tamaño inmediatamente previa.
+export interface RangoReporte { dias?: number | null; desde?: string | null; hasta?: string | null }
+export interface RangoResuelto { desde: Date; hastaFin: Date; desdePrev: Date; dias: number }
+
+export function resolverRango(p: RangoReporte): RangoResuelto {
+  if (p.desde && p.hasta) {
+    const desde    = new Date(`${p.desde}T00:00:00.000Z`);
+    const hastaFin = new Date(new Date(`${p.hasta}T00:00:00.000Z`).getTime() + 86_400_000);
+    const dias     = Math.min(365, Math.max(1, Math.round((hastaFin.getTime() - desde.getTime()) / 86_400_000)));
+    return { desde, hastaFin, desdePrev: new Date(desde.getTime() - dias * 86_400_000), dias };
+  }
+  const dias = Math.min(Math.max(p.dias ?? 30, 1), 365);
+  return { desde: rangoDesde(dias), hastaFin: new Date(), desdePrev: rangoDesde(dias * 2), dias };
+}
+
 const USUARIO_INCLUDE = {
   perfilVendedor: {
     select: { id: true, nombreNegocio: true, ciudad: true, ratingPromedio: true, totalVentas: true, totalResenias: true, verificado: true },
@@ -95,54 +114,53 @@ export const adminRepository = {
    * deltas), serie temporal, distribuciones (método de pago, estado, ciudad) y top
    * vendedores. Todo agregado en SQL (escala con el volumen, no con la app).
    */
-  async analitica(dias: number, prisma: PrismaClient) {
-    const desde     = rangoDesde(dias);
-    const desdePrev = rangoDesde(dias * 2); // inicio del periodo anterior (mismo tamaño)
+  async analitica(r: RangoResuelto, prisma: PrismaClient) {
+    const { desde, hastaFin, desdePrev, dias } = r;
 
-    const [kpiOrdRows, kpiUsrRows, serieRows, porMetodo, porEstado, porCiudad, topVend] = await Promise.all([
+    const [kpiOrdRows, kpiUsrRows, serieRows, porMetodo, porEstado, porCiudad, topVend, comisionVend] = await Promise.all([
       // KPIs de órdenes/ingresos: actual y anterior en una sola pasada
       prisma.$queryRaw<Array<{ ing_cur: number; ing_prev: number; ord_cur: number; ord_prev: number }>>`
         SELECT
-          COALESCE(SUM(total) FILTER (WHERE creado_en >= ${desde}), 0)::float8                                      AS ing_cur,
+          COALESCE(SUM(total) FILTER (WHERE creado_en >= ${desde} AND creado_en < ${hastaFin}), 0)::float8           AS ing_cur,
           COALESCE(SUM(total) FILTER (WHERE creado_en >= ${desdePrev} AND creado_en < ${desde}), 0)::float8          AS ing_prev,
-          COUNT(*) FILTER (WHERE creado_en >= ${desde})::int                                                         AS ord_cur,
+          COUNT(*) FILTER (WHERE creado_en >= ${desde} AND creado_en < ${hastaFin})::int                             AS ord_cur,
           COUNT(*) FILTER (WHERE creado_en >= ${desdePrev} AND creado_en < ${desde})::int                            AS ord_prev
         FROM ordenes
-        WHERE estado NOT IN ('PENDIENTE_PAGO', 'CANCELADO') AND creado_en >= ${desdePrev}
+        WHERE estado NOT IN ('PENDIENTE_PAGO', 'CANCELADO') AND creado_en >= ${desdePrev} AND creado_en < ${hastaFin}
       `,
       // Usuarios nuevos: actual vs anterior
       prisma.$queryRaw<Array<{ cur: number; prev: number }>>`
         SELECT
-          COUNT(*) FILTER (WHERE creado_en >= ${desde})::int                                       AS cur,
-          COUNT(*) FILTER (WHERE creado_en >= ${desdePrev} AND creado_en < ${desde})::int           AS prev
-        FROM usuarios WHERE creado_en >= ${desdePrev}
+          COUNT(*) FILTER (WHERE creado_en >= ${desde} AND creado_en < ${hastaFin})::int             AS cur,
+          COUNT(*) FILTER (WHERE creado_en >= ${desdePrev} AND creado_en < ${desde})::int            AS prev
+        FROM usuarios WHERE creado_en >= ${desdePrev} AND creado_en < ${hastaFin}
       `,
       // Serie temporal diaria (ingresos + órdenes)
       prisma.$queryRaw<Array<{ fecha: string; ordenes: number; total: string }>>`
         SELECT to_char(date_trunc('day', creado_en), 'YYYY-MM-DD') AS fecha,
           COUNT(*)::int AS ordenes, COALESCE(SUM(total), 0)::text AS total
         FROM ordenes
-        WHERE estado NOT IN ('PENDIENTE_PAGO', 'CANCELADO') AND creado_en >= ${desde}
+        WHERE estado NOT IN ('PENDIENTE_PAGO', 'CANCELADO') AND creado_en >= ${desde} AND creado_en < ${hastaFin}
         GROUP BY 1 ORDER BY 1 ASC
       `,
       // Distribución por método de pago
       prisma.$queryRaw<Array<{ etiqueta: string; valor: number; monto: string }>>`
         SELECT p.metodo AS etiqueta, COUNT(*)::int AS valor, COALESCE(SUM(o.total), 0)::text AS monto
         FROM ordenes o JOIN pagos p ON p.orden_id = o.id
-        WHERE o.estado NOT IN ('PENDIENTE_PAGO', 'CANCELADO') AND o.creado_en >= ${desde}
+        WHERE o.estado NOT IN ('PENDIENTE_PAGO', 'CANCELADO') AND o.creado_en >= ${desde} AND o.creado_en < ${hastaFin}
         GROUP BY 1 ORDER BY 2 DESC
       `,
       // Distribución por estado de orden (todas las del periodo)
       prisma.$queryRaw<Array<{ etiqueta: string; valor: number; monto: string }>>`
         SELECT estado AS etiqueta, COUNT(*)::int AS valor, COALESCE(SUM(total), 0)::text AS monto
-        FROM ordenes WHERE creado_en >= ${desde} GROUP BY 1 ORDER BY 2 DESC
+        FROM ordenes WHERE creado_en >= ${desde} AND creado_en < ${hastaFin} GROUP BY 1 ORDER BY 2 DESC
       `,
       // Top ciudades por ingresos (del snapshot de dirección)
       prisma.$queryRaw<Array<{ etiqueta: string; valor: number; monto: string }>>`
         SELECT COALESCE(NULLIF(direccion_snapshot->>'ciudad', ''), '—') AS etiqueta,
           COUNT(*)::int AS valor, COALESCE(SUM(total), 0)::text AS monto
         FROM ordenes
-        WHERE estado NOT IN ('PENDIENTE_PAGO', 'CANCELADO') AND creado_en >= ${desde}
+        WHERE estado NOT IN ('PENDIENTE_PAGO', 'CANCELADO') AND creado_en >= ${desde} AND creado_en < ${hastaFin}
         GROUP BY 1 ORDER BY 3 DESC LIMIT 6
       `,
       // Top vendedores por ingresos
@@ -150,17 +168,30 @@ export const adminRepository = {
         SELECT v.nombre_negocio AS "nombreNegocio", COALESCE(SUM(o.total), 0)::text AS ingresos,
           COUNT(*)::int AS ventas, v.rating_promedio::text AS rating
         FROM ordenes o JOIN perfiles_vendedor v ON v.id = o.vendedor_id
-        WHERE o.estado NOT IN ('PENDIENTE_PAGO', 'CANCELADO') AND o.creado_en >= ${desde}
+        WHERE o.estado NOT IN ('PENDIENTE_PAGO', 'CANCELADO') AND o.creado_en >= ${desde} AND o.creado_en < ${hastaFin}
         GROUP BY v.id, v.nombre_negocio, v.rating_promedio
         ORDER BY SUM(o.total) DESC LIMIT 8
+      `,
+      // Comisión ganada por tienda: la fuente de verdad es el LEDGER (movimientos
+      // RETENCION/VENTA guardan la comisión retenida al acreditar cada venta),
+      // no un % teórico — refleja lo realmente cobrado, plan FREE/PRO incluido.
+      prisma.$queryRaw<Array<{ nombre: string; ventas: number; bruto: string; comision: string }>>`
+        SELECT v.nombre_negocio AS nombre, COUNT(*)::int AS ventas,
+          COALESCE(SUM(m.monto + m.comision), 0)::text AS bruto,
+          COALESCE(SUM(m.comision), 0)::text           AS comision
+        FROM movimientos_saldo m
+        JOIN perfiles_vendedor v ON v.id = m.vendedor_id
+        WHERE m.tipo IN ('RETENCION', 'VENTA') AND m.creado_en >= ${desde} AND m.creado_en < ${hastaFin}
+        GROUP BY v.id, v.nombre_negocio
+        ORDER BY SUM(m.comision) DESC LIMIT 10
       `,
     ]);
 
     return {
       kpiOrd: kpiOrdRows[0] ?? { ing_cur: 0, ing_prev: 0, ord_cur: 0, ord_prev: 0 },
       kpiUsr: kpiUsrRows[0] ?? { cur: 0, prev: 0 },
-      serie:  rellenarSerieDiaria(serieRows, dias),
-      porMetodo, porEstado, porCiudad, topVend,
+      serie:  rellenarSerieDiaria(serieRows, dias, desde),
+      porMetodo, porEstado, porCiudad, topVend, comisionVend,
     };
   },
 
@@ -169,19 +200,18 @@ export const adminRepository = {
    * anterior), salud del stock (snapshot actual), SKUs sin ventas y ventas por
    * categoría raíz. Granularidad a nivel de ítem de orden (items_orden).
    */
-  async analiticaProductos(dias: number, prisma: PrismaClient) {
-    const desde     = rangoDesde(dias);
-    const desdePrev = rangoDesde(dias * 2);
+  async analiticaProductos(r: RangoResuelto, prisma: PrismaClient) {
+    const { desde, hastaFin, desdePrev } = r;
 
     const [kpiRows, invRows, sinVentasRows, activosRows, topProductos, porCategoria] = await Promise.all([
       prisma.$queryRaw<Array<{ uni_cur: number; uni_prev: number; ing_cur: number; ing_prev: number }>>`
         SELECT
-          COALESCE(SUM(i.cantidad) FILTER (WHERE o.creado_en >= ${desde}), 0)::int                                       AS uni_cur,
+          COALESCE(SUM(i.cantidad) FILTER (WHERE o.creado_en >= ${desde} AND o.creado_en < ${hastaFin}), 0)::int         AS uni_cur,
           COALESCE(SUM(i.cantidad) FILTER (WHERE o.creado_en >= ${desdePrev} AND o.creado_en < ${desde}), 0)::int        AS uni_prev,
-          COALESCE(SUM(i.subtotal) FILTER (WHERE o.creado_en >= ${desde}), 0)::float8                                    AS ing_cur,
+          COALESCE(SUM(i.subtotal) FILTER (WHERE o.creado_en >= ${desde} AND o.creado_en < ${hastaFin}), 0)::float8      AS ing_cur,
           COALESCE(SUM(i.subtotal) FILTER (WHERE o.creado_en >= ${desdePrev} AND o.creado_en < ${desde}), 0)::float8     AS ing_prev
         FROM items_orden i JOIN ordenes o ON o.id = i.orden_id
-        WHERE o.estado NOT IN ('PENDIENTE_PAGO', 'CANCELADO') AND o.creado_en >= ${desdePrev}
+        WHERE o.estado NOT IN ('PENDIENTE_PAGO', 'CANCELADO') AND o.creado_en >= ${desdePrev} AND o.creado_en < ${hastaFin}
       `,
       prisma.$queryRaw<Array<{ en_stock: number; bajo: number; agotado: number }>>`
         SELECT
@@ -194,7 +224,8 @@ export const adminRepository = {
         SELECT COUNT(*)::int AS n FROM productos pr
         WHERE pr.activo = true AND NOT EXISTS (
           SELECT 1 FROM items_orden i JOIN ordenes o ON o.id = i.orden_id
-          WHERE i.producto_id = pr.id AND o.estado NOT IN ('PENDIENTE_PAGO', 'CANCELADO') AND o.creado_en >= ${desde}
+          WHERE i.producto_id = pr.id AND o.estado NOT IN ('PENDIENTE_PAGO', 'CANCELADO')
+            AND o.creado_en >= ${desde} AND o.creado_en < ${hastaFin}
         )
       `,
       prisma.$queryRaw<Array<{ n: number }>>`SELECT COUNT(*)::int AS n FROM productos WHERE activo = true`,
@@ -204,7 +235,7 @@ export const adminRepository = {
         JOIN ordenes o ON o.id = i.orden_id
         JOIN productos pr ON pr.id = i.producto_id
         JOIN perfiles_vendedor v ON v.id = pr.vendedor_id
-        WHERE o.estado NOT IN ('PENDIENTE_PAGO', 'CANCELADO') AND o.creado_en >= ${desde}
+        WHERE o.estado NOT IN ('PENDIENTE_PAGO', 'CANCELADO') AND o.creado_en >= ${desde} AND o.creado_en < ${hastaFin}
         GROUP BY pr.id, pr.nombre, v.nombre_negocio
         ORDER BY SUM(i.subtotal) DESC LIMIT 10
       `,
@@ -215,7 +246,7 @@ export const adminRepository = {
         JOIN productos pr ON pr.id = i.producto_id
         JOIN categorias c ON c.id = pr.categoria_id
         LEFT JOIN categorias p ON p.id = c.padre_id
-        WHERE o.estado NOT IN ('PENDIENTE_PAGO', 'CANCELADO') AND o.creado_en >= ${desde}
+        WHERE o.estado NOT IN ('PENDIENTE_PAGO', 'CANCELADO') AND o.creado_en >= ${desde} AND o.creado_en < ${hastaFin}
         GROUP BY 1 ORDER BY 3 DESC
       `,
     ]);
@@ -234,22 +265,21 @@ export const adminRepository = {
    * nuevos vs recurrentes, distribución por frecuencia de compra y top clientes por
    * gasto (LTV). Base para entender la fidelización de la base de compradores.
    */
-  async analiticaClientes(dias: number, prisma: PrismaClient) {
-    const desde     = rangoDesde(dias);
-    const desdePrev = rangoDesde(dias * 2);
+  async analiticaClientes(r: RangoResuelto, prisma: PrismaClient) {
+    const { desde, hastaFin, desdePrev } = r;
 
     const [actRows, freqRows, nuevosRows, topClientes] = await Promise.all([
       prisma.$queryRaw<Array<{
         act_cur: number; act_prev: number; gasto_cur: number; gasto_prev: number; ord_cur: number; ord_prev: number;
       }>>`
         SELECT
-          COUNT(DISTINCT comprador_id) FILTER (WHERE creado_en >= ${desde})::int                                     AS act_cur,
+          COUNT(DISTINCT comprador_id) FILTER (WHERE creado_en >= ${desde} AND creado_en < ${hastaFin})::int         AS act_cur,
           COUNT(DISTINCT comprador_id) FILTER (WHERE creado_en >= ${desdePrev} AND creado_en < ${desde})::int        AS act_prev,
-          COALESCE(SUM(total) FILTER (WHERE creado_en >= ${desde}), 0)::float8                                       AS gasto_cur,
+          COALESCE(SUM(total) FILTER (WHERE creado_en >= ${desde} AND creado_en < ${hastaFin}), 0)::float8           AS gasto_cur,
           COALESCE(SUM(total) FILTER (WHERE creado_en >= ${desdePrev} AND creado_en < ${desde}), 0)::float8          AS gasto_prev,
-          COUNT(*) FILTER (WHERE creado_en >= ${desde})::int                                                         AS ord_cur,
+          COUNT(*) FILTER (WHERE creado_en >= ${desde} AND creado_en < ${hastaFin})::int                             AS ord_cur,
           COUNT(*) FILTER (WHERE creado_en >= ${desdePrev} AND creado_en < ${desde})::int                            AS ord_prev
-        FROM ordenes WHERE estado NOT IN ('PENDIENTE_PAGO', 'CANCELADO') AND creado_en >= ${desdePrev}
+        FROM ordenes WHERE estado NOT IN ('PENDIENTE_PAGO', 'CANCELADO') AND creado_en >= ${desdePrev} AND creado_en < ${hastaFin}
       `,
       prisma.$queryRaw<Array<{ f1: number; f2: number; f3: number; f4: number }>>`
         SELECT
@@ -259,7 +289,7 @@ export const adminRepository = {
           COUNT(*) FILTER (WHERE n >= 6)::int            AS f4
         FROM (
           SELECT comprador_id, COUNT(*)::int AS n FROM ordenes
-          WHERE estado NOT IN ('PENDIENTE_PAGO', 'CANCELADO') AND creado_en >= ${desde}
+          WHERE estado NOT IN ('PENDIENTE_PAGO', 'CANCELADO') AND creado_en >= ${desde} AND creado_en < ${hastaFin}
           GROUP BY comprador_id
         ) t
       `,
@@ -269,7 +299,7 @@ export const adminRepository = {
           COUNT(*) FILTER (WHERE primera <  ${desde})::int AS recurrentes
         FROM (
           SELECT comprador_id, MIN(creado_en) AS primera FROM ordenes
-          WHERE estado NOT IN ('PENDIENTE_PAGO', 'CANCELADO')
+          WHERE estado NOT IN ('PENDIENTE_PAGO', 'CANCELADO') AND creado_en < ${hastaFin}
           GROUP BY comprador_id HAVING MAX(creado_en) >= ${desde}
         ) t
       `,
@@ -278,7 +308,7 @@ export const adminRepository = {
           COALESCE(SUM(o.total), 0)::text AS gasto,
           (COALESCE(SUM(o.total), 0) / COUNT(*))::text AS ticket
         FROM ordenes o JOIN perfiles_comprador pc ON pc.id = o.comprador_id
-        WHERE o.estado NOT IN ('PENDIENTE_PAGO', 'CANCELADO') AND o.creado_en >= ${desde}
+        WHERE o.estado NOT IN ('PENDIENTE_PAGO', 'CANCELADO') AND o.creado_en >= ${desde} AND o.creado_en < ${hastaFin}
         GROUP BY pc.id, pc.nombre_completo
         ORDER BY SUM(o.total) DESC LIMIT 10
       `,

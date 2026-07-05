@@ -11,17 +11,20 @@ import {
   BarChart3, Trophy, Star,
 } from "lucide-react";
 import { ANALITICA_ADMIN } from "@/graphql/admin/queries";
+import { PeriodoToolbar, descripcionRango, type RangoReporte } from "./analitica-ui";
 
 // ── Tipos ───────────────────────────────────────────────────────────────────
 interface Kpi { valor: string; delta: number }
 interface SerieDia { fecha: string; ingresos: number; ordenes: number }
 interface Segmento { etiqueta: string; valor: number; monto: string }
 interface TopVend { nombreNegocio: string; ingresos: string; ventas: number; rating: string }
+interface ComisionVend { nombre: string; ventas: number; bruto: string; comision: string; tasa: number }
 interface Analitica {
   ingresos: Kpi; ordenes: Kpi; ticketPromedio: Kpi; comision: Kpi; usuariosNuevos: Kpi;
   serie: SerieDia[];
   porMetodoPago: Segmento[]; porEstado: Segmento[]; porCiudad: Segmento[];
   topVendedores: TopVend[];
+  comisionPorVendedor: ComisionVend[];
 }
 
 // ── Utilidades de formato ────────────────────────────────────────────────────
@@ -42,12 +45,6 @@ const ESTADO_LABEL: Record<string, string> = {
   ENVIADO: "Enviado", ENTREGADO: "Entregado", COMPLETADO: "Completado", CANCELADO: "Cancelado",
 };
 const DONUT_COLORS = ["#4f46e5", "#7c3aed", "#0ea5e9", "#10b981", "#f59e0b", "#f43f5e"];
-
-const PERIODOS = [
-  { dias: 7,  label: "7 días" },
-  { dias: 30, label: "30 días" },
-  { dias: 90, label: "90 días" },
-];
 
 // ── KPI scorecard ────────────────────────────────────────────────────────────
 function KpiCard({ label, valor, delta, icon: Icon, money, index }:
@@ -117,17 +114,16 @@ function BarrasRank({ titulo, icon: Icon, datos, formato }:
 }
 
 // ── Heatmap del valor de una celda (intensidad según el máximo) ──────────────
-function heat(v: number, max: number) {
+function heat(v: number, max: number, rgb = "79, 70, 229") {
   const t = max > 0 ? v / max : 0;
-  // de blanco a indigo según intensidad
   const alpha = 0.08 + t * 0.55;
-  return `rgba(79, 70, 229, ${alpha})`;
+  return `rgba(${rgb}, ${alpha})`;
 }
 
 export default function AnaliticaDashboard() {
-  const [dias, setDias] = useState(30);
+  const [rango, setRango] = useState<RangoReporte>({ dias: 30 });
   const { data, loading } = useQuery<{ analiticaAdmin: Analitica }>(ANALITICA_ADMIN, {
-    variables: { dias }, fetchPolicy: "cache-and-network",
+    variables: { ...rango }, fetchPolicy: "cache-and-network",
   });
   const a = data?.analiticaAdmin;
 
@@ -136,23 +132,8 @@ export default function AnaliticaDashboard() {
 
   return (
     <div className="animate-fade-in">
-      {/* Toolbar: periodo */}
-      <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
-        <p className="text-sm text-slate-500">Métricas de negocio y rendimiento · últimos {dias} días</p>
-        <div className="inline-flex bg-slate-100 rounded-xl p-1">
-          {PERIODOS.map((p) => (
-            <button
-              key={p.dias}
-              onClick={() => setDias(p.dias)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                dias === p.dias ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-800"
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* Toolbar: periodo (presets + rango de fechas) */}
+      <PeriodoToolbar rango={rango} setRango={setRango} texto="Métricas de negocio y rendimiento" />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
@@ -168,7 +149,7 @@ export default function AnaliticaDashboard() {
         <h3 className="text-sm font-bold text-slate-900 mb-1 flex items-center gap-2">
           <TrendingUp className="h-4 w-4 text-indigo-600" /> Ingresos y órdenes por día
         </h3>
-        <p className="text-xs text-slate-400 mb-4">Evolución diaria en los últimos {dias} días</p>
+        <p className="text-xs text-slate-400 mb-4">Evolución diaria {descripcionRango(rango)}</p>
         <div style={{ width: "100%", height: 280 }}>
           {loading && !a ? (
             <div className="h-full w-full skeleton rounded-xl" />
@@ -281,6 +262,51 @@ export default function AnaliticaDashboard() {
                   </td>
                 </tr>
               ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* Comisión ganada por tienda (ganancia real de la plataforma, desde el ledger) */}
+      <div className="bg-white rounded-2xl border border-emerald-200 overflow-hidden mt-6">
+        <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+          <Coins className="h-4 w-4 text-emerald-600" />
+          <div>
+            <h3 className="text-sm font-bold text-slate-900">Comisión ganada por tienda</h3>
+            <p className="text-xs text-slate-400">Lo que la plataforma ganó con cada vendedor {descripcionRango(rango)}</p>
+          </div>
+        </div>
+        {(a?.comisionPorVendedor ?? []).length === 0 ? (
+          <p className="text-sm text-slate-400 py-12 text-center">Sin comisiones registradas en el periodo</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-100 text-left text-xs text-slate-400 uppercase tracking-wide">
+                <th className="px-5 py-2.5 font-semibold">#</th>
+                <th className="px-5 py-2.5 font-semibold">Tienda</th>
+                <th className="px-5 py-2.5 font-semibold text-right">Ventas</th>
+                <th className="px-5 py-2.5 font-semibold text-right">Venta bruta</th>
+                <th className="px-5 py-2.5 font-semibold text-right">Comisión ganada</th>
+                <th className="px-5 py-2.5 font-semibold text-right">% efectivo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(a?.comisionPorVendedor ?? []).map((c, i) => {
+                const maxCom = Math.max(1, ...(a?.comisionPorVendedor ?? []).map((x) => Number(x.comision)));
+                return (
+                  <tr key={c.nombre + i} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                    <td className="px-5 py-3 text-slate-400 font-semibold">{i + 1}</td>
+                    <td className="px-5 py-3 font-medium text-slate-900">{c.nombre}</td>
+                    <td className="px-5 py-3 text-right text-slate-600 tabular-nums">{c.ventas}</td>
+                    <td className="px-5 py-3 text-right text-slate-600 tabular-nums">{fmtBs(c.bruto)}</td>
+                    <td className="px-5 py-3 text-right font-bold text-emerald-700 tabular-nums"
+                        style={{ backgroundColor: heat(Number(c.comision), maxCom, "16, 185, 129") }}>
+                      {fmtBs(c.comision)}
+                    </td>
+                    <td className="px-5 py-3 text-right text-slate-500 tabular-nums">{c.tasa}%</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

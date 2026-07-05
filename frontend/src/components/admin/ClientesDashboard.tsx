@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { Users, Receipt, UserPlus, Repeat, PieChart as PieIcon, BarChart3, Crown } from "lucide-react";
 import { ANALITICA_CLIENTES } from "@/graphql/admin/queries";
-import { KpiCard, Card, Donut3D, PeriodoToolbar, fmtBs, fmtNum, heat } from "./analitica-ui";
+import { KpiCard, Card, Donut3D, PeriodoToolbar, type RangoReporte, fmtBs, fmtNum, heat } from "./analitica-ui";
 
 interface Kpi { valor: string; delta: number }
 interface TopCli { nombre: string; ordenes: number; gasto: string; ticket: string }
@@ -20,9 +20,9 @@ interface Data {
 const FREQ_COLORS = ["#0ea5e9", "#4f46e5", "#7c3aed", "#f59e0b"];
 
 export default function ClientesDashboard() {
-  const [dias, setDias] = useState(30);
+  const [rango, setRango] = useState<RangoReporte>({ dias: 30 });
   const { data, loading } = useQuery<{ analiticaClientes: Data }>(ANALITICA_CLIENTES, {
-    variables: { dias }, fetchPolicy: "cache-and-network",
+    variables: { ...rango }, fetchPolicy: "cache-and-network",
   });
   const a = data?.analiticaClientes;
 
@@ -40,7 +40,7 @@ export default function ClientesDashboard() {
 
   return (
     <div className="animate-fade-in">
-      <PeriodoToolbar dias={dias} setDias={setDias} texto="Comportamiento y fidelización de la base de compradores" />
+      <PeriodoToolbar rango={rango} setRango={setRango} texto="Comportamiento y fidelización de la base de compradores" />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <KpiCard index={0} label="Clientes activos" valor={a?.clientesActivos.valor ?? "0"} delta={a?.clientesActivos.delta ?? 0} icon={Users} />
