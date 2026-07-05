@@ -5,8 +5,13 @@ import { X, Camera, Keyboard, Loader2, ScanLine } from "lucide-react";
 
 /**
  * Escáner del QR del paquete (flujo de recojo). Responsabilidad única: capturar
- * un código (cámara vía BarcodeDetector, o ingreso manual como respaldo) y
- * entregarlo al padre. No conoce órdenes ni mutaciones (inversión de dependencias).
+ * un código y entregarlo al padre (no conoce órdenes ni mutaciones).
+ *
+ * Motor de decodificación dual:
+ *  - BarcodeDetector nativo cuando existe (Android/ChromeOS/macOS — más rápido).
+ *  - jsQR (JS puro, import dinámico) en el resto — p. ej. Chrome/Edge en Windows,
+ *    donde la API nativa no está disponible. La cámara solo requiere getUserMedia.
+ *  - Respaldo final: ingreso manual del código impreso bajo el QR.
  */
 interface Props {
   onCodigo: (codigo: string) => void; // se invoca UNA vez con el código capturado
@@ -14,7 +19,7 @@ interface Props {
   procesando: boolean;                // el padre está validando con el backend
 }
 
-// BarcodeDetector aún no está en los tipos de TS de todos los targets
+// BarcodeDetector aún no está en los tipos estándar de TS
 interface DetectorQR {
   detect(source: CanvasImageSource): Promise<Array<{ rawValue: string }>>;
 }
@@ -24,6 +29,10 @@ declare global {
   }
 }
 
+// Ancho máximo del frame que analiza jsQR: decodificar a resolución completa
+// (p. ej. 1920px) satura CPU sin mejorar la lectura de un QR grande y cercano.
+const ANCHO_ANALISIS = 640;
+
 export function QrScannerRecojo({ onCodigo, onClose, procesando }: Props) {
   const videoRef  = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -32,8 +41,8 @@ export function QrScannerRecojo({ onCodigo, onClose, procesando }: Props) {
   const [manual, setManual] = useState(false);
   const [codigoManual, setCodigoManual] = useState("");
 
-  const soportaCamara =
-    typeof window !== "undefined" && !!window.BarcodeDetector && !!navigator.mediaDevices?.getUserMedia;
+  // Única condición para usar cámara: que el navegador la exponga (HTTPS)
+  const soportaCamara = typeof window !== "undefined" && !!navigator.mediaDevices?.getUserMedia;
 
   useEffect(() => {
     if (!soportaCamara || manual) return;
@@ -51,15 +60,38 @@ export function QrScannerRecojo({ onCodigo, onClose, procesando }: Props) {
           videoRef.current.srcObject = stream;
           await videoRef.current.play();
         }
-        const detector = new window.BarcodeDetector!({ formats: ["qr_code"] });
+
+        // Estrategia de decodificación: nativa si existe, jsQR si no
+        const nativo = window.BarcodeDetector ? new window.BarcodeDetector({ formats: ["qr_code"] }) : null;
+        const jsqr   = nativo ? null : (await import("jsqr")).default;
+        const canvas = document.createElement("canvas");
+        const ctx    = canvas.getContext("2d", { willReadFrequently: true });
+
+        const leerFrame = async (): Promise<string | null> => {
+          const video = videoRef.current;
+          if (!video || video.readyState < 2 || !video.videoWidth) return null;
+          if (nativo) {
+            const codes = await nativo.detect(video);
+            return codes[0]?.rawValue?.trim() || null;
+          }
+          if (!jsqr || !ctx) return null;
+          const escala = Math.min(1, ANCHO_ANALISIS / video.videoWidth);
+          const w = Math.round(video.videoWidth * escala);
+          const h = Math.round(video.videoHeight * escala);
+          canvas.width = w; canvas.height = h;
+          ctx.drawImage(video, 0, 0, w, h);
+          const img = ctx.getImageData(0, 0, w, h);
+          const code = jsqr(img.data, w, h, { inversionAttempts: "dontInvert" });
+          return code?.data?.trim() || null;
+        };
+
         let ultimoScan = 0;
         const loop = async (t: number) => {
           if (!activo || detectado.current) return;
-          if (t - ultimoScan > 250 && videoRef.current && videoRef.current.readyState >= 2) {
+          if (t - ultimoScan > 250) {
             ultimoScan = t;
             try {
-              const codes = await detector.detect(videoRef.current);
-              const valor = codes[0]?.rawValue?.trim();
+              const valor = await leerFrame();
               if (valor && !detectado.current) {
                 detectado.current = true;
                 onCodigo(valor);
@@ -71,7 +103,7 @@ export function QrScannerRecojo({ onCodigo, onClose, procesando }: Props) {
         };
         rafId = requestAnimationFrame(loop);
       } catch {
-        setError("No se pudo acceder a la cámara. Puedes ingresar el código manualmente.");
+        setError("No se pudo acceder a la cámara (revisa el permiso del navegador). Puedes ingresar el código manualmente.");
       }
     })();
 
@@ -118,7 +150,7 @@ export function QrScannerRecojo({ onCodigo, onClose, procesando }: Props) {
         ) : (
           <div className="p-5">
             <p className="text-xs text-slate-500 mb-3">
-              {error ?? "Tu navegador no soporta el escaneo con cámara."} Ingresa el código de 6 dígitos
+              {error ?? "Tu navegador no permite usar la cámara."} Ingresa el código de 6 dígitos
               impreso debajo del QR de tu paquete:
             </p>
             <div className="flex gap-2">
@@ -147,8 +179,11 @@ export function QrScannerRecojo({ onCodigo, onClose, procesando }: Props) {
             <button onClick={() => setManual(true)} className="text-xs font-semibold text-slate-500 hover:text-slate-700 flex items-center gap-1.5">
               <Keyboard className="h-3.5 w-3.5" /> Ingresar código manualmente
             </button>
-          ) : soportaCamara && !error ? (
-            <button onClick={() => { setManual(false); }} className="text-xs font-semibold text-slate-500 hover:text-slate-700 flex items-center gap-1.5">
+          ) : soportaCamara ? (
+            <button
+              onClick={() => { setManual(false); setError(null); detectado.current = false; }}
+              className="text-xs font-semibold text-slate-500 hover:text-slate-700 flex items-center gap-1.5"
+            >
               <Camera className="h-3.5 w-3.5" /> Usar la cámara
             </button>
           ) : <span />}
