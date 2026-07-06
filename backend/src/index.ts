@@ -8,6 +8,7 @@ import Stripe from "stripe";
 
 import { env } from "./config/env.js";
 import { corsPlugin } from "./plugins/cors.plugin.js";
+import helmet from "@fastify/helmet";
 import { rateLimitPlugin } from "./plugins/rate-limit.plugin.js";
 import { ofertasRepository } from "./modules/ofertas/ofertas.repository.js";
 import { schema as typeDefs } from "./graphql/schema.js";
@@ -43,6 +44,9 @@ async function bootstrap() {
 
   await app.register(corsPlugin);
   await app.register(rateLimitPlugin);
+  // Security headers (X-Content-Type-Options, X-Frame-Options, HSTS, etc.).
+  // CSP desactivada: rompería GraphiQL y este backend solo sirve la API.
+  await app.register(helmet, { contentSecurityPolicy: false });
 
   // Observa errores a nivel HTTP sin alterar la respuesta (los reporta a Sentry)
   app.addHook("onError", async (req, _reply, err) => {
@@ -86,12 +90,17 @@ async function bootstrap() {
     context: ({ req, extra }): NexComContext => {
       // Conexión WebSocket (subscriptions): el usuario ya fue resuelto en onConnect
       if (extra?.user !== undefined) {
-        return { user: extra.user, prisma, redis, stripe };
+        return { user: extra.user, ip: null, prisma, redis, stripe };
       }
-      const authHeader = (req as any)?.headers?.authorization as string | undefined;
+      const headers = (req as any)?.headers as Record<string, string | undefined> | undefined;
+      const authHeader = headers?.authorization;
       const token = extractBearerToken(authHeader);
       const user  = token ? verifyAccessToken(token) : null;
-      return { user, prisma, redis, stripe };
+      // IP real del cliente: detrás de Railway/proxies viene en x-forwarded-for
+      const ip = headers?.["x-forwarded-for"]?.split(",")[0]?.trim()
+        ?? ((req as any)?.ip as string | undefined)
+        ?? null;
+      return { user, ip, prisma, redis, stripe };
     },
   });
 

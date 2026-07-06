@@ -6,6 +6,7 @@ import { Ticket, Loader2, Plus, Globe, Store, Power } from "lucide-react";
 import { toast } from "sonner";
 import { CUPONES_ADMIN } from "@/graphql/cupones/queries";
 import { CREAR_CUPON, DESACTIVAR_CUPON } from "@/graphql/cupones/mutations";
+import { DatePickerInput } from "@/components/ui/DateRangePicker";
 
 interface Cupon {
   id: string; codigo: string; tipo: string; valor: string; montoMinimo: string | null;
@@ -128,10 +129,14 @@ export default function AdminCuponesPage() {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <label className="text-xs text-slate-500">Desde
-                  <input type="date" value={form.fechaInicio} onChange={(e) => setForm((f) => ({ ...f, fechaInicio: e.target.value }))} className={inputCls} />
+                  <div className="mt-1">
+                    <DatePickerInput value={form.fechaInicio} onChange={(v) => setForm((f) => ({ ...f, fechaInicio: v }))} />
+                  </div>
                 </label>
                 <label className="text-xs text-slate-500">Hasta
-                  <input type="date" value={form.fechaFin} onChange={(e) => setForm((f) => ({ ...f, fechaFin: e.target.value }))} className={inputCls} />
+                  <div className="mt-1">
+                    <DatePickerInput value={form.fechaFin} onChange={(v) => setForm((f) => ({ ...f, fechaFin: v }))} />
+                  </div>
                 </label>
               </div>
               <button type="submit" disabled={creando}

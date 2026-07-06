@@ -2,8 +2,10 @@ import type { FastifyInstance } from "fastify";
 import cors from "@fastify/cors";
 import { env } from "../config/env.js";
 
-const VERCEL_PATTERN = /^https:\/\/.*\.vercel\.app$/;
-const RAILWAY_PATTERN = /^https:\/\/.*\.railway\.app$/;
+// Solo previews del PROPIO proyecto en Vercel (nex-com-*): permitir cualquier
+// *.vercel.app dejaría que un tercero despliegue allí y llame a la API desde
+// el navegador. El origen exacto de producción entra por FRONTEND_URL.
+const VERCEL_PATTERN = /^https:\/\/nex-com[a-z0-9-]*\.vercel\.app$/;
 
 export async function corsPlugin(app: FastifyInstance) {
   await app.register(cors, {
@@ -13,7 +15,6 @@ export async function corsPlugin(app: FastifyInstance) {
       if (
         origin === env.FRONTEND_URL ||
         VERCEL_PATTERN.test(origin) ||
-        RAILWAY_PATTERN.test(origin) ||
         origin === "http://localhost:3000"
       ) {
         cb(null, true);

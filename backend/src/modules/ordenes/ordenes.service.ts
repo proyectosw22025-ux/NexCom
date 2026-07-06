@@ -21,12 +21,17 @@ const OTP_RECOJO_TTL_MS = 10 * 60 * 1000; // 10 min
 // Cierre automático: días tras la ENTREGA para pasar a COMPLETADO (finalizada)
 const DIAS_CIERRE_ORDEN = 7;
 
+// Protección al comprador: días máximos en PAGADO/EN_PREPARACION sin que el
+// vendedor envíe antes de cancelar y reembolsar automáticamente la garantía.
+const DIAS_CANCELACION_SIN_ENVIO = 7;
+
 function bad(msg: string) {
   return new GraphQLError(msg, { extensions: { code: "BAD_USER_INPUT" } });
 }
 
 export const ordenesService = {
   async getMisOrdenes(compradorId: string, prisma: PrismaClient) {
+    await this._cancelarOrdenesSinEnvio({ compradorId }, prisma);
     await this._cerrarOrdenesEntregadas({ compradorId }, prisma);
     return ordenesRepository.findByComprador(compradorId, prisma);
   },
@@ -41,6 +46,7 @@ export const ordenesService = {
 
   async getOrdenesVendedor(vendedorId: string, prisma: PrismaClient) {
     await this._procesarAutoLiberaciones(vendedorId, prisma);
+    await this._cancelarOrdenesSinEnvio({ vendedorId }, prisma);
     await this._cerrarOrdenesEntregadas({ vendedorId }, prisma);
     return ordenesRepository.findByVendedor(vendedorId, prisma);
   },
@@ -238,6 +244,52 @@ export const ordenesService = {
     for (const o of vencidas) {
       await ordenesRepository.marcarEntregada(o.id, "system", prisma);
       await this._liberar(vendedorId, o.id, null, "LIBERACION_AUTO", prisma);
+    }
+  },
+
+  /**
+   * Protección al comprador (reverso de la auto-liberación): órdenes que llevan
+   * más de N días en PAGADO/EN_PREPARACION sin que el vendedor las envíe se
+   * CANCELAN automáticamente — reembolso desde el escrow (revierte la retención,
+   * el vendedor no recibe nada), restitución de stock, auditoría y avisos.
+   * Perezoso al listar órdenes; se salta las que tienen disputa abierta.
+   */
+  async _cancelarOrdenesSinEnvio(
+    filtro: { compradorId?: string; vendedorId?: string }, prisma: PrismaClient,
+  ) {
+    const limite = new Date(Date.now() - DIAS_CANCELACION_SIN_ENVIO * 86_400_000);
+    const vencidas = await prisma.orden.findMany({
+      where: {
+        ...filtro, estado: { in: ["PAGADO", "EN_PREPARACION"] },
+        disputaAbierta: false, fondosLiberadosEn: null, creadoEn: { lte: limite },
+      },
+      select: {
+        id: true, vendedorId: true, compradorId: true, estado: true, total: true,
+        items: { select: { productoId: true, cantidad: true } },
+      },
+    });
+
+    for (const o of vencidas) {
+      await prisma.$transaction(async (tx) => {
+        await tx.orden.update({ where: { id: o.id }, data: { estado: "CANCELADO" } });
+        await tx.historialEstadoOrden.create({
+          data: { ordenId: o.id, estadoAnterior: o.estado as never, estadoNuevo: "CANCELADO",
+            cambiadoPorId: "system", notas: "Cancelación automática: el vendedor no envió a tiempo" },
+        });
+        for (const it of o.items) {
+          await tx.producto.update({ where: { id: it.productoId }, data: { stock: { increment: it.cantidad } } });
+        }
+      });
+      // Reembolso desde el escrow (idempotente — revierte la retención exacta)
+      await saldosService.registrarReembolso(o.vendedorId, o.id, prisma);
+      await prisma.eventoSeguridad.create({
+        data: { tipo: "CANCELACION_AUTO_SIN_ENVIO", ordenId: o.id, metadata: { total: o.total.toString() } },
+      });
+      await this._notificarComprador(
+        o.compradorId, o.id, "ORDEN_CANCELADA", "Pedido cancelado y reembolsado",
+        `Tu orden #${o.id.slice(-6).toUpperCase()} fue cancelada porque el vendedor no la envió a tiempo. Tu pago protegido fue reembolsado.`,
+        prisma,
+      );
     }
   },
 

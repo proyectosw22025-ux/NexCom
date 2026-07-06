@@ -139,14 +139,19 @@ export const saldosService = {
       throw bad("Tu cuenta debe estar verificada por la plataforma antes de retirar. Contacta a soporte.");
     }
 
-    const saldo = await this.getSaldo(vendedorId, prisma);
-    if (monto.gt(new Decimal(saldo.disponible))) {
-      throw bad(`El monto supera tu saldo disponible (Bs. ${saldo.disponible}).`);
-    }
-
-    const retiro = await saldosRepository.crearRetiro(
-      { vendedorId, monto: monto.toString(), banco, numeroCuenta, titular }, prisma,
-    );
+    // Chequeo de saldo + creación ATÓMICOS: el lock consultivo por vendedor
+    // serializa retiros concurrentes — dos solicitudes simultáneas ya no pueden
+    // pasar ambas la verificación y retirar más del disponible (check-then-act).
+    const retiro = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${vendedorId}))`;
+      const saldo = await this.getSaldo(vendedorId, tx as PrismaClient);
+      if (monto.gt(new Decimal(saldo.disponible))) {
+        throw bad(`El monto supera tu saldo disponible (Bs. ${saldo.disponible}).`);
+      }
+      return saldosRepository.crearRetiro(
+        { vendedorId, monto: monto.toString(), banco, numeroCuenta, titular }, tx as PrismaClient,
+      );
+    });
     // Auditoría de seguridad (acción sensible sobre fondos)
     try {
       await prisma.eventoSeguridad.create({

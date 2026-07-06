@@ -1,6 +1,7 @@
 import { GraphQLError } from "graphql";
 import type { NexComContext } from "../../shared/types/context.type.js";
 import { requireAuth, requireRole } from "../../shared/guards.js";
+import { registroPermitido } from "../../shared/login-throttle.js";
 import * as service from "./auth.service.js";
 
 export const authResolvers = {
@@ -47,6 +48,13 @@ export const authResolvers = {
       { input }: { input: Record<string, unknown> },
       ctx: NexComContext
     ) => {
+      // Anti-spam de cuentas: máx. 5 registros/hora por IP (fail-open si Redis cae)
+      if (!(await registroPermitido(ctx.ip))) {
+        throw new GraphQLError(
+          "Se crearon demasiadas cuentas desde esta conexión. Intenta más tarde.",
+          { extensions: { code: "TOO_MANY_REQUESTS" } },
+        );
+      }
       const dispositivo = "web";
       return service.register(input, ctx.prisma, dispositivo);
     },

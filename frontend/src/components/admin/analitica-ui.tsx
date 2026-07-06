@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
 import { TrendingUp, TrendingDown, CalendarRange } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { DateRangePicker } from "@/components/ui/DateRangePicker";
 
 // ── Formato ──────────────────────────────────────────────────────────────────
 export const fmtBs = (v: string | number) =>
@@ -33,10 +34,10 @@ export function descripcionRango(r: RangoReporte): string {
 export function PeriodoToolbar({ rango, setRango, texto }:
   { rango: RangoReporte; setRango: (r: RangoReporte) => void; texto: string }) {
   const [abierto, setAbierto] = useState(false);       // panel de fechas visible
-  const [desde, setDesde] = useState(rango.desde ?? "");
-  const [hasta, setHasta] = useState(rango.hasta ?? "");
+  const [desde, setDesde] = useState<string | null>(rango.desde ?? null);
+  const [hasta, setHasta] = useState<string | null>(rango.hasta ?? null);
   const hoy = new Date().toISOString().slice(0, 10);
-  const rangoValido = !!desde && !!hasta && desde <= hasta;
+  const rangoValido = !!desde && !!hasta;
 
   return (
     <div className="mb-6">
@@ -61,27 +62,23 @@ export function PeriodoToolbar({ rango, setRango, texto }:
       </div>
 
       {abierto && (
-        <div className="animate-scale-in origin-top-right mt-3 flex items-end justify-end gap-2 flex-wrap">
-          <label className="text-xs text-slate-500">
-            Desde
-            <input type="date" value={desde} max={hasta || hoy} onChange={(e) => setDesde(e.target.value)}
-              className="block mt-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700
-                         focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400" />
-          </label>
-          <label className="text-xs text-slate-500">
-            Hasta
-            <input type="date" value={hasta} min={desde} max={hoy} onChange={(e) => setHasta(e.target.value)}
-              className="block mt-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700
-                         focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400" />
-          </label>
-          <button
-            onClick={() => { if (rangoValido) { setRango({ desde, hasta }); setAbierto(false); } }}
-            disabled={!rangoValido}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white
-                       text-xs font-semibold rounded-xl transition-colors"
-          >
-            Aplicar
-          </button>
+        <div className="animate-scale-in origin-top-right mt-3 flex flex-col items-end gap-2">
+          <DateRangePicker desde={desde} hasta={hasta} max={hoy} onChange={(d, h) => { setDesde(d); setHasta(h); }} />
+          <div className="flex items-center gap-2">
+            {(desde || hasta) && (
+              <span className="text-xs text-slate-500">
+                {desde ? fmtDiaCorto(desde) : "…"} → {hasta ? fmtDiaCorto(hasta) : "…"}
+              </span>
+            )}
+            <button
+              onClick={() => { if (rangoValido) { setRango({ desde: desde!, hasta: hasta! }); setAbierto(false); } }}
+              disabled={!rangoValido}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white
+                         text-xs font-semibold rounded-xl transition-colors"
+            >
+              Aplicar
+            </button>
+          </div>
         </div>
       )}
     </div>

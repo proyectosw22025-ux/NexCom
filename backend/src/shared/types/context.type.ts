@@ -11,6 +11,7 @@ export interface UsuarioJWT {
 
 export interface NexComContext {
   user:   UsuarioJWT | null; // null si la petición no tiene JWT válido
+  ip:     string | null;     // IP del cliente (throttling de acciones anónimas)
   prisma: PrismaClient;
   redis:  Redis;
   stripe: Stripe;

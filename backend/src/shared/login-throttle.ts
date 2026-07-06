@@ -51,4 +51,22 @@ export async function limpiarFallos(email: string): Promise<void> {
   }
 }
 
-export const _config = { MAX_FALLOS, VENTANA_S, BLOQUEO_S };
+// ── Throttle de REGISTRO por IP (anti-spam de cuentas) ───────────────────────
+// Con la verificación por correo desactivada, crear cuentas es instantáneo;
+// este límite evita la creación masiva desde una misma IP. Fail-open.
+const REG_MAX       = 5;
+const REG_VENTANA_S = 60 * 60; // 1 hora
+
+export async function registroPermitido(ip: string | null): Promise<boolean> {
+  if (!ip) return true; // sin IP identificable no se puede acotar — no bloquear
+  try {
+    const k = `reg-ip:${ip}`;
+    const n = await redis.incr(k);
+    if (n === 1) await redis.expire(k, REG_VENTANA_S);
+    return n <= REG_MAX;
+  } catch {
+    return true; // fail-open
+  }
+}
+
+export const _config = { MAX_FALLOS, VENTANA_S, BLOQUEO_S, REG_MAX, REG_VENTANA_S };

@@ -248,12 +248,20 @@ export const pagosRepository = {
     descuento: Decimal,
     prisma: PrismaClient,
   ) {
+    // Reclamar el cupo de forma ATÓMICA y condicional (mismo patrón que el stock):
+    // el UPDATE solo aplica si aún quedan usos disponibles. Dos checkouts
+    // concurrentes con el último cupo ya no exceden el límite (check-then-act).
+    const filas = await prisma.$executeRaw`
+      UPDATE cupones SET usos_actuales = usos_actuales + 1
+      WHERE id = ${cuponId} AND (max_usos IS NULL OR usos_actuales < max_usos)
+    `;
+    if (filas === 0) {
+      throw new GraphQLError("El cupón alcanzó su límite de usos.", {
+        extensions: { code: "BAD_USER_INPUT" },
+      });
+    }
     await prisma.usoCupon.create({
       data: { cuponId, ordenId, usuarioId, descuento },
-    });
-    await prisma.cupon.update({
-      where: { id: cuponId },
-      data:  { usosActuales: { increment: 1 } },
     });
   },
 

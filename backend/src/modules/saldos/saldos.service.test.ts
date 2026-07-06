@@ -24,7 +24,12 @@ vi.mock("./saldos.repository.js", () => ({
 }));
 vi.mock("../../shared/pubsub.js", () => ({ publishNotificacion: vi.fn() }));
 
-const prisma = {} as PrismaClient;
+// Stub con $transaction pass-through (solicitarRetiro es atómico): tx === prisma,
+// así las aserciones sobre los mocks del repositorio siguen recibiendo `prisma`.
+const prisma = {
+  $transaction: async (fn: (tx: unknown) => unknown) => fn(prisma),
+  $executeRaw:  async () => 0, // pg_advisory_xact_lock (no-op en tests)
+} as unknown as PrismaClient;
 
 describe("saldosService.registrarRetencion (escrow, comisión por plan)", () => {
   beforeEach(() => vi.clearAllMocks());
