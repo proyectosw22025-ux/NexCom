@@ -8,8 +8,13 @@ import { QrCode, Landmark, Loader2, CheckCircle, Copy, CreditCard, ShieldCheck }
 import { toast } from "sonner";
 import { CONFIRMAR_PAGO_SIMULADO } from "@/graphql/pagos/mutations";
 import { CheckoutStepper } from "@/components/checkout/CheckoutStepper";
+import { StripeRealForm } from "@/components/pagos/StripeRealForm";
 
-interface CheckoutData { ordenIds: string[]; metodoPago: string; total: string }
+interface CheckoutData {
+  ordenIds?: string[]; metodoPago: string; total: string;
+  // Camino Stripe REAL: la orden la crea crearPaymentIntent en esta pantalla
+  real?: boolean; direccionId?: string; cuponCodigo?: string | null;
+}
 
 // Datos bancarios de demostración (simulado)
 const CUENTA = {
@@ -34,7 +39,7 @@ export default function PagoPage() {
   }, [router]);
 
   async function handleConfirmar() {
-    if (!data) return;
+    if (!data?.ordenIds?.length) return;
     try {
       await confirmarPago({ variables: { ordenIds: data.ordenIds } });
       sessionStorage.removeItem("nexcom_checkout");
@@ -76,8 +81,9 @@ export default function PagoPage() {
 
   const esQR = data.metodoPago === "qr";
   const esTarjeta = data.metodoPago === "tarjeta";
+  const esStripeReal = esTarjeta && data.real === true && !!data.direccionId;
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
-    `NEXCOM-PAGO|orden:${data.ordenIds[0]}|monto:${data.total}|moneda:BOB`,
+    `NEXCOM-PAGO|orden:${data.ordenIds?.[0] ?? ""}|monto:${data.total}|moneda:BOB`,
   )}`;
 
   function formatearNumero(v: string) {
@@ -106,7 +112,12 @@ export default function PagoPage() {
         <p className="text-sm text-slate-400 mt-1">Monto a pagar: <span className="font-bold text-slate-700">Bs. {data.total}</span></p>
       </div>
 
-      {esTarjeta ? (
+      {esStripeReal ? (
+        /* Pago REAL con Stripe Elements (la tarjeta vive en el iframe de Stripe) */
+        <div className="bg-white rounded-2xl border border-slate-200 p-6">
+          <StripeRealForm direccionId={data.direccionId!} cuponCodigo={data.cuponCodigo ?? null} />
+        </div>
+      ) : esTarjeta ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-6">
           {/* Aviso inequívoco de modo demo */}
           <div className="flex items-start gap-2 mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200">

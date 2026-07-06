@@ -17,6 +17,10 @@ import prisma from "./shared/prisma.client.js";
 import redis from "./shared/redis.client.js";
 import { extractBearerToken, verifyAccessToken } from "./shared/jwt.util.js";
 import { publishNotificacion } from "./shared/pubsub.js";
+import { saldosService } from "./modules/saldos/saldos.service.js";
+import { fidelidadService } from "./modules/fidelidad/fidelidad.service.js";
+import { generarCodigoEntrega } from "./shared/codigo-entrega.util.js";
+import { Decimal } from "decimal.js";
 import { startEmailWorker } from "./shared/email.worker.js";
 import { runWithLock } from "./shared/lock.util.js";
 import { registrarOperacion } from "./shared/metrics.js";
@@ -257,6 +261,23 @@ async function bootstrap() {
               creadoEn: notif.creadoEn.toISOString(),
             });
           }
+
+          // Compra Protegida — mismo tratamiento que el camino simulado
+          // (_confirmarOrden): el pago real también RETIENE en garantía, genera
+          // el QR del paquete y acredita fidelidad. Todo idempotente por orden.
+          await saldosService.registrarRetencion(
+            orden.vendedorId, orden.id, orden.total.toString(), orden.vendedor.plan ?? "FREE", prisma,
+          );
+          if (!orden.codigoEntrega) {
+            await prisma.orden.update({ where: { id: orden.id }, data: { codigoEntrega: generarCodigoEntrega() } });
+          }
+          if (orden.puntosUsados > 0) {
+            await fidelidadService.registrarCanje(orden.compradorId, orden.id, orden.puntosUsados, prisma);
+          }
+          const gastoNeto = new Decimal(orden.subtotal.toString())
+            .minus(orden.descuentoCupon.toString())
+            .minus(orden.descuentoPuntos.toString());
+          await fidelidadService.registrarGanados(orden.compradorId, orden.id, gastoNeto, prisma);
         }
       } else if (event.type === "payment_intent.payment_failed") {
         const intent = event.data.object as Stripe.PaymentIntent;

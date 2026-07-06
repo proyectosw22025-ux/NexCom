@@ -11,6 +11,7 @@ import { VALIDAR_CUPON } from "@/graphql/cupones/mutations";
 import { CREAR_ORDEN_SIMULADA } from "@/graphql/pagos/mutations";
 import { MIS_PUNTOS } from "@/graphql/fidelidad";
 import { puntosDeRetiro } from "@/lib/puntos-retiro";
+import { stripeHabilitado } from "@/lib/stripe";
 import { ApolloError } from "@apollo/client";
 import {
   MapPin, Plus, Tag, ShoppingBag, ChevronRight, Loader2, CheckCircle, X,
@@ -150,6 +151,18 @@ export default function CheckoutPage() {
   async function handleRealizarPedido() {
     if (!direccionId) { toast.error("Selecciona una dirección de envío."); return; }
     if (items.length === 0) { toast.error("Tu carrito está vacío."); return; }
+
+    // Stripe REAL habilitado + tarjeta: la orden la crea crearPaymentIntent en la
+    // pantalla de pago (no duplicar con la simulada). El webhook confirma el cobro.
+    if (metodoPago === "tarjeta" && stripeHabilitado) {
+      sessionStorage.setItem("nexcom_checkout", JSON.stringify({
+        real: true, metodoPago, total: total.toFixed(2),
+        direccionId, cuponCodigo: cuponAplicado?.codigo ?? null,
+      }));
+      router.push("/checkout/pago");
+      return;
+    }
+
     setCreandoPago(true);
     try {
       const { data } = await crearOrdenSimulada({
