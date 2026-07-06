@@ -163,6 +163,22 @@ comprador (abrir+evidencia) · UI admin (cola de mediación) · tests. **PENDIEN
 
 ---
 
+## 3b. RONDA DE AUDITORÍA (jul 2026) — ✅ HECHA
+
+Hallazgos de la auditoría de seguridad implementados (roles AppSec / Trust & Safety):
+1. ✅ **Retiros atómicos**: chequeo de saldo + creación en transacción con
+   `pg_advisory_xact_lock` por vendedor (eliminada la carrera de doble retiro).
+2. ✅ **Auto-cancelación de órdenes sin envío**: >7 días en PAGADO/EN_PREPARACION →
+   CANCELADO + reembolso desde escrow + restock + auditoría + aviso al comprador.
+3. ✅ **Security headers** (`@fastify/helmet`, CSP off por GraphiQL).
+4. ✅ **CORS restrictivo**: solo `nex-com-*.vercel.app` + FRONTEND_URL.
+5. ✅ **Throttle de registro**: máx 5 cuentas/hora por IP (Redis, fail-open).
+6. ✅ **Cupones atómicos**: cupo reclamado con UPDATE condicional.
+
+También: **Stripe real** integrado (Elements + PaymentIntent + webhook) con toggle por
+`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`; el webhook ahora aplica el escrow completo
+(retención + QR del paquete + fidelidad). Sin la clave, sigue el modo demo.
+
 ## 4. ÉPICA 3 — Seguridad de cuenta y plataforma  *(endurecimiento)* — 🟡 PARCIAL
 
 - ✅ **Throttling de login por cuenta** (Redis): 5 fallos/15min → bloqueo 15min; complementa
