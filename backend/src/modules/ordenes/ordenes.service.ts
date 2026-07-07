@@ -236,14 +236,48 @@ export const ordenesService = {
    * (ni disputa) se entregan y liberan automáticamente, para no dejar fondos atrapados.
    * Verificación perezosa al leer las órdenes del vendedor (O(vencidas)).
    */
-  async _procesarAutoLiberaciones(vendedorId: string, prisma: PrismaClient) {
+  async _procesarAutoLiberaciones(vendedorId: string | null, prisma: PrismaClient) {
     const vencidas = await prisma.orden.findMany({
-      where:  { vendedorId, estado: "ENVIADO", fondosLiberadosEn: null, disputaAbierta: false, autoLiberaEn: { lte: new Date() } },
-      select: { id: true },
+      where:  {
+        ...(vendedorId ? { vendedorId } : {}),
+        estado: "ENVIADO", fondosLiberadosEn: null, disputaAbierta: false, autoLiberaEn: { lte: new Date() },
+      },
+      select: { id: true, vendedorId: true },
     });
     for (const o of vencidas) {
       await ordenesRepository.marcarEntregada(o.id, "system", prisma);
-      await this._liberar(vendedorId, o.id, null, "LIBERACION_AUTO", prisma);
+      await this._liberar(o.vendedorId, o.id, null, "LIBERACION_AUTO", prisma);
+    }
+  },
+
+  /**
+   * Barrido GLOBAL del escrow (cron): garantiza que la liberación, cancelación
+   * por no-envío, cierre de órdenes y vencimiento del plan PRO ocurran aunque
+   * nadie abra la app (antes eran perezosos al listar → un comprador que no
+   * entraba nunca recibía su reembolso). Se ejecuta bajo lock distribuido.
+   */
+  async barridoEscrow(prisma: PrismaClient) {
+    await this._procesarAutoLiberaciones(null, prisma);
+    await this._cancelarOrdenesSinEnvio({}, prisma);
+    await this._cerrarOrdenesEntregadas({}, prisma);
+
+    // Vencimiento del plan PRO: degradar a FREE al terminar el periodo pagado
+    const vencidos = await prisma.perfilVendedor.findMany({
+      where:  { plan: "PRO", planVenceEn: { lte: new Date() } },
+      select: { id: true, usuarioId: true },
+    });
+    for (const v of vencidos) {
+      await prisma.perfilVendedor.update({ where: { id: v.id }, data: { plan: "FREE", planVenceEn: null } });
+      try {
+        const n = await prisma.notificacion.create({
+          data: { usuarioId: v.usuarioId, tipo: "PLAN_VENCIDO", titulo: "Tu plan PRO venció",
+            mensaje: "Volviste al plan FREE (comisión 10%). Renueva PRO desde tu panel para mantener el 5%.", url: "/vendedor/plan" },
+        });
+        publishNotificacion(v.usuarioId, {
+          id: n.id, tipo: n.tipo, titulo: n.titulo, mensaje: n.mensaje,
+          leido: n.leido, url: n.url, ordenId: n.ordenId, creadoEn: n.creadoEn.toISOString(),
+        });
+      } catch { /* aviso best-effort */ }
     }
   },
 

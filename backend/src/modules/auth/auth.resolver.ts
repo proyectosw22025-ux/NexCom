@@ -12,6 +12,10 @@ export const authResolvers = {
       _: unknown,
       ctx: NexComContext,
     ) => service.vendedorRespondeRapido(parent.id, parent.usuarioId, ctx.prisma),
+
+    // Serialización ISO explícita (Prisma devuelve Date)
+    planVenceEn: (parent: { planVenceEn?: Date | string | null }) =>
+      parent.planVenceEn ? new Date(parent.planVenceEn).toISOString() : null,
   },
 
   Query: {

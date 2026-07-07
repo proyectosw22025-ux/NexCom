@@ -20,6 +20,9 @@ import {
 } from "./auth.validators.js";
 import * as repo from "./auth.repository.js";
 import { segundosBloqueo, registrarFallo, limpiarFallos } from "../../shared/login-throttle.js";
+import { saldosService } from "../saldos/saldos.service.js";
+import { getConfigNumber } from "../../shared/config.util.js";
+import { Decimal } from "decimal.js";
 
 // Costo de bcrypt: 10 es el estándar OWASP. Reduce el tiempo de CPU del login
 // ~2-4× frente a 12 en CPU compartida, manteniendo seguridad adecuada.
@@ -321,7 +324,7 @@ export async function getVendedorPublico(id: string, prisma: PrismaClient) {
     where:  { id },
     select: {
       id: true, nombreNegocio: true, descripcion: true, ciudad: true, telefono: true,
-      logoUrl: true, ratingPromedio: true, totalVentas: true, totalResenias: true, plan: true, verificado: true, usuarioId: true,
+      logoUrl: true, ratingPromedio: true, totalVentas: true, totalResenias: true, plan: true, planVenceEn: true, verificado: true, usuarioId: true,
     },
   });
 }
@@ -362,7 +365,7 @@ export async function verificarVendedor(perfilVendedorId: string, verificado: bo
     data:   { verificado },
     select: {
       id: true, nombreNegocio: true, descripcion: true, ciudad: true, telefono: true,
-      logoUrl: true, ratingPromedio: true, totalVentas: true, totalResenias: true, plan: true, verificado: true, usuarioId: true,
+      logoUrl: true, ratingPromedio: true, totalVentas: true, totalResenias: true, plan: true, planVenceEn: true, verificado: true, usuarioId: true,
     },
   });
 }
@@ -373,13 +376,25 @@ export async function mejorarPlan(perfilVendedorId: string, plan: string, prisma
   if (plan !== "FREE" && plan !== "PRO") {
     throw new GraphQLError("Plan inválido.", { extensions: { code: "BAD_USER_INPUT" } });
   }
-  // Pago simulado: el cambio de plan se aplica directamente
+
+  // Modelo de negocio: PRO se PAGA (débito del saldo disponible del vendedor)
+  // y dura 30 días; el cron lo degrada a FREE al vencer. Antes el upgrade era
+  // gratuito → cualquier vendedor se bajaba la comisión de 10% a 5% sin pagar.
+  let planVenceEn: Date | null = null;
+  if (plan === "PRO") {
+    const precio = new Decimal((await getConfigNumber("precio_plan_pro", prisma)) || 99);
+    await saldosService.cobrarSuscripcion(
+      perfilVendedorId, precio, `Plan PRO — 30 días (Bs. ${precio.toFixed(2)})`, prisma,
+    );
+    planVenceEn = new Date(Date.now() + 30 * 86_400_000);
+  }
+
   return prisma.perfilVendedor.update({
     where:  { id: perfilVendedorId },
-    data:   { plan },
+    data:   { plan, planVenceEn },
     select: {
       id: true, nombreNegocio: true, descripcion: true, ciudad: true, telefono: true,
-      logoUrl: true, ratingPromedio: true, totalVentas: true, totalResenias: true, plan: true, verificado: true, usuarioId: true,
+      logoUrl: true, ratingPromedio: true, totalVentas: true, totalResenias: true, plan: true, planVenceEn: true, verificado: true, usuarioId: true,
     },
   });
 }

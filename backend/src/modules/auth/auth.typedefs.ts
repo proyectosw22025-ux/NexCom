@@ -16,6 +16,7 @@ export const authTypeDefs = /* GraphQL */ `
     totalVentas:   Int!
     totalResenias: Int!
     plan:          String!
+    planVenceEn:   String   # fin del periodo PRO pagado (null en FREE)
     verificado:    Boolean!
     respondeRapido: Boolean!
   }

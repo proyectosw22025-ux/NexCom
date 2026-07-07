@@ -11,6 +11,7 @@ import { corsPlugin } from "./plugins/cors.plugin.js";
 import helmet from "@fastify/helmet";
 import { rateLimitPlugin } from "./plugins/rate-limit.plugin.js";
 import { ofertasRepository } from "./modules/ofertas/ofertas.repository.js";
+import { ordenesService } from "./modules/ordenes/ordenes.service.js";
 import { schema as typeDefs } from "./graphql/schema.js";
 import { resolvers } from "./graphql/resolvers.js";
 import prisma from "./shared/prisma.client.js";
@@ -327,6 +328,19 @@ async function bootstrap() {
     ).catch(console.error),
     60 * 60 * 1000,
   );
+
+  // Cron: barrido del escrow cada 15 min (auto-liberación, cancelación por
+  // no-envío + reembolso, cierre de órdenes y vencimiento del plan PRO).
+  // GARANTIZADO por reloj: antes estos procesos eran perezosos al listar
+  // órdenes — si nadie abría la app, un reembolso podía no ejecutarse nunca.
+  setInterval(
+    () => runWithLock("cron:escrow:barrido", 14 * 60, () =>
+      ordenesService.barridoEscrow(prisma),
+    ).catch(console.error),
+    15 * 60 * 1000,
+  );
+  // Primer barrido al arrancar (recupera lo pendiente tras un deploy/caída)
+  runWithLock("cron:escrow:barrido", 14 * 60, () => ordenesService.barridoEscrow(prisma)).catch(console.error);
 
   // Redis: conexión no bloqueante — el servidor arranca aunque Redis no esté disponible
   redis.connect()

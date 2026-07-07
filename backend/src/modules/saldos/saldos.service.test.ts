@@ -108,10 +108,11 @@ describe("saldosService.getSaldo", () => {
 
   it("separa retenido (escrow) de disponible y aplica retiros", async () => {
     const map: Record<string, { monto: string; comision: string }> = {
-      VENTA:      { monto: "100", comision: "0"  }, // legacy → disponible
-      RETENCION:  { monto: "500", comision: "50" }, // entra a retenido
-      LIBERACION: { monto: "300", comision: "0"  }, // 300 ya liberado
-      REEMBOLSO:  { monto: "0",   comision: "0"  },
+      VENTA:       { monto: "100", comision: "0"  }, // legacy → disponible
+      RETENCION:   { monto: "500", comision: "50" }, // entra a retenido
+      LIBERACION:  { monto: "300", comision: "0"  }, // 300 ya liberado
+      REEMBOLSO:   { monto: "0",   comision: "0"  },
+      SUSCRIPCION: { monto: "0",   comision: "0"  },
     };
     vi.mocked(saldosRepository.sumarMovimientos).mockImplementation(async (_v, tipo) => map[tipo]);
     vi.mocked(saldosRepository.sumarRetiros).mockImplementation(async (_v, estado) =>
@@ -168,6 +169,22 @@ describe("saldosService.solicitarRetiro", () => {
     await expect(
       saldosService.solicitarRetiro("v1", { monto: "100", banco: "", numeroCuenta: "1", titular: "Ana" }, prisma),
     ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
+  });
+
+  it("cobrarSuscripcion debita disponible y rechaza si el saldo no alcanza", async () => {
+    saldoDisponible("100"); // disponible = 100
+    const { Decimal } = await import("decimal.js");
+    // 99 ≤ 100 → cobra
+    await saldosService.cobrarSuscripcion("v1", new Decimal(99), "Plan PRO", prisma);
+    expect(saldosRepository.crearMovimiento).toHaveBeenCalledWith(
+      expect.objectContaining({ tipo: "SUSCRIPCION", monto: "99" }), prisma,
+    );
+    // 150 > 100 → rechaza sin crear movimiento
+    vi.mocked(saldosRepository.crearMovimiento).mockClear();
+    await expect(
+      saldosService.cobrarSuscripcion("v1", new Decimal(150), "Plan PRO", prisma),
+    ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
+    expect(saldosRepository.crearMovimiento).not.toHaveBeenCalled();
   });
 
   it("rechaza el retiro si el vendedor no está verificado (KYC)", async () => {

@@ -56,6 +56,25 @@ export const saldosService = {
     );
   },
 
+  /**
+   * Cobra una suscripción (plan PRO) debitando el SALDO DISPONIBLE del vendedor.
+   * Atómico con el mismo lock que los retiros: no puede pagar el plan y retirar
+   * el mismo dinero en paralelo. Lanza si el saldo no alcanza.
+   */
+  async cobrarSuscripcion(vendedorId: string, monto: Decimal, descripcion: string, prisma: PrismaClient) {
+    return prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${vendedorId}))`;
+      const saldo = await this.getSaldo(vendedorId, tx as PrismaClient);
+      if (monto.gt(new Decimal(saldo.disponible))) {
+        throw bad(`Saldo insuficiente: el plan cuesta Bs. ${monto.toFixed(2)} y tienes Bs. ${saldo.disponible} disponibles. Vende y libera entregas para acumular saldo.`);
+      }
+      return saldosRepository.crearMovimiento(
+        { vendedorId, tipo: "SUSCRIPCION", monto: monto.toString(), comision: "0", descripcion },
+        tx as PrismaClient,
+      );
+    });
+  },
+
   /** Revierte exactamente el neto retenido al reembolsar una devolución. Idempotente. */
   async registrarReembolso(vendedorId: string, ordenId: string, prisma: PrismaClient) {
     if (await saldosRepository.existeMovimiento(ordenId, "REEMBOLSO", prisma)) return;
@@ -73,11 +92,12 @@ export const saldosService = {
   // ── Consultas del vendedor ───────────────────────────────────────────────────
 
   async getSaldo(vendedorId: string, prisma: PrismaClient) {
-    const [ventas, retencion, liberacion, reembolsos, pendiente, pagado] = await Promise.all([
-      saldosRepository.sumarMovimientos(vendedorId, "VENTA", prisma),      // legacy: directo a disponible
-      saldosRepository.sumarMovimientos(vendedorId, "RETENCION", prisma),  // entra a retenido
-      saldosRepository.sumarMovimientos(vendedorId, "LIBERACION", prisma), // retenido → disponible
-      saldosRepository.sumarMovimientos(vendedorId, "REEMBOLSO", prisma),  // revierte retenido
+    const [ventas, retencion, liberacion, reembolsos, suscripciones, pendiente, pagado] = await Promise.all([
+      saldosRepository.sumarMovimientos(vendedorId, "VENTA", prisma),       // legacy: directo a disponible
+      saldosRepository.sumarMovimientos(vendedorId, "RETENCION", prisma),   // entra a retenido
+      saldosRepository.sumarMovimientos(vendedorId, "LIBERACION", prisma),  // retenido → disponible
+      saldosRepository.sumarMovimientos(vendedorId, "REEMBOLSO", prisma),   // revierte retenido
+      saldosRepository.sumarMovimientos(vendedorId, "SUSCRIPCION", prisma), // débito: plan PRO
       saldosRepository.sumarRetiros(vendedorId, "PENDIENTE", prisma),
       saldosRepository.sumarRetiros(vendedorId, "PAGADO", prisma),
     ]);
@@ -85,13 +105,14 @@ export const saldosService = {
     const ret        = new Decimal(retencion.monto);
     const lib         = new Decimal(liberacion.monto);
     const reembolso  = new Decimal(reembolsos.monto);
+    const suscrito   = new Decimal(suscripciones.monto);
     const enRevision = new Decimal(pendiente);
     const retirado   = new Decimal(pagado);
 
     // En garantía (escrow): retenido aún no liberado ni reembolsado.
     const retenido   = ret.minus(lib).minus(reembolso);
-    // Disponible para retiro: ventas legacy + lo liberado, menos retiros.
-    const disponible = venta.plus(lib).minus(enRevision).minus(retirado);
+    // Disponible para retiro: ventas legacy + lo liberado, menos retiros y suscripciones.
+    const disponible = venta.plus(lib).minus(enRevision).minus(retirado).minus(suscrito);
     // Neto histórico generado (incluye lo que sigue retenido).
     const generado   = venta.plus(ret).minus(reembolso);
     return {

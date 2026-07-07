@@ -45,10 +45,11 @@ enum EstadoDevolucion {
 }
 
 enum TipoMovimientoSaldo {
-  VENTA      // (legacy) crédito directo a disponible — compatibilidad con datos previos
-  RETENCION  // crédito a fondos RETENIDOS (escrow) al confirmarse el pago
-  LIBERACION // mueve retenido → disponible al confirmar la entrega
-  REEMBOLSO  // débito: reversa del neto (cancelación/disputa)
+  VENTA       // (legacy) crédito directo a disponible — compatibilidad con datos previos
+  RETENCION   // crédito a fondos RETENIDOS (escrow) al confirmarse el pago
+  LIBERACION  // mueve retenido → disponible al confirmar la entrega
+  REEMBOLSO   // débito: reversa del neto (cancelación/disputa)
+  SUSCRIPCION // débito de disponible: cobro del plan PRO (modelo de negocio)
 }
 
 enum TipoMovimientoPuntos {
@@ -164,6 +165,7 @@ model PerfilVendedor {
   totalVentas    Int      @default(0) @map("total_ventas")
   totalResenias  Int      @default(0) @map("total_resenias")
   plan           String   @default("FREE") // "FREE" | "PRO"
+  planVenceEn    DateTime? @map("plan_vence_en") // fin del periodo PRO pagado; el cron degrada a FREE al vencer
   creadoEn       DateTime @default(now()) @map("creado_en")
 
   usuario               Usuario        @relation(fields: [usuarioId], references: [id], onDelete: Cascade)

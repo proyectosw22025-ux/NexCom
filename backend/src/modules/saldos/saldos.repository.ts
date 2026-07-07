@@ -1,6 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
 
-type Tipo = "VENTA" | "RETENCION" | "LIBERACION" | "REEMBOLSO";
+type Tipo = "VENTA" | "RETENCION" | "LIBERACION" | "REEMBOLSO" | "SUSCRIPCION";
 
 export const saldosRepository = {
   async existeMovimiento(ordenId: string, tipo: Tipo, prisma: PrismaClient) {

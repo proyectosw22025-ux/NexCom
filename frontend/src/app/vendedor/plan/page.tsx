@@ -7,12 +7,12 @@ import { ME } from "@/graphql/auth/queries";
 import { MEJORAR_PLAN } from "@/graphql/auth/mutations";
 
 interface MeData {
-  me: { perfilVendedor: { id: string; plan: string } | null } | null;
+  me: { perfilVendedor: { id: string; plan: string; planVenceEn?: string | null } | null } | null;
 }
 
 const BENEFICIOS = {
-  FREE: ["Hasta 50 productos activos", "Tienda pública", "Gestión de órdenes y cupones"],
-  PRO:  ["Hasta 500 productos activos", "Destaca hasta 3 productos", "Prioridad en el catálogo", "Insignia PRO en tu tienda"],
+  FREE: ["Comisión estándar del 10%", "Hasta 50 productos activos", "Tienda pública", "Gestión de órdenes y cupones"],
+  PRO:  ["Comisión reducida al 5% (la mitad)", "Hasta 500 productos activos", "Destaca hasta 3 productos", "Prioridad en el catálogo", "Insignia PRO en tu tienda"],
 };
 
 export default function VendedorPlanPage() {
@@ -20,11 +20,14 @@ export default function VendedorPlanPage() {
   const [mejorarPlan, { loading: cambiando }] = useMutation(MEJORAR_PLAN);
 
   const plan = data?.me?.perfilVendedor?.plan ?? "FREE";
+  const venceEn = data?.me?.perfilVendedor?.planVenceEn ?? null;
 
   async function cambiar(nuevo: "FREE" | "PRO") {
     try {
       await mejorarPlan({ variables: { plan: nuevo } });
-      toast.success(nuevo === "PRO" ? "¡Bienvenido al plan PRO!" : "Plan actualizado a FREE.");
+      toast.success(nuevo === "PRO"
+        ? "¡Bienvenido al plan PRO! Se descontó Bs. 99 de tu saldo (30 días de vigencia)."
+        : "Plan actualizado a FREE.");
       refetch();
     } catch (err: unknown) {
       const msg = err instanceof ApolloError ? (err.graphQLErrors[0]?.message ?? "Error.") : "Error.";
@@ -75,8 +78,14 @@ export default function VendedorPlanPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900">Mi plan</h1>
         <p className="text-sm text-slate-400 mt-0.5">
-          Elige el plan que mejor se ajusta a tu negocio. El cambio es inmediato (pago simulado).
+          PRO se paga con tu <strong>saldo disponible</strong> (Bs. 99) y dura 30 días; al vencer vuelves a FREE.
         </p>
+        {plan === "PRO" && venceEn && (
+          <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full">
+            <Crown className="h-3.5 w-3.5" />
+            Tu PRO vence el {new Date(venceEn).toLocaleDateString("es-BO", { day: "2-digit", month: "long", year: "numeric" })}
+          </p>
+        )}
       </div>
 
       {loading && !data ? (
