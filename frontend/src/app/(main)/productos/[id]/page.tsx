@@ -14,7 +14,7 @@ export const revalidate = 120;
 const PRODUCTO_Q = `
   query Producto($id: ID!) {
     producto(id: $id) {
-      id nombre descripcion precio stock activo destacado
+      id nombre descripcion precio descuentoOferta precioOferta ofertaFin stock activo destacado
       categoria { id nombre slug }
       vendedor  { id nombreNegocio ciudad ratingPromedio totalResenias telefono verificado }
       imagenes  { url orden }

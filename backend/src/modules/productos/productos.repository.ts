@@ -1,15 +1,56 @@
 import type { PrismaClient } from "@prisma/client";
 import { Decimal } from "decimal.js";
 
-const include = {
-  categoria: true,
-  vendedor:  true,
-  imagenes:  { orderBy: { orden: "asc" as const } },
-  etiquetas: { include: { etiqueta: true } },
+// Include con la oferta ACTIVA vigente de cada producto embebida como relación
+// filtrada. Prisma la resuelve en una sola consulta batcheada (no N+1) junto al
+// listado. `ahora` se calcula por invocación (las ofertas usan fechas absolutas).
+function buildInclude() {
+  const ahora = new Date();
+  return {
+    categoria: true,
+    vendedor:  true,
+    imagenes:  { orderBy: { orden: "asc" as const } },
+    etiquetas: { include: { etiqueta: true } },
+    ofertaProductos: {
+      where:  { oferta: { estado: "ACTIVA" as const, fechaInicio: { lte: ahora }, fechaFin: { gte: ahora } } },
+      select: { oferta: { select: { descuento: true, fechaFin: true } } },
+    },
+  };
+}
+
+type ProductoConRelaciones = {
+  precio: Decimal;
+  etiquetas: { etiqueta: { id: string; nombre: string; slug: string } }[];
+  ofertaProductos?: { oferta: { descuento: { toString: () => string }; fechaFin: Date } }[];
 };
 
-function mapEtiquetas<T extends { etiquetas: { etiqueta: { id: string; nombre: string; slug: string } }[] }>(p: T) {
-  return { ...p, etiquetas: p.etiquetas.map((pe) => pe.etiqueta) };
+function mapProducto<T extends ProductoConRelaciones>(p: T) {
+  const { ofertaProductos, ...rest } = p;
+  // Mejor oferta vigente = mayor descuento entre las ofertas activas del producto.
+  let descuentoOferta: string | null = null;
+  let precioOferta:    string | null = null;
+  let ofertaFin:       string | null = null;
+  if (ofertaProductos && ofertaProductos.length > 0) {
+    let mejor = ofertaProductos[0].oferta;
+    for (const op of ofertaProductos) {
+      if (new Decimal(op.oferta.descuento.toString()).gt(new Decimal(mejor.descuento.toString()))) {
+        mejor = op.oferta;
+      }
+    }
+    const desc = new Decimal(mejor.descuento.toString());
+    descuentoOferta = desc.toString();
+    precioOferta = new Decimal(p.precio.toString())
+      .mul(new Decimal(100).minus(desc)).div(100)
+      .toDecimalPlaces(2).toString();
+    ofertaFin = mejor.fechaFin.toISOString();
+  }
+  return {
+    ...rest,
+    etiquetas: p.etiquetas.map((pe) => pe.etiqueta),
+    descuentoOferta,
+    precioOferta,
+    ofertaFin,
+  };
 }
 
 export const productosRepository = {
@@ -38,22 +79,22 @@ export const productosRepository = {
             create: imagenesUrl.map((url, orden) => ({ url, orden })),
           },
         },
-        include,
+        include: buildInclude(),
       });
       return p;
     });
-    return mapEtiquetas(producto);
+    return mapProducto(producto);
   },
 
   async findById(id: string, prisma: PrismaClient) {
-    const p = await prisma.producto.findUnique({ where: { id }, include });
-    return p ? mapEtiquetas(p) : null;
+    const p = await prisma.producto.findUnique({ where: { id }, include: buildInclude() });
+    return p ? mapProducto(p) : null;
   },
 
   async findByIds(ids: string[], prisma: PrismaClient) {
     if (ids.length === 0) return [];
-    const rows = await prisma.producto.findMany({ where: { id: { in: ids } }, include });
-    const byId = new Map(rows.map((r) => [r.id, mapEtiquetas(r)]));
+    const rows = await prisma.producto.findMany({ where: { id: { in: ids } }, include: buildInclude() });
+    const byId = new Map(rows.map((r) => [r.id, mapProducto(r)]));
     // Preserva el orden de `ids` (relevancia), que findMany no garantiza
     return ids.map((id) => byId.get(id)).filter((p): p is NonNullable<typeof p> => Boolean(p));
   },
@@ -61,10 +102,10 @@ export const productosRepository = {
   async findByVendedor(vendedorId: string, prisma: PrismaClient) {
     const rows = await prisma.producto.findMany({
       where:   { vendedorId },
-      include,
+      include: buildInclude(),
       orderBy: { creadoEn: "desc" },
     });
-    return rows.map(mapEtiquetas);
+    return rows.map(mapProducto);
   },
 
   async findPaginated(
@@ -107,13 +148,13 @@ export const productosRepository = {
       prisma.producto.count({ where }),
       prisma.producto.findMany({
         where,
-        include,
+        include: buildInclude(),
         orderBy,
         skip:    (pagina - 1) * limite,
         take:    limite,
       }),
     ]);
-    return { total, items: rows.map(mapEtiquetas) };
+    return { total, items: rows.map(mapProducto) };
   },
 
   async update(
@@ -138,9 +179,9 @@ export const productosRepository = {
           });
         }
       }
-      return tx.producto.update({ where: { id }, data: campos, include });
+      return tx.producto.update({ where: { id }, data: campos, include: buildInclude() });
     });
-    return mapEtiquetas(p);
+    return mapProducto(p);
   },
 
   async softDelete(id: string, prisma: PrismaClient) {
@@ -153,9 +194,9 @@ export const productosRepository = {
     const updated = await prisma.producto.update({
       where: { id },
       data:  { destacado: !p.destacado },
-      include,
+      include: buildInclude(),
     });
-    return mapEtiquetas(updated);
+    return mapProducto(updated);
   },
 
   async addImagenes(productoId: string, urls: string[], prisma: PrismaClient) {
@@ -163,8 +204,8 @@ export const productosRepository = {
     await prisma.imagenProducto.createMany({
       data: urls.map((url, i) => ({ productoId, url, orden: maxOrden + i })),
     });
-    const p = await prisma.producto.findUniqueOrThrow({ where: { id: productoId }, include });
-    return mapEtiquetas(p);
+    const p = await prisma.producto.findUniqueOrThrow({ where: { id: productoId }, include: buildInclude() });
+    return mapProducto(p);
   },
 
   async removeImagen(imagenId: string, prisma: PrismaClient) {

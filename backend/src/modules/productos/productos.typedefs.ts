@@ -10,6 +10,9 @@ export const productosTypeDefs = /* GraphQL */ `
     nombre:       String!
     descripcion:  String
     precio:       String!       # Decimal serializado como string
+    descuentoOferta: String     # % de la oferta activa vigente (null si no hay)
+    precioOferta:    String     # precio ya con el descuento aplicado (null si no hay)
+    ofertaFin:       String     # ISO de fin de la oferta activa (null si no hay)
     stock:        Int!
     activo:       Boolean!
     destacado:    Boolean!

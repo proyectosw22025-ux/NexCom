@@ -6,6 +6,9 @@ const PRODUCTO_FIELDS = gql`
     nombre
     descripcion
     precio
+    descuentoOferta
+    precioOferta
+    ofertaFin
     stock
     activo
     destacado

@@ -94,8 +94,18 @@ export function ProductoCompra({ producto: p }: { producto: ProductoCardData }) 
           {p.destacado && <div className="mt-2"><Badge variant="destacado" dot /></div>}
         </div>
 
-        <div className="flex items-baseline gap-3 pb-4 border-b border-slate-100">
-          <span className="text-3xl font-extrabold text-slate-900">Bs. {p.precio}</span>
+        <div className="flex items-baseline gap-3 pb-4 border-b border-slate-100 flex-wrap">
+          {p.precioOferta && p.descuentoOferta ? (
+            <>
+              <span className="text-3xl font-extrabold text-rose-600">Bs. {p.precioOferta}</span>
+              <span className="text-lg text-slate-400 line-through">Bs. {p.precio}</span>
+              <span className="inline-flex items-center gap-0.5 bg-rose-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                <Tag className="h-3 w-3" /> -{Math.round(Number(p.descuentoOferta))}%
+              </span>
+            </>
+          ) : (
+            <span className="text-3xl font-extrabold text-slate-900">Bs. {p.precio}</span>
+          )}
           <Badge variant={p.stock === 0 ? "sin-stock" : p.stock <= 5 ? "stock-bajo" : "stock-ok"} />
         </div>
 

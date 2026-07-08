@@ -42,6 +42,7 @@ describe("carritoService — guardar para después", () => {
     const prismaProd = {
       producto:    { findUnique: vi.fn().mockResolvedValue({ id: "prod-1", activo: true, stock: 10, precio: "50" }) },
       itemCarrito: { findUnique: vi.fn().mockResolvedValue(null) },
+      ofertaProducto: { findMany: vi.fn().mockResolvedValue([]) }, // sin oferta → precio base
     } as unknown as PrismaClient;
 
     await carritoService.moverAlCarrito("c1", "prod-1", prismaProd);

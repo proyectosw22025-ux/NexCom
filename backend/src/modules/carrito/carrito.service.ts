@@ -2,6 +2,7 @@ import { GraphQLError } from "graphql";
 import { Decimal } from "decimal.js";
 import type { PrismaClient } from "@prisma/client";
 import { carritoRepository } from "./carrito.repository.js";
+import { precioEfectivo } from "../../shared/precio-oferta.util.js";
 
 const MAX_CANTIDAD = 99;
 
@@ -29,7 +30,7 @@ export const carritoService = {
     }
 
     const carritoId     = await carritoRepository.getCarritoId(compradorId, prisma);
-    const precioSnapshot = new Decimal(producto.precio.toString());
+    const precioSnapshot = await precioEfectivo(productoId, new Decimal(producto.precio.toString()), prisma);
 
     // Verificar stock incluyendo lo que ya está en el carrito
     const itemExistente = await prisma.itemCarrito.findUnique({
@@ -76,7 +77,7 @@ export const carritoService = {
     }
 
     const carritoId      = await carritoRepository.getCarritoId(compradorId, prisma);
-    const precioSnapshot = new Decimal(producto.precio.toString());
+    const precioSnapshot = await precioEfectivo(productoId, new Decimal(producto.precio.toString()), prisma);
     await carritoRepository.upsertItem(carritoId, productoId, cantidad, precioSnapshot, prisma);
     return carritoRepository.getOrCreate(compradorId, prisma);
   },

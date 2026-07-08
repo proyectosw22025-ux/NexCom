@@ -16,6 +16,9 @@ export interface ProductoCardData {
   id:          string;
   nombre:      string;
   precio:      string;
+  descuentoOferta?: string | null;
+  precioOferta?:    string | null;
+  ofertaFin?:       string | null;
   stock:       number;
   activo:      boolean;
   destacado:   boolean;
@@ -53,8 +56,11 @@ export function ProductoCard({ producto, index, initialFavorito = false }: { pro
 
   // copia antes de ordenar: no mutar el array de props (puede venir congelado y lanzar en hidratación)
   const imgUrl = [...producto.imagenes].sort((a, b) => a.orden - b.orden)[0]?.url;
-  const precioFmt = Number(producto.precio).toLocaleString("es-BO", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-  const enOferta = producto.etiquetas?.some((e) => e.nombre.toLowerCase() === "oferta");
+  const fmtBs = (v: string | number) => Number(v).toLocaleString("es-BO", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  const precioFmt = fmtBs(producto.precio);
+  // Oferta REAL vigente (calculada en backend), no la etiqueta manual "oferta".
+  const tieneOferta = !!producto.precioOferta && !!producto.descuentoOferta;
+  const descPct = producto.descuentoOferta ? Math.round(Number(producto.descuentoOferta)) : 0;
   const vendidos = producto.totalVendido ?? 0;
 
   async function handleAddToCart(e: React.MouseEvent) {
@@ -111,9 +117,9 @@ export function ProductoCard({ producto, index, initialFavorito = false }: { pro
         )}
         <div className="absolute top-2 left-2 flex flex-col gap-1">
           {producto.destacado && <Badge variant="destacado" size="sm" dot />}
-          {enOferta && (
+          {tieneOferta && (
             <span className="inline-flex items-center gap-0.5 bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
-              <Flame className="h-3 w-3" /> Oferta
+              <Flame className="h-3 w-3" /> -{descPct}%
             </span>
           )}
         </div>
@@ -168,7 +174,14 @@ export function ProductoCard({ producto, index, initialFavorito = false }: { pro
 
         <div className="mt-auto pt-2 flex items-end justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-base font-bold text-slate-900">Bs. {precioFmt}</p>
+            {tieneOferta ? (
+              <>
+                <p className="text-base font-bold text-rose-600 leading-none">Bs. {fmtBs(producto.precioOferta!)}</p>
+                <p className="text-[11px] text-slate-400 line-through">Bs. {precioFmt}</p>
+              </>
+            ) : (
+              <p className="text-base font-bold text-slate-900">Bs. {precioFmt}</p>
+            )}
             {producto.stock === 0 ? (
               <Badge variant="sin-stock" size="sm" />
             ) : producto.stock <= 5 ? (
