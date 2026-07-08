@@ -13,3 +13,4 @@ import dns from "node:dns";
 // Este módulo se importa PRIMERO en el arranque (los imports se elevan y se
 // ejecutan antes de que cualquier otro módulo abra un socket).
 dns.setDefaultResultOrder("ipv4first");
+console.log(`[boot] DNS result order = ${dns.getDefaultResultOrder()}`);

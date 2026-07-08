@@ -300,15 +300,37 @@ export const pagosService = {
 
     // Crear Stripe PaymentIntent (amount en centavos USD) — flujo legado/sandbox
     const amountCents = total.mul(100).toDecimalPlaces(0).toNumber();
-    const intent = await stripe.paymentIntents.create({
-      amount:   amountCents,
-      currency: "usd",
-      // Requerido por el PaymentElement moderno: Stripe decide los métodos a
-      // mostrar (tarjeta, etc.). Sin redirects: el flujo se queda en la página
-      // y el webhook confirma server-side.
-      automatic_payment_methods: { enabled: true, allow_redirects: "never" },
-      metadata: { ordenId: orden.id, compradorId, environment: "sandbox" },
-    });
+    let intent: Stripe.PaymentIntent;
+    try {
+      intent = await stripe.paymentIntents.create({
+        amount:   amountCents,
+        currency: "usd",
+        // Requerido por el PaymentElement moderno: Stripe decide los métodos a
+        // mostrar (tarjeta, etc.). Sin redirects: el flujo se queda en la página
+        // y el webhook confirma server-side.
+        automatic_payment_methods: { enabled: true, allow_redirects: "never" },
+        metadata: { ordenId: orden.id, compradorId, environment: "sandbox" },
+      });
+    } catch (err) {
+      // Stripe envuelve el fallo real (red/DNS/TLS/auth) en un error genérico.
+      // Registramos la causa subyacente para diagnóstico (no llega al cliente).
+      const e = err as {
+        type?: string; code?: string; message?: string;
+        detail?: unknown; cause?: unknown; requestId?: string;
+      };
+      console.error("[pagos] crearPaymentIntent falló:", {
+        type: e.type, code: e.code, message: e.message, requestId: e.requestId,
+        detail: e.detail instanceof Error
+          ? { name: e.detail.name, message: e.detail.message, code: (e.detail as { code?: string }).code }
+          : e.detail,
+        cause: e.cause instanceof Error
+          ? { name: e.cause.name, message: e.cause.message, code: (e.cause as { code?: string }).code }
+          : e.cause,
+      });
+      throw new GraphQLError("No se pudo iniciar el pago con tarjeta. Intenta de nuevo en unos segundos.", {
+        extensions: { code: "STRIPE_CONNECTION_ERROR" },
+      });
+    }
     await pagosRepository.guardarStripePaymentIntentId(orden.id, intent.id, prisma);
 
     return { clientSecret: intent.client_secret!, ordenId: orden.id };
