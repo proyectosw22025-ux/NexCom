@@ -33,7 +33,11 @@ interface WSExtra {
   [key: string | symbol]: unknown;
 }
 
-const stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: "2024-04-10" });
+const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
+  apiVersion: "2024-04-10",
+  maxNetworkRetries: 3, // resiste baches transitorios de red hacia Stripe
+  timeout: 20_000,
+});
 
 async function bootstrap() {
   initSentry(); // error tracking (inerte si no hay SENTRY_DSN)
