@@ -8,10 +8,11 @@ import {
 } from "recharts";
 import {
   TrendingUp, TrendingDown, DollarSign, ShoppingBag, Receipt, Coins, UserPlus,
-  BarChart3, Trophy, Star,
+  BarChart3, Trophy, Star, Download,
 } from "lucide-react";
 import { ANALITICA_ADMIN } from "@/graphql/admin/queries";
 import { PeriodoToolbar, descripcionRango, type RangoReporte } from "./analitica-ui";
+import { exportarCSV } from "@/lib/csv-export";
 
 // ── Tipos ───────────────────────────────────────────────────────────────────
 interface Kpi { valor: string; delta: number }
@@ -230,7 +231,19 @@ export default function AnaliticaDashboard() {
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
           <Trophy className="h-4 w-4 text-amber-500" />
-          <h3 className="text-sm font-bold text-slate-900">Top vendedores por ingresos</h3>
+          <h3 className="text-sm font-bold text-slate-900 flex-1">Top vendedores por ingresos</h3>
+          <button
+            onClick={() => exportarCSV(
+              `top-vendedores_${rango.dias ?? "rango"}.csv`,
+              ["Tienda", "Ingresos (Bs.)", "Ventas", "Rating"],
+              (a?.topVendedores ?? []).map((v) => [v.nombreNegocio, v.ingresos, v.ventas, v.rating]),
+            )}
+            disabled={(a?.topVendedores ?? []).length === 0}
+            className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-indigo-600
+                       disabled:opacity-40 disabled:cursor-not-allowed px-2.5 py-1.5 rounded-lg hover:bg-slate-50 transition-colors"
+          >
+            <Download className="h-3.5 w-3.5" /> Exportar CSV
+          </button>
         </div>
         {(a?.topVendedores ?? []).length === 0 ? (
           <p className="text-sm text-slate-400 py-12 text-center">Sin ventas en el periodo</p>
@@ -271,10 +284,22 @@ export default function AnaliticaDashboard() {
       <div className="bg-white rounded-2xl border border-emerald-200 overflow-hidden mt-6">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
           <Coins className="h-4 w-4 text-emerald-600" />
-          <div>
+          <div className="flex-1">
             <h3 className="text-sm font-bold text-slate-900">Comisión ganada por tienda</h3>
             <p className="text-xs text-slate-400">Lo que la plataforma ganó con cada vendedor {descripcionRango(rango)}</p>
           </div>
+          <button
+            onClick={() => exportarCSV(
+              `comision-por-tienda_${rango.dias ?? "rango"}.csv`,
+              ["Tienda", "Ventas", "Venta bruta (Bs.)", "Comisión ganada (Bs.)", "% efectivo"],
+              (a?.comisionPorVendedor ?? []).map((c) => [c.nombre, c.ventas, c.bruto, c.comision, c.tasa]),
+            )}
+            disabled={(a?.comisionPorVendedor ?? []).length === 0}
+            className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-emerald-600
+                       disabled:opacity-40 disabled:cursor-not-allowed px-2.5 py-1.5 rounded-lg hover:bg-slate-50 transition-colors"
+          >
+            <Download className="h-3.5 w-3.5" /> Exportar CSV
+          </button>
         </div>
         {(a?.comisionPorVendedor ?? []).length === 0 ? (
           <p className="text-sm text-slate-400 py-12 text-center">Sin comisiones registradas en el periodo</p>

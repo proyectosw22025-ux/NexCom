@@ -32,6 +32,15 @@ const SIGUIENTE: Record<string, string> = {
   EN_PREPARACION: "Marcar como enviado",
 };
 
+// Días máximos para enviar antes de la cancelación automática (debe
+// coincidir con DIAS_CANCELACION_SIN_ENVIO en el backend).
+const DIAS_LIMITE_ENVIO = 7;
+
+function diasRestantesEnvio(creadoEn: string) {
+  const vencimiento = new Date(creadoEn).getTime() + DIAS_LIMITE_ENVIO * 86_400_000;
+  return Math.ceil((vencimiento - Date.now()) / 86_400_000);
+}
+
 function formatFecha(iso: string) {
   return new Date(iso).toLocaleDateString("es-BO", { day: "2-digit", month: "short", year: "numeric" });
 }
@@ -127,11 +136,23 @@ export default function VendedorOrdenesPage() {
                   </div>
                   <p className="text-xs text-slate-400">{formatFecha(o.creadoEn)}</p>
                 </div>
-                <Badge
-                  variant={estadoBadge[o.estado] ?? "pendiente"}
-                  label={estadoLabel[o.estado] ?? o.estado}
-                  dot size="sm"
-                />
+                <div className="flex flex-col items-end gap-1.5">
+                  <Badge
+                    variant={estadoBadge[o.estado] ?? "pendiente"}
+                    label={estadoLabel[o.estado] ?? o.estado}
+                    dot size="sm"
+                  />
+                  {PUEDE_AVANZAR.includes(o.estado) && (() => {
+                    const dias = diasRestantesEnvio(o.creadoEn);
+                    return (
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                        dias <= 2 ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
+                      }`}>
+                        {dias <= 0 ? "Vence hoy" : `Vence en ${dias} día${dias !== 1 ? "s" : ""}`}
+                      </span>
+                    );
+                  })()}
+                </div>
               </div>
 
               <div className="space-y-1 mb-3">
