@@ -5,6 +5,7 @@ import { makeExecutableSchema } from "@graphql-tools/schema";
 import { useServer } from "graphql-ws/use/ws";
 import { WebSocketServer } from "ws";
 import Stripe from "stripe";
+import https from "node:https";
 
 import { env } from "./config/env.js";
 import { corsPlugin } from "./plugins/cors.plugin.js";
@@ -37,6 +38,10 @@ const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
   apiVersion: "2024-04-10",
   maxNetworkRetries: 3, // resiste baches transitorios de red hacia Stripe
   timeout: 20_000,
+  // Fuerza IPv4: algunos contenedores (Railway) resuelven api.stripe.com a una
+  // dirección IPv6 sin salida funcional, provocando fallos de conexión 100%
+  // reproducibles. httpAgent con family:4 evita ese intento de ruta rota.
+  httpAgent: new https.Agent({ family: 4 }),
 });
 
 async function bootstrap() {
