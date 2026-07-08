@@ -62,36 +62,60 @@ function FormularioInterno({ ordenId }: { ordenId: string }) {
   const elements = useElements();
   const router = useRouter();
   const [pagando, setPagando] = useState(false);
+  const [elementListo, setElementListo] = useState(false);
+  const [elementError, setElementError] = useState(false);
 
   async function handlePagar() {
     if (!stripe || !elements) return;
     setPagando(true);
-    const { error, paymentIntent } = await stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        return_url: `${window.location.origin}/checkout/confirmacion?ordenId=${ordenId}&count=1&status=ok`,
-      },
-      redirect: "if_required", // tarjetas sin 3DS confirman sin salir de la página
-    });
-    if (error) {
-      toast.error(error.message ?? "El pago no pudo procesarse.");
-      setPagando(false);
-      return;
-    }
-    if (paymentIntent?.status === "succeeded" || paymentIntent?.status === "processing") {
-      toast.success("¡Pago procesado!");
-      router.push(`/checkout/confirmacion?ordenId=${ordenId}&count=1&status=ok`);
-    } else {
+    try {
+      const { error, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: `${window.location.origin}/checkout/confirmacion?ordenId=${ordenId}&count=1&status=ok`,
+        },
+        redirect: "if_required", // tarjetas sin 3DS confirman sin salir de la página
+      });
+      if (error) {
+        toast.error(error.message ?? "El pago no pudo procesarse.");
+        setPagando(false);
+        return;
+      }
+      if (paymentIntent?.status === "succeeded" || paymentIntent?.status === "processing") {
+        toast.success("¡Pago procesado!");
+        router.push(`/checkout/confirmacion?ordenId=${ordenId}&count=1&status=ok`);
+      } else {
+        setPagando(false);
+      }
+    } catch {
+      toast.error("No se pudo conectar con Stripe. Verifica tu conexión o desactiva bloqueadores de anuncios/rastreo e intenta de nuevo.");
       setPagando(false);
     }
   }
 
   return (
     <div className="space-y-4">
-      <PaymentElement />
+      {!elementListo && !elementError && (
+        <div className="flex items-center justify-center gap-2 py-8">
+          <Loader2 className="h-5 w-5 animate-spin text-slate-300" />
+          <p className="text-xs text-slate-400">Cargando formulario de tarjeta…</p>
+        </div>
+      )}
+      {elementError && (
+        <p className="text-sm text-red-600 text-center py-4">
+          No se pudo cargar el formulario de pago. Desactiva bloqueadores de anuncios/rastreo
+          (ej. Brave Shields, extensiones de privacidad) para este sitio y recarga la página.
+        </p>
+      )}
+      <div className={elementListo ? "" : "hidden"}>
+        <PaymentElement
+          onReady={() => setElementListo(true)}
+          onLoadError={() => setElementError(true)}
+        />
+      </div>
       <button
         onClick={handlePagar}
-        disabled={!stripe || pagando}
+        disabled={!stripe || !elementListo || pagando}
         className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700
                    disabled:opacity-50 text-white font-semibold py-3 rounded-xl text-sm
                    transition-colors shadow-sm shadow-indigo-200"
