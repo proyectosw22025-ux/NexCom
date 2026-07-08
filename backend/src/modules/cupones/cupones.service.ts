@@ -50,6 +50,16 @@ export const cuponesService = {
         extensions: { code: "BAD_USER_INPUT" },
       });
     }
+    if (input.montoMinimo != null && input.montoMinimo < 0) {
+      throw new GraphQLError("El monto mínimo no puede ser negativo.", {
+        extensions: { code: "BAD_USER_INPUT" },
+      });
+    }
+    if (input.maxUsos != null && input.maxUsos < 1) {
+      throw new GraphQLError("El máximo de usos debe ser al menos 1.", {
+        extensions: { code: "BAD_USER_INPUT" },
+      });
+    }
     const inicio = new Date(input.fechaInicio);
     const fin    = new Date(input.fechaFin);
     if (isNaN(inicio.getTime()) || isNaN(fin.getTime())) {

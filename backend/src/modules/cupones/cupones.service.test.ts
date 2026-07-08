@@ -64,6 +64,30 @@ describe("cuponesService.crear", () => {
       cuponesService.crear(inputBase, prisma, "vendedor-1"),
     ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
   });
+
+  it("rechaza un valor menor o igual a 0", async () => {
+    await expect(
+      cuponesService.crear({ ...inputBase, valor: 0 }, prisma, "vendedor-1"),
+    ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
+  });
+
+  it("rechaza un monto mínimo negativo", async () => {
+    await expect(
+      cuponesService.crear({ ...inputBase, montoMinimo: -5 }, prisma, "vendedor-1"),
+    ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
+  });
+
+  it("rechaza maxUsos menor a 1 (cupón inutilizable)", async () => {
+    await expect(
+      cuponesService.crear({ ...inputBase, maxUsos: 0 }, prisma, "vendedor-1"),
+    ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
+  });
+
+  it("rechaza si la fecha fin no es posterior al inicio", async () => {
+    await expect(
+      cuponesService.crear({ ...inputBase, fechaFin: inputBase.fechaInicio }, prisma, "vendedor-1"),
+    ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
+  });
 });
 
 describe("cuponesService.validar", () => {
@@ -99,5 +123,40 @@ describe("cuponesService.validar", () => {
     await expect(
       cuponesService.validar("PROMO10", "200", "user-1", prisma),
     ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
+  });
+
+  it("rechaza si el subtotal no alcanza el monto mínimo", async () => {
+    vi.mocked(cuponesRepository.findByCodigo).mockResolvedValue({ ...cuponVendedor, montoMinimo: 300 } as never);
+    vi.mocked(cuponesRepository.countUsosPorUsuario).mockResolvedValue(0);
+    await expect(
+      cuponesService.validar("PROMO10", "200", "user-1", prisma),
+    ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
+  });
+
+  it("rechaza si el cupón alcanzó su límite de usos", async () => {
+    vi.mocked(cuponesRepository.findByCodigo).mockResolvedValue({ ...cuponVendedor, maxUsos: 5, usosActuales: 5 } as never);
+    await expect(
+      cuponesService.validar("PROMO10", "200", "user-1", prisma),
+    ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
+  });
+
+  it("rechaza un cupón fuera de su ventana de fechas", async () => {
+    vi.mocked(cuponesRepository.findByCodigo).mockResolvedValue({
+      ...cuponVendedor,
+      fechaInicio: new Date("2999-01-01"), fechaFin: new Date("2999-12-31"),
+    } as never);
+    await expect(
+      cuponesService.validar("PROMO10", "200", "user-1", prisma),
+    ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
+  });
+
+  it("MONTO_FIJO nunca descuenta más que el subtotal", async () => {
+    vi.mocked(cuponesRepository.findByCodigo).mockResolvedValue({
+      ...cuponVendedor, tipo: "MONTO_FIJO", valor: 500,
+    } as never);
+    vi.mocked(cuponesRepository.countUsosPorUsuario).mockResolvedValue(0);
+    const r = await cuponesService.validar("PROMO10", "200", "user-1", prisma);
+    expect(r.descuento).toBe("200");            // capado al subtotal
+    expect(r.totalConDescuento).toBe("0");      // nunca negativo
   });
 });

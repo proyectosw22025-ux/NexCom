@@ -6,11 +6,12 @@ import { useQuery, useMutation } from "@apollo/client";
 import Link from "next/link";
 import { MIS_PRODUCTOS } from "@/graphql/productos/queries";
 import { CREAR_OFERTA } from "@/graphql/ofertas/mutations";
-import { ArrowLeft, Loader2, Tag, Package, CheckSquare, Square } from "lucide-react";
+import { ArrowLeft, Loader2, Tag, Package } from "lucide-react";
 import { toast } from "sonner";
 import { ApolloError } from "@apollo/client";
 import type { ProductoCardData } from "@/components/productos/ProductoCard";
 import { DateTimePicker } from "@/components/ui/DateTimePicker";
+import { ProductoPicker } from "@/components/vendedor/ProductoPicker";
 
 export default function NuevaOfertaPage() {
   const router = useRouter();
@@ -30,12 +31,6 @@ export default function NuevaOfertaPage() {
   const [crearOferta] = useMutation(CREAR_OFERTA);
 
   const productos = (prodData?.misProductos ?? []).filter((p) => p.activo);
-
-  function toggleProducto(id: string) {
-    setProductoIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -173,18 +168,13 @@ export default function NuevaOfertaPage() {
           </div>
         </div>
 
-        {/* Selector de productos */}
+        {/* Selector de productos con búsqueda inteligente */}
         <div className="bg-white rounded-2xl border border-slate-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Package className="h-4 w-4 text-indigo-600" />
-              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
-                Productos incluidos *
-              </h2>
-            </div>
-            <span className="text-xs text-slate-400">
-              {productoIds.length} seleccionado{productoIds.length !== 1 ? "s" : ""}
-            </span>
+          <div className="flex items-center gap-2 mb-4">
+            <Package className="h-4 w-4 text-indigo-600" />
+            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
+              Productos incluidos *
+            </h2>
           </div>
 
           {loadingProds ? (
@@ -196,35 +186,11 @@ export default function NuevaOfertaPage() {
               No tienes productos activos. <Link href="/vendedor/productos/nuevo" className="text-indigo-600 hover:underline">Crear uno →</Link>
             </p>
           ) : (
-            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-              {productos.map((p) => {
-                const selected = productoIds.includes(p.id);
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => toggleProducto(p.id)}
-                    className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-colors text-left ${
-                      selected
-                        ? "border-indigo-400 bg-indigo-50"
-                        : "border-slate-200 hover:bg-slate-50"
-                    }`}
-                  >
-                    {selected
-                      ? <CheckSquare className="h-4 w-4 text-indigo-600 shrink-0" />
-                      : <Square      className="h-4 w-4 text-slate-300 shrink-0" />
-                    }
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-900 truncate">{p.nombre}</p>
-                      <p className="text-xs text-slate-400">{p.categoria.nombre} · Stock: {p.stock}</p>
-                    </div>
-                    <span className="text-sm font-semibold text-slate-700 shrink-0">
-                      Bs. {p.precio}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+            <ProductoPicker
+              productos={productos}
+              seleccionados={productoIds}
+              onChange={setProductoIds}
+            />
           )}
         </div>
 

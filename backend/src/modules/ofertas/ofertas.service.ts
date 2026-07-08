@@ -38,17 +38,20 @@ export const ofertasService = {
         extensions: { code: "BAD_USER_INPUT" },
       });
     }
-    if (input.productoIds.length === 0) {
+    // Deduplica: evita filas puente duplicadas y falsos negativos al comparar
+    // contra los productos hallados (un id repetido no debe contar dos veces).
+    const productoIds = [...new Set(input.productoIds)];
+    if (productoIds.length === 0) {
       throw new GraphQLError("Debes incluir al menos un producto.", {
         extensions: { code: "BAD_USER_INPUT" },
       });
     }
 
     const productos = await prisma.producto.findMany({
-      where:  { id: { in: input.productoIds }, vendedorId, activo: true },
+      where:  { id: { in: productoIds }, vendedorId, activo: true },
       select: { id: true },
     });
-    if (productos.length !== input.productoIds.length) {
+    if (productos.length !== productoIds.length) {
       throw new GraphQLError("Uno o más productos no te pertenecen o no están activos.", {
         extensions: { code: "FORBIDDEN" },
       });
@@ -63,7 +66,7 @@ export const ofertasService = {
         fechaInicio: inicio,
         fechaFin:    fin,
       },
-      input.productoIds,
+      productoIds,
       prisma,
     );
   },
@@ -114,12 +117,13 @@ export const ofertasService = {
       }
     }
 
-    if (input.productoIds && input.productoIds.length > 0) {
+    const productoIds = input.productoIds ? [...new Set(input.productoIds)] : undefined;
+    if (productoIds && productoIds.length > 0) {
       const productos = await prisma.producto.findMany({
-        where:  { id: { in: input.productoIds }, vendedorId, activo: true },
+        where:  { id: { in: productoIds }, vendedorId, activo: true },
         select: { id: true },
       });
-      if (productos.length !== input.productoIds.length) {
+      if (productos.length !== productoIds.length) {
         throw new GraphQLError("Uno o más productos no te pertenecen o no están activos.", {
           extensions: { code: "FORBIDDEN" },
         });
@@ -134,7 +138,7 @@ export const ofertasService = {
         descuento:   input.descuento,
         fechaFin,
       },
-      input.productoIds,
+      productoIds,
       prisma,
     );
   },
