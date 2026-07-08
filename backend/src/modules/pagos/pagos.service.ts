@@ -303,6 +303,10 @@ export const pagosService = {
     const intent = await stripe.paymentIntents.create({
       amount:   amountCents,
       currency: "usd",
+      // Requerido por el PaymentElement moderno: Stripe decide los métodos a
+      // mostrar (tarjeta, etc.). Sin redirects: el flujo se queda en la página
+      // y el webhook confirma server-side.
+      automatic_payment_methods: { enabled: true, allow_redirects: "never" },
       metadata: { ordenId: orden.id, compradorId, environment: "sandbox" },
     });
     await pagosRepository.guardarStripePaymentIntentId(orden.id, intent.id, prisma);
