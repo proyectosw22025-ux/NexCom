@@ -28,6 +28,14 @@ enum EstadoOferta {
   CANCELADA
 }
 
+// KYC del vendedor: verificación de identidad de la microempresa
+enum EstadoVerificacion {
+  NO_ENVIADO
+  PENDIENTE
+  APROBADO
+  RECHAZADO
+}
+
 enum EstadoOrden {
   PENDIENTE_PAGO
   PAGADO
@@ -160,7 +168,12 @@ model PerfilVendedor {
   telefono       String?
   ciudad         String   @default("Santa Cruz")
   logoUrl        String?  @map("logo_url")
-  verificado     Boolean  @default(false) // microempresa verificada por el admin
+  verificado     Boolean  @default(false) // true cuando el KYC queda APROBADO (gate de retiros y sello)
+  estadoVerificacion    EstadoVerificacion @default(NO_ENVIADO) @map("estado_verificacion")
+  documentoUrl          String?  @map("documento_url")            // documento KYC (Cloudinary)
+  documentoTipo         String?  @map("documento_tipo")           // "CI" | "NIT" | "PASAPORTE"
+  verificacionEnviadaEn DateTime? @map("verificacion_enviada_en")
+  verificacionNotas     String?  @map("verificacion_notas")        // motivo de rechazo (admin)
   ratingPromedio Decimal  @default(0) @db.Decimal(3, 2) @map("rating_promedio")
   totalVentas    Int      @default(0) @map("total_ventas")
   totalResenias  Int      @default(0) @map("total_resenias")

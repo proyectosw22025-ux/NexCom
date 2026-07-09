@@ -27,6 +27,12 @@ export const authResolvers = {
     // Perfil público de un vendedor (tienda) — sin auth
     vendedorPublico: (_: unknown, { id }: { id: string }, ctx: NexComContext) =>
       service.getVendedorPublico(id, ctx.prisma),
+
+    // Cola de verificaciones KYC pendientes (solo admin)
+    verificacionesPendientes: (_: unknown, __: unknown, ctx: NexComContext) => {
+      requireRole(ctx, "ADMIN");
+      return service.getVerificacionesPendientes(ctx.prisma);
+    },
   },
 
   Mutation: {
@@ -37,6 +43,29 @@ export const authResolvers = {
     ) => {
       requireRole(ctx, "ADMIN");
       return service.verificarVendedor(vendedorId, verificado, ctx.prisma);
+    },
+
+    // El vendedor envía su documento de identidad para revisión (KYC)
+    enviarVerificacion: (
+      _: unknown,
+      { documentoUrl, documentoTipo }: { documentoUrl: string; documentoTipo: string },
+      ctx: NexComContext,
+    ) => {
+      requireRole(ctx, "VENDEDOR");
+      if (!ctx.user?.perfilVendedorId) {
+        throw new GraphQLError("Perfil de vendedor no encontrado.", { extensions: { code: "NOT_FOUND" } });
+      }
+      return service.enviarVerificacion(ctx.user.perfilVendedorId, { documentoUrl, documentoTipo }, ctx.prisma);
+    },
+
+    // El admin aprueba/rechaza una verificación pendiente
+    resolverVerificacion: (
+      _: unknown,
+      { vendedorId, aprobar, notas }: { vendedorId: string; aprobar: boolean; notas?: string | null },
+      ctx: NexComContext,
+    ) => {
+      requireRole(ctx, "ADMIN");
+      return service.resolverVerificacion(vendedorId, aprobar, notas ?? null, ctx.prisma);
     },
 
     mejorarPlan: (_: unknown, { plan }: { plan: string }, ctx: NexComContext) => {

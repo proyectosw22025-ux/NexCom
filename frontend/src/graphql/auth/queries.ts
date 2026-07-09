@@ -20,6 +20,10 @@ export const ME = gql`
         verificado
         plan
         planVenceEn
+        estadoVerificacion
+        verificacionNotas
+        documentoUrl
+        documentoTipo
       }
       perfilComprador {
         id

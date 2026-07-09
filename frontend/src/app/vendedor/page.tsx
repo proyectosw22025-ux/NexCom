@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/Badge";
 import { PageHero } from "@/components/ui/PageHero";
 import { StatCard } from "@/components/ui/StatCard";
 import { OnboardingVendedor } from "@/components/vendedor/OnboardingVendedor";
+import { NivelTiendaCard } from "@/components/vendedor/NivelTiendaCard";
 import type { ProductoCardData } from "@/components/productos/ProductoCard";
 
 // Code-split: recharts (~70kB) solo se descarga al montar el dashboard del
@@ -73,6 +74,9 @@ export default function VendedorDashboard() {
         icon={Store}
         tono="violet"
       />
+
+      {/* Nivel de confianza / KYC — empuja a verificarse mostrando beneficios */}
+      <NivelTiendaCard />
 
       {/* Onboarding para vendedores nuevos (se oculta al completarse) */}
       {!loading && (

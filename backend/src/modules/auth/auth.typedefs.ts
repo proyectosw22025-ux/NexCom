@@ -19,6 +19,22 @@ export const authTypeDefs = /* GraphQL */ `
     planVenceEn:   String   # fin del periodo PRO pagado (null en FREE)
     verificado:    Boolean!
     respondeRapido: Boolean!
+    # KYC — solo visibles para el dueño del perfil (vía 'me'); null en tienda pública
+    estadoVerificacion: String  # NO_ENVIADO | PENDIENTE | APROBADO | RECHAZADO
+    verificacionNotas:  String  # motivo de rechazo
+    documentoUrl:       String
+    documentoTipo:      String
+  }
+
+  type VerificacionPendiente {
+    id:            ID!      # perfilVendedorId
+    nombreNegocio: String!
+    ciudad:        String!
+    email:         String!
+    telefono:      String
+    documentoUrl:  String
+    documentoTipo: String
+    enviadaEn:     String
   }
 
   type PerfilCompradorPublico {
@@ -67,11 +83,14 @@ export const authTypeDefs = /* GraphQL */ `
   extend type Query {
     me: UsuarioPublico
     vendedorPublico(id: ID!): PerfilVendedorPublico
+    verificacionesPendientes: [VerificacionPendiente!]!   # admin: cola de KYC
   }
 
   extend type Mutation {
     mejorarPlan(plan: String!):                                 PerfilVendedorPublico!
     verificarVendedor(vendedorId: ID!, verificado: Boolean!):   PerfilVendedorPublico!
+    enviarVerificacion(documentoUrl: String!, documentoTipo: String!): PerfilVendedorPublico!
+    resolverVerificacion(vendedorId: ID!, aprobar: Boolean!, notas: String): PerfilVendedorPublico!
     register(input: RegisterInput!):                            AuthPayload!
     login(email: String!, password: String!):                  AuthPayload!
     logout(refreshToken: String):                               Boolean!

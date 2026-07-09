@@ -6,7 +6,7 @@ import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import {
-  LayoutDashboard, Package, Tag, LogOut, Store, ShoppingBag, Star, Ticket, Crown, RotateCcw, Wallet,
+  LayoutDashboard, Package, Tag, LogOut, Store, ShoppingBag, Star, Ticket, Crown, RotateCcw, Wallet, ShieldCheck,
 } from "lucide-react";
 import { DashboardTopbar } from "@/components/layout/DashboardTopbar";
 import { useUiPrefs } from "@/context/ui-prefs-context";
@@ -20,6 +20,7 @@ const NAV = [
   { href: "/vendedor/saldo",        label: "Saldo",         icon: Wallet },
   { href: "/vendedor/devoluciones", label: "Devoluciones",  icon: RotateCcw },
   { href: "/vendedor/valoraciones", label: "Valoraciones",  icon: Star },
+  { href: "/vendedor/verificacion", label: "Verificación",  icon: ShieldCheck },
   { href: "/vendedor/plan",         label: "Mi plan",       icon: Crown },
 ];
 

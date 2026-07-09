@@ -22,7 +22,18 @@ import * as repo from "./auth.repository.js";
 import { segundosBloqueo, registrarFallo, limpiarFallos } from "../../shared/login-throttle.js";
 import { saldosService } from "../saldos/saldos.service.js";
 import { getConfigNumber } from "../../shared/config.util.js";
+import { publishNotificacion } from "../../shared/pubsub.js";
 import { Decimal } from "decimal.js";
+
+// Campos que devuelve un PerfilVendedorPublico (incluye estado KYC del dueño).
+const PERFIL_VENDEDOR_SELECT = {
+  id: true, nombreNegocio: true, descripcion: true, ciudad: true, telefono: true,
+  logoUrl: true, ratingPromedio: true, totalVentas: true, totalResenias: true,
+  plan: true, planVenceEn: true, verificado: true, usuarioId: true,
+  estadoVerificacion: true, verificacionNotas: true, documentoUrl: true, documentoTipo: true,
+} as const;
+
+const TIPOS_DOCUMENTO = ["CI", "NIT", "PASAPORTE"];
 
 // Costo de bcrypt: 10 es el estándar OWASP. Reduce el tiempo de CPU del login
 // ~2-4× frente a 12 en CPU compartida, manteniendo seguridad adecuada.
@@ -362,12 +373,118 @@ export async function vendedorRespondeRapido(
 export async function verificarVendedor(perfilVendedorId: string, verificado: boolean, prisma: PrismaClient) {
   return prisma.perfilVendedor.update({
     where:  { id: perfilVendedorId },
-    data:   { verificado },
-    select: {
-      id: true, nombreNegocio: true, descripcion: true, ciudad: true, telefono: true,
-      logoUrl: true, ratingPromedio: true, totalVentas: true, totalResenias: true, plan: true, planVenceEn: true, verificado: true, usuarioId: true,
+    data:   { verificado, estadoVerificacion: verificado ? "APROBADO" : "RECHAZADO" },
+    select: PERFIL_VENDEDOR_SELECT,
+  });
+}
+
+// ── KYC del vendedor (confianza progresiva) ─────────────────────────────────────
+
+/** El vendedor envía su documento de identidad para revisión (estado → PENDIENTE). */
+export async function enviarVerificacion(
+  perfilVendedorId: string,
+  input: { documentoUrl: string; documentoTipo: string },
+  prisma: PrismaClient,
+) {
+  const perfil = await prisma.perfilVendedor.findUnique({
+    where: { id: perfilVendedorId }, select: { estadoVerificacion: true },
+  });
+  if (!perfil) {
+    throw new GraphQLError("Perfil de vendedor no encontrado.", { extensions: { code: "NOT_FOUND" } });
+  }
+  if (perfil.estadoVerificacion === "APROBADO") {
+    throw new GraphQLError("Tu cuenta ya está verificada.", { extensions: { code: "BAD_USER_INPUT" } });
+  }
+  if (perfil.estadoVerificacion === "PENDIENTE") {
+    throw new GraphQLError("Ya tienes una verificación en revisión.", { extensions: { code: "BAD_USER_INPUT" } });
+  }
+  const tipo = input.documentoTipo.trim().toUpperCase();
+  if (!TIPOS_DOCUMENTO.includes(tipo)) {
+    throw new GraphQLError("Tipo de documento inválido (CI, NIT o PASAPORTE).", { extensions: { code: "BAD_USER_INPUT" } });
+  }
+  if (!/^https?:\/\/\S+/.test(input.documentoUrl)) {
+    throw new GraphQLError("Debes adjuntar una imagen del documento.", { extensions: { code: "BAD_USER_INPUT" } });
+  }
+  return prisma.perfilVendedor.update({
+    where: { id: perfilVendedorId },
+    data: {
+      estadoVerificacion:    "PENDIENTE",
+      documentoUrl:          input.documentoUrl,
+      documentoTipo:         tipo,
+      verificacionEnviadaEn: new Date(),
+      verificacionNotas:     null,
+    },
+    select: PERFIL_VENDEDOR_SELECT,
+  });
+}
+
+/** El admin aprueba o rechaza una verificación PENDIENTE y notifica al vendedor. */
+export async function resolverVerificacion(
+  perfilVendedorId: string, aprobar: boolean, notas: string | null, prisma: PrismaClient,
+) {
+  const perfil = await prisma.perfilVendedor.findUnique({
+    where:  { id: perfilVendedorId },
+    select: { estadoVerificacion: true, usuarioId: true },
+  });
+  if (!perfil) {
+    throw new GraphQLError("Perfil de vendedor no encontrado.", { extensions: { code: "NOT_FOUND" } });
+  }
+  if (perfil.estadoVerificacion !== "PENDIENTE") {
+    throw new GraphQLError("Esta verificación ya fue resuelta.", { extensions: { code: "BAD_USER_INPUT" } });
+  }
+
+  const actualizado = await prisma.perfilVendedor.update({
+    where: { id: perfilVendedorId },
+    data: {
+      estadoVerificacion: aprobar ? "APROBADO" : "RECHAZADO",
+      verificado:         aprobar,
+      verificacionNotas:  aprobar ? null : (notas?.trim() || "No cumple los requisitos de verificación."),
+    },
+    select: PERFIL_VENDEDOR_SELECT,
+  });
+
+  const n = await prisma.notificacion.create({
+    data: {
+      usuarioId: perfil.usuarioId,
+      tipo:      aprobar ? "VERIFICACION_APROBADA" : "VERIFICACION_RECHAZADA",
+      titulo:    aprobar ? "¡Tienda verificada!" : "Verificación rechazada",
+      mensaje:   aprobar
+        ? "Tu identidad fue verificada. Ya puedes retirar fondos y luces el sello de confianza."
+        : `Tu verificación fue rechazada.${notas?.trim() ? ` Motivo: ${notas.trim()}` : ""} Puedes volver a enviarla.`,
+      url: "/vendedor/verificacion",
     },
   });
+  try {
+    publishNotificacion(perfil.usuarioId, {
+      id: n.id, tipo: n.tipo, titulo: n.titulo, mensaje: n.mensaje,
+      leido: n.leido, url: n.url, ordenId: n.ordenId, creadoEn: n.creadoEn.toISOString(),
+    });
+  } catch { /* pub/sub best-effort (Redis puede no estar disponible) */ }
+
+  return actualizado;
+}
+
+/** Cola de verificaciones PENDIENTES para el panel admin. */
+export async function getVerificacionesPendientes(prisma: PrismaClient) {
+  const rows = await prisma.perfilVendedor.findMany({
+    where:   { estadoVerificacion: "PENDIENTE" },
+    orderBy: { verificacionEnviadaEn: "asc" },
+    select: {
+      id: true, nombreNegocio: true, ciudad: true, documentoUrl: true, documentoTipo: true,
+      verificacionEnviadaEn: true, telefono: true,
+      usuario: { select: { email: true } },
+    },
+  });
+  return rows.map((r) => ({
+    id:            r.id,
+    nombreNegocio: r.nombreNegocio,
+    ciudad:        r.ciudad,
+    email:         r.usuario?.email ?? "",
+    telefono:      r.telefono,
+    documentoUrl:  r.documentoUrl,
+    documentoTipo: r.documentoTipo,
+    enviadaEn:     r.verificacionEnviadaEn?.toISOString() ?? null,
+  }));
 }
 
 // ── Planes de vendedor (H.2) ─────────────────────────────────────────────────────
