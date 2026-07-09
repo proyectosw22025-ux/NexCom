@@ -13,6 +13,10 @@ export const authResolvers = {
       ctx: NexComContext,
     ) => service.vendedorRespondeRapido(parent.id, parent.usuarioId, ctx.prisma),
 
+    // Disputas perdidas (on-demand): señal de confianza para comprador y nivel de tienda
+    disputasPerdidas: (parent: { id: string }, _: unknown, ctx: NexComContext) =>
+      service.contarDisputasPerdidas(parent.id, ctx.prisma),
+
     // Serialización ISO explícita (Prisma devuelve Date)
     planVenceEn: (parent: { planVenceEn?: Date | string | null }) =>
       parent.planVenceEn ? new Date(parent.planVenceEn).toISOString() : null,

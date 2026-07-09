@@ -1,10 +1,11 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Store, MapPin, Star, Package, ChevronLeft, ChevronRight, ShoppingBag, Crown } from "lucide-react";
+import { Store, MapPin, Star, Package, ChevronLeft, ChevronRight, ShoppingBag, Crown, ShieldCheck, AlertTriangle } from "lucide-react";
 import { ProductoCard, type ProductoCardData } from "@/components/productos/ProductoCard";
 import { ProductoResenias } from "@/components/productos/ProductoResenias";
 import { BotonWhatsApp } from "@/components/common/BotonWhatsApp";
 import { SellosConfianza } from "@/components/vendedor/SellosConfianza";
+import { nivelConfianza, reclamosAltos } from "@/lib/nivel-confianza";
 import { gqlFetchCacheable } from "@/lib/graphql-server";
 
 export const revalidate = 60;
@@ -14,7 +15,7 @@ const LIMITE = 12;
 interface VendedorPublico {
   id: string; nombreNegocio: string; descripcion: string | null; ciudad: string;
   logoUrl: string | null; ratingPromedio: string; totalVentas: number; totalResenias: number; plan: string;
-  telefono: string | null; verificado: boolean; respondeRapido: boolean;
+  telefono: string | null; verificado: boolean; respondeRapido: boolean; disputasPerdidas: number;
 }
 interface PaginatedProductos {
   items: ProductoCardData[]; total: number; pagina: number; totalPaginas: number;
@@ -24,7 +25,7 @@ const VENDEDOR_Q = `
   query Vendedor($id: ID!) {
     vendedorPublico(id: $id) {
       id nombreNegocio descripcion ciudad logoUrl ratingPromedio totalVentas totalResenias plan telefono
-      verificado respondeRapido
+      verificado respondeRapido disputasPerdidas
     }
   }`;
 
@@ -120,6 +121,15 @@ export default async function TiendaPage({
                 respondeRapido={vendedor.respondeRapido}
               />
             </div>
+            {reclamosAltos(vendedor) ? (
+              <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full">
+                <AlertTriangle className="h-3.5 w-3.5" /> Esta tienda tiene una tasa de reclamos alta — compra con precaución.
+              </p>
+            ) : nivelConfianza(vendedor) === "DESTACADO" ? (
+              <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-violet-700 bg-violet-50 border border-violet-200 px-3 py-1.5 rounded-full">
+                <ShieldCheck className="h-3.5 w-3.5" /> Tienda destacada · reclamos casi nulos
+              </p>
+            ) : null}
             {vendedor.descripcion && (
               <p className="text-sm text-slate-600 mt-3 leading-relaxed">{vendedor.descripcion}</p>
             )}

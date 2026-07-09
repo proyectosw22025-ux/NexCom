@@ -370,6 +370,15 @@ export async function vendedorRespondeRapido(
   return mediana < 24 * 60 * 60 * 1000;
 }
 
+/**
+ * Nº de disputas que el vendedor PERDIÓ (resueltas a favor del comprador).
+ * Señal de confianza: alimenta el nivel de la tienda y la transparencia al
+ * comprador. Se computa on-demand (field resolver), nunca en listados.
+ */
+export async function contarDisputasPerdidas(perfilVendedorId: string, prisma: PrismaClient): Promise<number> {
+  return prisma.disputa.count({ where: { vendedorId: perfilVendedorId, estado: "RESUELTA_COMPRADOR" } });
+}
+
 export async function verificarVendedor(perfilVendedorId: string, verificado: boolean, prisma: PrismaClient) {
   return prisma.perfilVendedor.update({
     where:  { id: perfilVendedorId },

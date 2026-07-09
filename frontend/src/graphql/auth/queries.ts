@@ -18,6 +18,7 @@ export const ME = gql`
         ratingPromedio
         totalVentas
         verificado
+        disputasPerdidas
         plan
         planVenceEn
         estadoVerificacion

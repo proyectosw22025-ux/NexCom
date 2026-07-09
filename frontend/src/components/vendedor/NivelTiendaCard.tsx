@@ -2,15 +2,16 @@
 
 import Link from "next/link";
 import { useQuery } from "@apollo/client";
-import { ShieldCheck, ArrowRight, CheckCircle2, Clock } from "lucide-react";
+import { ShieldCheck, ArrowRight, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
 import { ME } from "@/graphql/auth/queries";
-import { nivelConfianza, esVerificado, NIVELES } from "@/lib/nivel-confianza";
+import { nivelConfianza, esVerificado, reclamosAltos, NIVELES } from "@/lib/nivel-confianza";
 
 interface PerfilVendedor {
   estadoVerificacion?: string | null;
   verificado?: boolean;
   totalVentas?: number;
   ratingPromedio?: string | null;
+  disputasPerdidas?: number | null;
 }
 interface MeData { me: { perfilVendedor: PerfilVendedor | null } | null }
 
@@ -62,6 +63,12 @@ export function NivelTiendaCard() {
       {!verificado && estado !== "PENDIENTE" && (
         <p className="text-xs text-slate-500 mt-3">
           Verifica tu identidad para retirar fondos, ganar el sello de confianza y subir en el catálogo.
+        </p>
+      )}
+      {reclamosAltos(perfil) && (
+        <p className="text-xs text-amber-700 mt-3 flex items-center gap-1.5 font-medium">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+          Tu tasa de reclamos es alta: afecta tu nivel y tu posición. Mejora tus envíos y descripciones.
         </p>
       )}
     </div>

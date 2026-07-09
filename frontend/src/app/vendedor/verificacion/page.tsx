@@ -18,6 +18,7 @@ interface PerfilVendedor {
   verificado?: boolean;
   totalVentas?: number;
   ratingPromedio?: string | null;
+  disputasPerdidas?: number | null;
 }
 interface MeData { me: { perfilVendedor: PerfilVendedor | null } | null }
 
