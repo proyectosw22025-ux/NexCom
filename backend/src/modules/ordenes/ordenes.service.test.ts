@@ -40,6 +40,7 @@ describe("ordenesService.avanzarEstado", () => {
 
     expect(ordenesRepository.avanzarEstado).toHaveBeenCalledWith(
       "orden-1",
+      "PAGADO",            // estadoActual (CAS): solo avanza si sigue en PAGADO
       "EN_PREPARACION",
       "usuario-1",
       "Preparando pedido",
@@ -47,6 +48,19 @@ describe("ordenesService.avanzarEstado", () => {
       prisma,
     );
     expect(result).toMatchObject({ estado: "EN_PREPARACION" });
+  });
+
+  it("lanza CONFLICT si otro proceso cambió la orden (CAS perdido → no revive)", async () => {
+    vi.mocked(ordenesRepository.findOneByVendedor).mockResolvedValue({
+      id: "orden-9", estado: "PAGADO",
+    } as never);
+    // El repositorio devuelve null: la orden ya no estaba en PAGADO (p.ej. se
+    // canceló automáticamente por no-envío en paralelo).
+    vi.mocked(ordenesRepository.avanzarEstado).mockResolvedValue(null as never);
+
+    await expect(
+      ordenesService.avanzarEstado("orden-9", "vendedor-1", "usuario-1", null, undefined, prisma),
+    ).rejects.toMatchObject({ extensions: { code: "CONFLICT" } });
   });
 
   it("avanza de EN_PREPARACION a ENVIADO (transición válida)", async () => {
@@ -65,6 +79,7 @@ describe("ordenesService.avanzarEstado", () => {
 
     expect(ordenesRepository.avanzarEstado).toHaveBeenCalledWith(
       "orden-2",
+      "EN_PREPARACION",    // estadoActual (CAS)
       "ENVIADO",
       "usuario-1",
       null,

@@ -103,19 +103,27 @@ export const ordenesRepository = {
     return { ...mapOrden(o), codigoEntrega: o.codigoEntrega, comprador: o.comprador ?? null };
   },
 
+  /**
+   * Avance de estado ATÓMICO (compare-and-set): solo transiciona si la orden
+   * sigue en `estadoActual`. El `updateMany` con filtro de estado se evalúa bajo
+   * el lock de fila de Postgres, así que si un proceso autónomo (p.ej. la
+   * cancelación por no-envío) cambió la orden en paralelo, este avance falla
+   * limpiamente (devuelve null) en vez de pisar el estado. Evita el cruce de
+   * lógica: "gana quien transiciona primero", sin efectos duplicados.
+   */
   async avanzarEstado(
     id: string,
+    estadoActual: string,
     estadoNuevo: string,
     usuarioId: string,
     notas: string | null | undefined,
     comprobanteUrl: string | null | undefined,
     prisma: PrismaClient,
   ) {
-    const orden = await prisma.orden.findUniqueOrThrow({ where: { id } });
     const updated = await prisma.$transaction(async (tx) => {
-      const o = await tx.orden.update({
-        where:   { id },
-        data:    {
+      const cas = await tx.orden.updateMany({
+        where: { id, estado: estadoActual as never },
+        data:  {
           estado: estadoNuevo as never,
           ...(comprobanteUrl ? { comprobanteUrl } : {}),
           // Al ENVIAR arranca la ventana de auto-liberación de la garantía.
@@ -123,19 +131,20 @@ export const ordenesRepository = {
             ? { autoLiberaEn: new Date(Date.now() + DIAS_AUTO_LIBERACION * 86_400_000) }
             : {}),
         },
-        include: ordenVendedorInclude,
       });
+      if (cas.count === 0) return null; // otro proceso ya cambió la orden
       await tx.historialEstadoOrden.create({
         data: {
           ordenId:       id,
-          estadoAnterior: orden.estado as never,
+          estadoAnterior: estadoActual as never,
           estadoNuevo:   estadoNuevo as never,
           cambiadoPorId: usuarioId,
           notas:         notas ?? null,
         },
       });
-      return o;
+      return tx.orden.findUniqueOrThrow({ where: { id }, include: ordenVendedorInclude });
     });
+    if (!updated) return null;
     return { ...mapOrden(updated), codigoEntrega: updated.codigoEntrega, comprador: updated.comprador ?? null };
   },
 
@@ -169,24 +178,23 @@ export const ordenesRepository = {
     return rellenarSerieDiaria(rows, dias);
   },
 
+  /**
+   * Marca ENTREGADO de forma ATÓMICA: solo si la orden sigue ENVIADO y sin
+   * fondos liberados. Devuelve null si perdió la carrera (ya entregada, cancelada
+   * o en disputa) — el llamador NO debe liberar fondos en ese caso.
+   */
   async marcarEntregada(id: string, usuarioId: string, prisma: PrismaClient) {
-    const orden = await prisma.orden.findUniqueOrThrow({ where: { id } });
     const updated = await prisma.$transaction(async (tx) => {
-      const o = await tx.orden.update({
-        where:   { id },
-        data:    { estado: "ENTREGADO", fondosLiberadosEn: new Date() },
-        include: ordenInclude,
+      const cas = await tx.orden.updateMany({
+        where: { id, estado: "ENVIADO", fondosLiberadosEn: null },
+        data:  { estado: "ENTREGADO", fondosLiberadosEn: new Date() },
       });
+      if (cas.count === 0) return null;
       await tx.historialEstadoOrden.create({
-        data: {
-          ordenId:        id,
-          estadoAnterior: orden.estado as never,
-          estadoNuevo:    "ENTREGADO",
-          cambiadoPorId:  usuarioId,
-        },
+        data: { ordenId: id, estadoAnterior: "ENVIADO" as never, estadoNuevo: "ENTREGADO", cambiadoPorId: usuarioId },
       });
-      return o;
+      return tx.orden.findUniqueOrThrow({ where: { id }, include: ordenInclude });
     });
-    return mapOrden(updated);
+    return updated ? mapOrden(updated) : null;
   },
 };

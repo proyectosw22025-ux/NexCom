@@ -1,7 +1,9 @@
 import { GraphQLError } from "graphql";
+import { Decimal } from "decimal.js";
 import type { PrismaClient } from "@prisma/client";
 import { ordenesRepository } from "./ordenes.repository.js";
 import { saldosService } from "../saldos/saldos.service.js";
+import { creditoService } from "../credito/credito.service.js";
 import { generarCodigoEntrega } from "../../shared/codigo-entrega.util.js";
 import { publishNotificacion } from "../../shared/pubsub.js";
 
@@ -90,7 +92,15 @@ export const ordenesService = {
     // El comprobante solo aplica al pasar a ENVIADO
     const comprobante = estadoNuevo === "ENVIADO" ? comprobanteUrl : undefined;
 
-    const actualizada = await ordenesRepository.avanzarEstado(id, estadoNuevo, usuarioId, notas, comprobante, prisma);
+    // CAS: solo avanza si la orden SIGUE en `orden.estado`. Si un proceso
+    // autónomo la canceló/reembolsó en paralelo, count=0 → no la revivimos.
+    const actualizada = await ordenesRepository.avanzarEstado(id, orden.estado, estadoNuevo, usuarioId, notas, comprobante, prisma);
+    if (!actualizada) {
+      throw new GraphQLError(
+        "La orden cambió de estado (posible cancelación automática). Recárgala para ver su estado actual.",
+        { extensions: { code: "CONFLICT" } },
+      );
+    }
 
     // Aviso al comprador cuando su pedido sale en camino (paso del flujo de recojo)
     if (estadoNuevo === "ENVIADO") {
@@ -133,6 +143,7 @@ export const ordenesService = {
       throw bad("Solo puedes confirmar entrega de órdenes en estado ENVIADO.");
     }
     const updated = await ordenesRepository.marcarEntregada(id, usuarioId, prisma);
+    if (!updated) throw bad("La orden ya no está en camino (fue procesada). Recárgala.");
     await this._liberar(orden.vendedorId, id, usuarioId, "LIBERACION", prisma);
     return updated;
   },
@@ -195,8 +206,9 @@ export const ordenesService = {
       await this._registrarFalloCodigo(orden, usuarioId, prisma);
     }
 
-    // Éxito → entregar + liberar + limpiar la sesión de recojo
-    await ordenesRepository.marcarEntregada(id, usuarioId, prisma);
+    // Éxito → entregar (CAS) + liberar + limpiar la sesión de recojo
+    const entregada = await ordenesRepository.marcarEntregada(id, usuarioId, prisma);
+    if (!entregada) throw bad("Esta orden ya fue procesada o no está en camino.");
     await prisma.orden.update({
       where: { id },
       data:  { intentosCodigo: 0, codigoBloqueadoHasta: null, otpEntrega: null, otpEntregaExp: null },
@@ -245,8 +257,10 @@ export const ordenesService = {
       select: { id: true, vendedorId: true },
     });
     for (const o of vencidas) {
-      await ordenesRepository.marcarEntregada(o.id, "system", prisma);
-      await this._liberar(o.vendedorId, o.id, null, "LIBERACION_AUTO", prisma);
+      // CAS: solo libera si esta pasada ganó la transición a ENTREGADO. Si el
+      // comprador confirmó o se abrió una disputa en paralelo, se salta.
+      const entregada = await ordenesRepository.marcarEntregada(o.id, "system", prisma);
+      if (entregada) await this._liberar(o.vendedorId, o.id, null, "LIBERACION_AUTO", prisma);
     }
   },
 
@@ -304,8 +318,19 @@ export const ordenesService = {
     });
 
     for (const o of vencidas) {
-      await prisma.$transaction(async (tx) => {
-        await tx.orden.update({ where: { id: o.id }, data: { estado: "CANCELADO" } });
+      // CAS + restock atómicos: solo cancela si la orden SIGUE sin enviar y sin
+      // liberar. Si el vendedor la avanzó a ENVIADO justo ahora (respuesta
+      // tardía), count=0 → NO se cancela ni se reembolsa: "gana quien
+      // transicionó primero", sin cruce de lógica ni doble efecto.
+      const gano = await prisma.$transaction(async (tx) => {
+        const cas = await tx.orden.updateMany({
+          where: {
+            id: o.id, estado: { in: ["PAGADO", "EN_PREPARACION"] },
+            fondosLiberadosEn: null, disputaAbierta: false,
+          },
+          data: { estado: "CANCELADO" },
+        });
+        if (cas.count === 0) return false;
         await tx.historialEstadoOrden.create({
           data: { ordenId: o.id, estadoAnterior: o.estado as never, estadoNuevo: "CANCELADO",
             cambiadoPorId: "system", notas: "Cancelación automática: el vendedor no envió a tiempo" },
@@ -313,15 +338,20 @@ export const ordenesService = {
         for (const it of o.items) {
           await tx.producto.update({ where: { id: it.productoId }, data: { stock: { increment: it.cantidad } } });
         }
+        return true;
       });
+      if (!gano) continue; // otro flujo ya la avanzó/resolvió → no reembolsar
+
       // Reembolso desde el escrow (idempotente — revierte la retención exacta)
       await saldosService.registrarReembolso(o.vendedorId, o.id, prisma);
+      // Acredita el total a la billetera del comprador (dinero de vuelta)
+      await creditoService.acreditarReembolso(o.compradorId, o.id, new Decimal(o.total.toString()), prisma);
       await prisma.eventoSeguridad.create({
         data: { tipo: "CANCELACION_AUTO_SIN_ENVIO", ordenId: o.id, metadata: { total: o.total.toString() } },
       });
       await this._notificarComprador(
         o.compradorId, o.id, "ORDEN_CANCELADA", "Pedido cancelado y reembolsado",
-        `Tu orden #${o.id.slice(-6).toUpperCase()} fue cancelada porque el vendedor no la envió a tiempo. Tu pago protegido fue reembolsado.`,
+        `Tu orden #${o.id.slice(-6).toUpperCase()} fue cancelada porque el vendedor no la envió a tiempo. Se acreditó Bs. ${o.total.toString()} a tu billetera.`,
         prisma,
       );
     }
@@ -343,7 +373,13 @@ export const ordenesService = {
     });
     for (const o of vencidas) {
       await prisma.$transaction(async (tx) => {
-        await tx.orden.update({ where: { id: o.id }, data: { estado: "COMPLETADO" } });
+        // CAS: solo cierra si sigue ENTREGADO (no pisa una devolución/disputa
+        // que la haya movido en paralelo).
+        const cas = await tx.orden.updateMany({
+          where: { id: o.id, estado: "ENTREGADO" },
+          data:  { estado: "COMPLETADO" },
+        });
+        if (cas.count === 0) return;
         await tx.historialEstadoOrden.create({
           data: { ordenId: o.id, estadoAnterior: "ENTREGADO", estadoNuevo: "COMPLETADO", cambiadoPorId: "system", notas: "Cierre automático post-entrega" },
         });
