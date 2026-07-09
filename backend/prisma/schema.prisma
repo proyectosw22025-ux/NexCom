@@ -65,6 +65,13 @@ enum TipoMovimientoPuntos {
   CANJEADOS // débito: puntos usados como descuento
 }
 
+// Billetera de crédito del comprador (dinero real devuelto por reembolsos)
+enum TipoMovimientoCredito {
+  REEMBOLSO // crédito: dinero devuelto por una devolución/disputa aprobada
+  USO       // débito: crédito aplicado como pago en una compra
+  RETIRO    // débito: crédito retirado a banco (aprobado por admin)
+}
+
 enum EstadoRetiro {
   PENDIENTE
   PAGADO
@@ -216,6 +223,7 @@ model PerfilComprador {
   devoluciones         Devolucion[]
   facturas             Factura[]
   movimientosPuntos    MovimientoPuntos[]
+  movimientosCredito   MovimientoCredito[]
   itemsGuardados       ItemGuardado[]
 
   @@map("perfiles_comprador")
@@ -597,6 +605,8 @@ model Devolucion {
   compradorId       String           @map("comprador_id")
   vendedorId        String           @map("vendedor_id")
   motivo            String
+  tipoProblema      String?          @map("tipo_problema")   // DEFECTUOSO | NO_CORRESPONDE | INCOMPLETO | OTRO
+  evidenciaUrls     String[]         @default([]) @map("evidencia_urls") // fotos (Cloudinary)
   estado            EstadoDevolucion @default(SOLICITADA)
   montoReembolso    Decimal          @db.Decimal(12, 4) @map("monto_reembolso")
   respuestaVendedor String?          @map("respuesta_vendedor") // nota del vendedor al resolver
@@ -646,6 +656,25 @@ model MovimientoPuntos {
   @@index([compradorId, creadoEn])
   @@index([ordenId, tipo])
   @@map("movimientos_puntos")
+}
+
+// Billetera de crédito del comprador (append-only). Saldo disponible =
+// SUM(REEMBOLSO) - SUM(USO) - SUM(RETIRO). El reembolso de una devolución
+// aprobada acredita aquí el dinero, que el comprador usa en próximas compras.
+model MovimientoCredito {
+  id          String                @id @default(cuid())
+  compradorId String                @map("comprador_id")
+  tipo        TipoMovimientoCredito
+  monto       Decimal               @db.Decimal(12, 4)
+  ordenId     String?               @map("orden_id")
+  descripcion String?
+  creadoEn    DateTime              @default(now()) @map("creado_en")
+
+  comprador PerfilComprador @relation(fields: [compradorId], references: [id])
+
+  @@index([compradorId, creadoEn])
+  @@index([ordenId, tipo])
+  @@map("movimientos_credito")
 }
 
 model SolicitudRetiro {

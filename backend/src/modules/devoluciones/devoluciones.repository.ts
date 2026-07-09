@@ -24,7 +24,10 @@ export const devolucionesRepository = {
   },
 
   async crear(
-    data: { ordenId: string; compradorId: string; vendedorId: string; motivo: string; montoReembolso: Decimal },
+    data: {
+      ordenId: string; compradorId: string; vendedorId: string; motivo: string;
+      tipoProblema: string; evidenciaUrls: string[]; montoReembolso: Decimal;
+    },
     prisma: PrismaClient,
   ) {
     return prisma.devolucion.create({
@@ -33,6 +36,8 @@ export const devolucionesRepository = {
         compradorId:    data.compradorId,
         vendedorId:     data.vendedorId,
         motivo:         data.motivo,
+        tipoProblema:   data.tipoProblema,
+        evidenciaUrls:  data.evidenciaUrls,
         montoReembolso: data.montoReembolso.toString(),
       },
     });

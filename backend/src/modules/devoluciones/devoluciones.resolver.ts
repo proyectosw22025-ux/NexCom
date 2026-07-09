@@ -34,9 +34,10 @@ export const devolucionesResolvers = {
   Mutation: {
     solicitarDevolucion: (
       _: unknown,
-      { ordenId, motivo }: { ordenId: string; motivo: string },
+      { ordenId, motivo, tipoProblema, evidenciaUrls }:
+        { ordenId: string; motivo: string; tipoProblema?: string | null; evidenciaUrls?: string[] | null },
       ctx: NexComContext,
-    ) => devolucionesService.solicitar(compradorId(ctx), ctx.user!.id, ordenId, motivo, ctx.prisma),
+    ) => devolucionesService.solicitar(compradorId(ctx), ctx.user!.id, ordenId, motivo, tipoProblema, evidenciaUrls, ctx.prisma),
 
     responderDevolucion: (
       _: unknown,

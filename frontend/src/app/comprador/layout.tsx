@@ -5,13 +5,14 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { ShoppingBag, User, Package, LogOut, Store } from "lucide-react";
+import { ShoppingBag, User, Package, LogOut, Store, Wallet } from "lucide-react";
 import { DashboardTopbar } from "@/components/layout/DashboardTopbar";
 import { useUiPrefs } from "@/context/ui-prefs-context";
 
 const NAV = [
   { href: "/comprador",          label: "Mi Panel",    icon: ShoppingBag },
   { href: "/comprador/ordenes",  label: "Mis Pedidos", icon: Package },
+  { href: "/comprador/saldo",    label: "Mi Billetera", icon: Wallet },
   { href: "/comprador/perfil",   label: "Mi Perfil",   icon: User },
 ];
 

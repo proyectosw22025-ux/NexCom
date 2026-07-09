@@ -3,12 +3,15 @@ import { Decimal } from "decimal.js";
 import type { PrismaClient } from "@prisma/client";
 import { devolucionesRepository } from "./devoluciones.repository.js";
 import { saldosService } from "../saldos/saldos.service.js";
+import { creditoService } from "../credito/credito.service.js";
 import { publishNotificacion } from "../../shared/pubsub.js";
 
 // Reglas de negocio
 const ESTADOS_ELEGIBLES = ["ENTREGADO", "COMPLETADO"]; // solo se devuelve lo ya recibido
 const DEVOLUCION_DIAS    = 7;                            // ventana desde la entrega
 const MOTIVO_MIN         = 5;
+const TIPOS_PROBLEMA     = ["DEFECTUOSO", "NO_CORRESPONDE", "INCOMPLETO", "OTRO"];
+const MAX_EVIDENCIA      = 5;
 
 function bad(msg: string) {
   return new GraphQLError(msg, { extensions: { code: "BAD_USER_INPUT" } });
@@ -16,6 +19,7 @@ function bad(msg: string) {
 
 type DevolucionRow = {
   id: string; ordenId: string; motivo?: string; estado: string;
+  tipoProblema?: string | null; evidenciaUrls?: string[];
   montoReembolso: { toString(): string }; respuestaVendedor?: string | null; creadoEn?: Date;
 };
 
@@ -24,6 +28,8 @@ function mapDevolucion(d: DevolucionRow, otroNombre: string) {
     id:                d.id,
     ordenId:           d.ordenId,
     motivo:            d.motivo ?? "",
+    tipoProblema:      d.tipoProblema ?? null,
+    evidenciaUrls:     d.evidenciaUrls ?? [],
     estado:            d.estado,
     montoReembolso:    d.montoReembolso.toString(),
     respuestaVendedor: d.respuestaVendedor ?? null,
@@ -50,12 +56,20 @@ export const devolucionesService = {
     usuarioId: string,
     ordenId: string,
     motivo: string,
+    tipoProblema: string | null | undefined,
+    evidenciaUrls: string[] | null | undefined,
     prisma: PrismaClient,
   ) {
+    void usuarioId;
     const texto = motivo.trim();
     if (texto.length < MOTIVO_MIN) {
       throw bad("Cuéntanos el motivo de la devolución (mínimo unas palabras).");
     }
+    const tipo = (tipoProblema ?? "OTRO").toUpperCase();
+    if (!TIPOS_PROBLEMA.includes(tipo)) {
+      throw bad("Tipo de problema inválido.");
+    }
+    const evidencia = (evidenciaUrls ?? []).filter((u) => /^https?:\/\/\S+/.test(u)).slice(0, MAX_EVIDENCIA);
 
     const orden = await devolucionesRepository.findOrdenParaDevolucion(ordenId, prisma);
     if (!orden || orden.comprador?.id !== compradorId) {
@@ -83,6 +97,8 @@ export const devolucionesService = {
         compradorId,
         vendedorId:     orden.vendedor!.id,
         motivo:         texto,
+        tipoProblema:   tipo,
+        evidenciaUrls:  evidencia,
         montoReembolso: new Decimal(orden.total.toString()),
       },
       prisma,
@@ -118,14 +134,18 @@ export const devolucionesService = {
 
     let actualizada;
     if (aprobar) {
-      // Reembolso simulado + restock atómico
+      // Reembolso + restock atómico
       actualizada = await devolucionesRepository.reembolsar(id, nota, dev.orden!.items, prisma);
-      // Revertir el neto acreditado al vendedor (clawback)
+      // 1) Revertir el neto acreditado al vendedor (clawback de su saldo)
       await saldosService.registrarReembolso(dev.vendedor!.id, dev.ordenId, prisma);
+      // 2) Acreditar el total a la BILLETERA del comprador (a dónde vuelve la plata)
+      await creditoService.acreditarReembolso(
+        dev.comprador!.id, dev.ordenId, new Decimal(dev.montoReembolso.toString()), prisma,
+      );
       await notificar(
         prisma, dev.comprador!.usuarioId, "DEVOLUCION_RESUELTA", "Devolución aprobada",
-        `Tu devolución de la orden #${idCorto} fue aprobada. Se reembolsará Bs. ${dev.montoReembolso.toString()}.`,
-        `/comprador/ordenes/${dev.ordenId}`,
+        `Tu devolución de la orden #${idCorto} fue aprobada. Se acreditó Bs. ${dev.montoReembolso.toString()} a tu billetera.`,
+        `/comprador/saldo`,
       );
     } else {
       actualizada = await devolucionesRepository.rechazar(id, nota, prisma);

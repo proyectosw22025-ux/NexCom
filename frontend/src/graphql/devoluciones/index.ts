@@ -2,7 +2,7 @@ import { gql } from "@apollo/client";
 
 const DEVOLUCION_FIELDS = gql`
   fragment DevolucionFields on Devolucion {
-    id ordenId ordenIdCorto motivo estado montoReembolso respuestaVendedor otroNombre creadoEn
+    id ordenId ordenIdCorto motivo tipoProblema evidenciaUrls estado montoReembolso respuestaVendedor otroNombre creadoEn
   }
 `;
 
@@ -22,8 +22,8 @@ export const DEVOLUCIONES_VENDEDOR = gql`
 
 export const SOLICITAR_DEVOLUCION = gql`
   ${DEVOLUCION_FIELDS}
-  mutation SolicitarDevolucion($ordenId: ID!, $motivo: String!) {
-    solicitarDevolucion(ordenId: $ordenId, motivo: $motivo) { ...DevolucionFields }
+  mutation SolicitarDevolucion($ordenId: ID!, $motivo: String!, $tipoProblema: String, $evidenciaUrls: [String!]) {
+    solicitarDevolucion(ordenId: $ordenId, motivo: $motivo, tipoProblema: $tipoProblema, evidenciaUrls: $evidenciaUrls) { ...DevolucionFields }
   }
 `;
 

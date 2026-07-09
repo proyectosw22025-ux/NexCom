@@ -1,7 +1,9 @@
 import { GraphQLError } from "graphql";
 import type { PrismaClient } from "@prisma/client";
+import { Decimal } from "decimal.js";
 import { disputasRepository } from "./disputas.repository.js";
 import { saldosService } from "../saldos/saldos.service.js";
+import { creditoService } from "../credito/credito.service.js";
 import { publishNotificacion } from "../../shared/pubsub.js";
 
 const MOTIVOS_VALIDOS  = ["NO_RECIBIDO", "PRODUCTO_INCORRECTO", "DANADO", "OTRO"];
@@ -95,8 +97,10 @@ export const disputasService = {
     if (input.aFavor === "COMPRADOR") {
       await disputasRepository.resolverReembolso(input.disputaId, d.ordenId, adminUsuarioId, nota, orden.items, prisma);
       await saldosService.registrarReembolso(d.vendedorId, d.ordenId, prisma);
+      // Acredita el total a la billetera del comprador (dinero de vuelta)
+      await creditoService.acreditarReembolso(orden.comprador!.id, d.ordenId, new Decimal(orden.total.toString()), prisma);
       await notificar(prisma, orden.comprador!.usuarioId, "DISPUTA_RESUELTA", "Reclamo aprobado",
-        `Tu reclamo de la orden #${idCorto} fue aprobado. Se reembolsará Bs. ${orden.total.toString()}.`, `/comprador/ordenes/${d.ordenId}`, d.ordenId);
+        `Tu reclamo de la orden #${idCorto} fue aprobado. Se acreditó Bs. ${orden.total.toString()} a tu billetera.`, `/comprador/saldo`, d.ordenId);
       await notificar(prisma, orden.vendedor!.usuarioId, "DISPUTA_RESUELTA", "Reclamo resuelto",
         `El reclamo de la orden #${idCorto} se resolvió a favor del comprador (reembolso).`, `/vendedor/ordenes/${d.ordenId}`, d.ordenId);
     } else {

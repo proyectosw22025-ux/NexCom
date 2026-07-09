@@ -10,6 +10,8 @@ export const devolucionesTypeDefs = /* GraphQL */ `
     ordenId:           ID!
     ordenIdCorto:      String!
     motivo:            String!
+    tipoProblema:      String
+    evidenciaUrls:     [String!]!
     estado:            EstadoDevolucion!
     montoReembolso:    String!
     respuestaVendedor: String
@@ -24,7 +26,7 @@ export const devolucionesTypeDefs = /* GraphQL */ `
   }
 
   extend type Mutation {
-    solicitarDevolucion(ordenId: ID!, motivo: String!):                 Devolucion!
+    solicitarDevolucion(ordenId: ID!, motivo: String!, tipoProblema: String, evidenciaUrls: [String!]): Devolucion!
     responderDevolucion(id: ID!, aprobar: Boolean!, respuesta: String): Devolucion!
   }
 `;

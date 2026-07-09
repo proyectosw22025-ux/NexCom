@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useQuery, useMutation, ApolloError } from "@apollo/client";
 import { RotateCcw, Loader2, CheckCircle2, XCircle, Clock, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
@@ -10,8 +11,13 @@ import { formatRelativeTime } from "@/lib/format-relative-time";
 
 interface Devolucion {
   id: string; ordenId: string; ordenIdCorto: string; motivo: string; estado: string;
+  tipoProblema?: string | null; evidenciaUrls?: string[];
   montoReembolso: string; respuestaVendedor: string | null; otroNombre: string; creadoEn: string;
 }
+
+const TIPO_LABEL: Record<string, string> = {
+  DEFECTUOSO: "Llegó dañado", NO_CORRESPONDE: "No es lo pedido", INCOMPLETO: "Incompleto", OTRO: "Otro",
+};
 
 const ESTADO_UI: Record<string, { icon: typeof Clock; color: string; bg: string; label: string }> = {
   SOLICITADA:  { icon: Clock,        color: "text-amber-700",   bg: "bg-amber-100",   label: "En revisión" },
@@ -85,9 +91,26 @@ export default function VendedorDevolucionesPage() {
                       </div>
                       <span className="text-sm font-bold text-slate-900">Bs. {d.montoReembolso}</span>
                     </div>
-                    <p className="text-sm text-slate-600 bg-slate-50 rounded-xl p-3 mb-3">
-                      <span className="font-semibold">Motivo:</span> {d.motivo}
-                    </p>
+                    <div className="bg-slate-50 rounded-xl p-3 mb-3">
+                      {d.tipoProblema && (
+                        <span className="inline-block text-[11px] font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full mb-1.5">
+                          {TIPO_LABEL[d.tipoProblema] ?? d.tipoProblema}
+                        </span>
+                      )}
+                      <p className="text-sm text-slate-600"><span className="font-semibold">Motivo:</span> {d.motivo}</p>
+                      {d.evidenciaUrls && d.evidenciaUrls.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {d.evidenciaUrls.map((u) => (
+                            <a key={u} href={u} target="_blank" rel="noopener noreferrer" className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-200 group">
+                              <Image src={u} alt="Evidencia" fill className="object-cover" />
+                              <span className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                <ExternalLink className="h-4 w-4 text-white" />
+                              </span>
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <input
                       value={respuestas[d.id] ?? ""}
                       onChange={(e) => setRespuestas((r) => ({ ...r, [d.id]: e.target.value }))}

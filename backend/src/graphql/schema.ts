@@ -9,6 +9,7 @@ import { favoritosTypeDefs }   from "../modules/favoritos/favoritos.typedefs.js"
 import { carritoTypeDefs }     from "../modules/carrito/carrito.typedefs.js";
 import { ofertasTypeDefs }     from "../modules/ofertas/ofertas.typedefs.js";
 import { cuponesTypeDefs }     from "../modules/cupones/cupones.typedefs.js";
+import { creditoTypeDefs }     from "../modules/credito/credito.typedefs.js";
 import { direccionesTypeDefs } from "../modules/direcciones/direcciones.typedefs.js";
 import { pagosTypeDefs }          from "../modules/pagos/pagos.typedefs.js";
 import { ordenesTypeDefs }        from "../modules/ordenes/ordenes.typedefs.js";
@@ -51,6 +52,7 @@ export const schema = mergeTypeDefs([
   carritoTypeDefs,
   ofertasTypeDefs,
   cuponesTypeDefs,
+  creditoTypeDefs,
   direccionesTypeDefs,
   pagosTypeDefs,
   ordenesTypeDefs,

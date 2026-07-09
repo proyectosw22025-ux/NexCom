@@ -10,6 +10,7 @@ import { favoritosResolvers }   from "../modules/favoritos/favoritos.resolver.js
 import { carritoResolvers }     from "../modules/carrito/carrito.resolver.js";
 import { ofertasResolvers }     from "../modules/ofertas/ofertas.resolver.js";
 import { cuponesResolvers }     from "../modules/cupones/cupones.resolver.js";
+import { creditoResolvers }     from "../modules/credito/credito.resolver.js";
 import { direccionesResolvers } from "../modules/direcciones/direcciones.resolver.js";
 import { pagosResolvers }          from "../modules/pagos/pagos.resolver.js";
 import { ordenesResolvers }        from "../modules/ordenes/ordenes.resolver.js";
@@ -49,6 +50,7 @@ export const resolvers = mergeResolvers([
   carritoResolvers,
   ofertasResolvers,
   cuponesResolvers,
+  creditoResolvers,
   direccionesResolvers,
   pagosResolvers,
   ordenesResolvers,

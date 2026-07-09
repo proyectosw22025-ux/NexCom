@@ -19,6 +19,9 @@ vi.mock("./devoluciones.repository.js", () => ({
 vi.mock("../saldos/saldos.service.js", () => ({
   saldosService: { registrarVenta: vi.fn(), registrarReembolso: vi.fn() },
 }));
+vi.mock("../credito/credito.service.js", () => ({
+  creditoService: { acreditarReembolso: vi.fn() },
+}));
 vi.mock("../../shared/pubsub.js", () => ({ publishNotificacion: vi.fn() }));
 
 const notifCreate = vi.fn().mockResolvedValue({
@@ -45,7 +48,7 @@ describe("devolucionesService.solicitar", () => {
       montoReembolso: { toString: () => "150.00" }, respuestaVendedor: null, creadoEn: new Date(),
     } as never);
 
-    const r = await devolucionesService.solicitar("comp-1", "u-comp", "orden-1", "El producto llegó dañado", prisma);
+    const r = await devolucionesService.solicitar("comp-1", "u-comp", "orden-1", "El producto llegó dañado", "DEFECTUOSO", [], prisma);
 
     expect(r).toMatchObject({ id: "dev-1", estado: "SOLICITADA", montoReembolso: "150.00", otroNombre: "Tienda X" });
     // monto = total de la orden
@@ -59,7 +62,7 @@ describe("devolucionesService.solicitar", () => {
   it("rechaza si el solicitante no es el comprador de la orden (NOT_FOUND)", async () => {
     vi.mocked(devolucionesRepository.findOrdenParaDevolucion).mockResolvedValue(ordenEntregada as never);
     await expect(
-      devolucionesService.solicitar("OTRO", "u-x", "orden-1", "motivo válido", prisma),
+      devolucionesService.solicitar("OTRO", "u-x", "orden-1", "motivo válido", "DEFECTUOSO", [], prisma),
     ).rejects.toMatchObject({ extensions: { code: "NOT_FOUND" } });
     expect(devolucionesRepository.crear).not.toHaveBeenCalled();
   });
@@ -69,7 +72,7 @@ describe("devolucionesService.solicitar", () => {
       { ...ordenEntregada, estado: "PAGADO" } as never,
     );
     await expect(
-      devolucionesService.solicitar("comp-1", "u-comp", "orden-1", "motivo válido", prisma),
+      devolucionesService.solicitar("comp-1", "u-comp", "orden-1", "motivo válido", "DEFECTUOSO", [], prisma),
     ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
   });
 
@@ -78,7 +81,7 @@ describe("devolucionesService.solicitar", () => {
       { ...ordenEntregada, devolucion: { id: "dev-existente" } } as never,
     );
     await expect(
-      devolucionesService.solicitar("comp-1", "u-comp", "orden-1", "motivo válido", prisma),
+      devolucionesService.solicitar("comp-1", "u-comp", "orden-1", "motivo válido", "DEFECTUOSO", [], prisma),
     ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
   });
 
@@ -88,13 +91,13 @@ describe("devolucionesService.solicitar", () => {
       { ...ordenEntregada, historialEstados: [{ creadoEn: hace10dias }] } as never,
     );
     await expect(
-      devolucionesService.solicitar("comp-1", "u-comp", "orden-1", "motivo válido", prisma),
+      devolucionesService.solicitar("comp-1", "u-comp", "orden-1", "motivo válido", "DEFECTUOSO", [], prisma),
     ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
   });
 
   it("rechaza un motivo demasiado corto", async () => {
     await expect(
-      devolucionesService.solicitar("comp-1", "u-comp", "orden-1", "no", prisma),
+      devolucionesService.solicitar("comp-1", "u-comp", "orden-1", "no", "DEFECTUOSO", [], prisma),
     ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
     expect(devolucionesRepository.findOrdenParaDevolucion).not.toHaveBeenCalled();
   });
