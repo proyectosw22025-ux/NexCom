@@ -2,10 +2,16 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, ApolloError } from "@apollo/client";
-import { Wallet, Loader2, CheckCircle2, XCircle, Building2, Clock } from "lucide-react";
+import { Wallet, Loader2, CheckCircle2, XCircle, Building2, Clock, User } from "lucide-react";
 import { toast } from "sonner";
 import { RETIROS_ADMIN, RESOLVER_RETIRO } from "@/graphql/saldos";
+import { RETIROS_CREDITO_PENDIENTES, RESOLVER_RETIRO_CREDITO } from "@/graphql/credito";
 import { formatRelativeTime } from "@/lib/format-relative-time";
+
+interface RetiroComprador {
+  id: string; monto: string; banco: string; numeroCuenta: string; titular: string;
+  compradorNombre: string; compradorEmail: string; creadoEn: string;
+}
 
 interface Retiro {
   id: string; monto: string; estado: string; banco: string; numeroCuenta: string; titular: string;
@@ -24,6 +30,28 @@ export default function AdminRetirosPage() {
   const [resolver, { loading: resolviendo }] = useMutation(RESOLVER_RETIRO);
   const [notas, setNotas] = useState<Record<string, string>>({});
   const [procesando, setProcesando] = useState<string | null>(null);
+
+  // Retiros de la billetera del comprador
+  const { data: bData } = useQuery<{ retirosCreditoPendientes: RetiroComprador[] }>(
+    RETIROS_CREDITO_PENDIENTES, { fetchPolicy: "cache-and-network" },
+  );
+  const [resolverComprador] = useMutation(RESOLVER_RETIRO_CREDITO);
+  const retirosComprador = bData?.retirosCreditoPendientes ?? [];
+
+  async function handleResolverComprador(id: string, aprobar: boolean) {
+    setProcesando(id + aprobar);
+    try {
+      await resolverComprador({
+        variables: { id, aprobar, nota: notas[id]?.trim() || null },
+        refetchQueries: [{ query: RETIROS_CREDITO_PENDIENTES }],
+      });
+      toast.success(aprobar ? "Retiro marcado como pagado." : "Retiro rechazado.");
+    } catch (err: unknown) {
+      toast.error(err instanceof ApolloError ? (err.graphQLErrors[0]?.message ?? "Error.") : "Error.");
+    } finally {
+      setProcesando(null);
+    }
+  }
 
   const pendientes = data?.retirosPendientes ?? [];
   const resueltos  = data?.retirosResueltos ?? [];
@@ -107,6 +135,50 @@ export default function AdminRetirosPage() {
               </div>
             )}
           </section>
+
+          {/* Retiros de billetera de compradores */}
+          {retirosComprador.length > 0 && (
+            <section>
+              <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
+                Retiros de compradores (billetera) ({retirosComprador.length})
+              </h2>
+              <div className="space-y-3">
+                {retirosComprador.map((r) => (
+                  <div key={r.id} className="bg-white rounded-2xl border border-indigo-200 p-5">
+                    <div className="flex items-start justify-between gap-4 mb-3">
+                      <div>
+                        <p className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                          <User className="h-3.5 w-3.5 text-indigo-500" /> {r.compradorNombre || r.compradorEmail}
+                        </p>
+                        <p className="text-xs text-slate-400">{r.compradorEmail} · {formatRelativeTime(r.creadoEn)}</p>
+                      </div>
+                      <span className="text-lg font-extrabold text-slate-900">Bs. {r.monto}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-slate-600 bg-slate-50 rounded-xl p-3 mb-3">
+                      <Building2 className="h-4 w-4 text-slate-400 shrink-0" />
+                      <span><span className="font-semibold">{r.banco}</span> · Cta. {r.numeroCuenta} · {r.titular}</span>
+                    </div>
+                    <input
+                      value={notas[r.id] ?? ""}
+                      onChange={(e) => setNotas((n) => ({ ...n, [r.id]: e.target.value }))}
+                      placeholder="Nota (opcional)…"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
+                    />
+                    <div className="flex gap-2">
+                      <button onClick={() => handleResolverComprador(r.id, true)} disabled={resolviendo}
+                        className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors">
+                        {procesando === r.id + true ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />} Marcar pagado
+                      </button>
+                      <button onClick={() => handleResolverComprador(r.id, false)} disabled={resolviendo}
+                        className="flex items-center gap-1.5 border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50 text-sm font-semibold px-4 py-2 rounded-xl transition-colors">
+                        {procesando === r.id + false ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />} Rechazar
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           {resueltos.length > 0 && (
             <section>

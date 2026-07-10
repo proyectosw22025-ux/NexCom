@@ -8,11 +8,16 @@ import { creditoService } from "./credito.service.js";
 vi.mock("./credito.repository.js", () => ({
   creditoRepository: {
     sumarPorTipo:     vi.fn(),
+    sumarRetiros:     vi.fn(),
     existeMovimiento: vi.fn(),
     crear:            vi.fn(),
     listar:           vi.fn(),
+    crearRetiro:      vi.fn(),
+    findRetiro:       vi.fn(),
+    actualizarRetiro: vi.fn(),
   },
 }));
+vi.mock("../../shared/pubsub.js", () => ({ publishNotificacion: vi.fn() }));
 
 // Stub con $transaction pass-through (registrarUso es atómico) y $executeRaw
 // no-op (advisory lock). tx === prisma para que las aserciones sobre los mocks
@@ -22,19 +27,50 @@ const prisma = {
   $executeRaw:  async () => 0,
 } as unknown as PrismaClient;
 
-function saldos(reembolso: string, uso: string, retiro: string) {
+// reembolso/uso vienen del ledger (sumarPorTipo); retiros activos vienen de la
+// tabla de retiros (sumarRetiros PENDIENTE+PAGADO).
+function saldos(reembolso: string, uso: string, retiros: string) {
   vi.mocked(creditoRepository.sumarPorTipo).mockImplementation(async (_c, tipo) =>
-    new Decimal(tipo === "REEMBOLSO" ? reembolso : tipo === "USO" ? uso : retiro),
+    new Decimal(tipo === "REEMBOLSO" ? reembolso : uso),
   );
+  vi.mocked(creditoRepository.sumarRetiros).mockResolvedValue(new Decimal(retiros));
 }
 
 describe("creditoService.getDisponible", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("disponible = REEMBOLSO − USO − RETIRO", async () => {
+  it("disponible = REEMBOLSO − USO − retiros activos (reserva pendientes)", async () => {
     saldos("200", "50", "30");
     const d = await creditoService.getDisponible("c1", prisma);
     expect(d.toString()).toBe("120");
+  });
+});
+
+describe("creditoService.solicitarRetiro", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("crea el retiro cuando el monto está dentro del disponible", async () => {
+    saldos("300", "0", "0"); // disponible 300
+    vi.mocked(creditoRepository.crearRetiro).mockResolvedValue({
+      id: "r1", monto: "100", estado: "PENDIENTE", banco: "BNB", numeroCuenta: "123", titular: "Ana", creadoEn: new Date(),
+    } as never);
+    const r = await creditoService.solicitarRetiro("c1", { monto: "100", banco: "BNB", numeroCuenta: "123", titular: "Ana" }, prisma);
+    expect(r).toMatchObject({ estado: "PENDIENTE", monto: "100.00" });
+  });
+
+  it("rechaza retirar más que el saldo disponible", async () => {
+    saldos("50", "0", "0"); // disponible 50
+    await expect(
+      creditoService.solicitarRetiro("c1", { monto: "100", banco: "BNB", numeroCuenta: "1", titular: "Ana" }, prisma),
+    ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
+    expect(creditoRepository.crearRetiro).not.toHaveBeenCalled();
+  });
+
+  it("rechaza montos por debajo del mínimo", async () => {
+    saldos("1000", "0", "0");
+    await expect(
+      creditoService.solicitarRetiro("c1", { monto: "5", banco: "BNB", numeroCuenta: "1", titular: "Ana" }, prisma),
+    ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
   });
 });
 

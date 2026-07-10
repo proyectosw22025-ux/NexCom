@@ -224,6 +224,7 @@ model PerfilComprador {
   facturas             Factura[]
   movimientosPuntos    MovimientoPuntos[]
   movimientosCredito   MovimientoCredito[]
+  retirosCredito       RetiroCredito[]
   itemsGuardados       ItemGuardado[]
 
   @@map("perfiles_comprador")
@@ -695,6 +696,28 @@ model SolicitudRetiro {
   @@index([vendedorId, estado])
   @@index([estado, creadoEn])
   @@map("solicitudes_retiro")
+}
+
+// Retiro de la billetera del COMPRADOR a su banco (reembolsos que decide sacar
+// en efectivo en vez de gastar en el marketplace). Mismo ciclo que el retiro del
+// vendedor: PENDIENTE → PAGADO/RECHAZADO, aprobado por el admin.
+model RetiroCredito {
+  id           String       @id @default(cuid())
+  compradorId  String       @map("comprador_id")
+  monto        Decimal      @db.Decimal(12, 4)
+  estado       EstadoRetiro @default(PENDIENTE)
+  banco        String
+  numeroCuenta String       @map("numero_cuenta")
+  titular      String
+  notaAdmin    String?      @map("nota_admin")
+  creadoEn     DateTime     @default(now()) @map("creado_en")
+  resueltoEn   DateTime?    @map("resuelto_en")
+
+  comprador PerfilComprador @relation(fields: [compradorId], references: [id])
+
+  @@index([compradorId, estado])
+  @@index([estado, creadoEn])
+  @@map("retiros_credito")
 }
 
 // ══════════════════════════════════════════════════════════════
