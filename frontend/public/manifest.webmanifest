@@ -16,5 +16,9 @@
     { "src": "https://nex-com-eight.vercel.app/icons/recoge-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "https://nex-com-eight.vercel.app/icons/recoge-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "https://nex-com-eight.vercel.app/icons/recoge-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "screenshots": [
+    { "src": "https://nex-com-eight.vercel.app/screenshots/recoge-inicio.png", "sizes": "1080x1920", "type": "image/png", "form_factor": "narrow", "label": "Inicio: escanear pedido y accesos rápidos" },
+    { "src": "https://nex-com-eight.vercel.app/screenshots/recoge-saldo.png", "sizes": "1080x1920", "type": "image/png", "form_factor": "narrow", "label": "Saldo disponible en bolivianos" }
   ]
 }
