@@ -138,7 +138,7 @@ describe("pagosService — flujo boliviano simulado", () => {
     vi.mocked(pagosRepository.findDireccionConSnapshot).mockResolvedValue(direccionValida as never);
     vi.mocked(pagosRepository.crearOrdenConItems).mockResolvedValue({ id: "orden-1", total: { toString: () => "100" } } as never);
 
-    const r = await pagosService.crearOrdenSimulada("comprador-1", "usuario-1", "dir-1", null, "transferencia", "domicilio", false, null, prisma);
+    const r = await pagosService.crearOrdenSimulada("comprador-1", "usuario-1", "dir-1", null, "transferencia", "domicilio", false, false, null, prisma);
 
     expect(r.ordenIds).toEqual(["orden-1"]);
     expect(r.metodoPago).toBe("transferencia");
@@ -158,7 +158,7 @@ describe("pagosService — flujo boliviano simulado", () => {
       .mockResolvedValueOnce({ id: "orden-A" } as never)
       .mockResolvedValueOnce({ id: "orden-B" } as never);
 
-    const r = await pagosService.crearOrdenSimulada("comprador-1", "usuario-1", "dir-1", null, "transferencia", "domicilio", false, null, prisma);
+    const r = await pagosService.crearOrdenSimulada("comprador-1", "usuario-1", "dir-1", null, "transferencia", "domicilio", false, false, null, prisma);
 
     expect(r.ordenIds).toEqual(["orden-A", "orden-B"]); // una orden por cada vendedor
     expect(pagosRepository.crearOrdenConItems).toHaveBeenCalledTimes(2);
@@ -170,14 +170,14 @@ describe("pagosService — flujo boliviano simulado", () => {
     vi.mocked(pagosRepository.findDireccionConSnapshot).mockResolvedValue(direccionValida as never);
 
     await expect(
-      pagosService.crearOrdenSimulada("comprador-1", "usuario-1", "dir-1", "PROMO", "transferencia", "domicilio", false, null, prisma),
+      pagosService.crearOrdenSimulada("comprador-1", "usuario-1", "dir-1", "PROMO", "transferencia", "domicilio", false, false, null, prisma),
     ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
     expect(pagosRepository.crearOrdenConItems).not.toHaveBeenCalled();
   });
 
   it("crearOrdenSimulada rechaza un método inválido", async () => {
     await expect(
-      pagosService.crearOrdenSimulada("comprador-1", "usuario-1", "dir-1", null, "bitcoin", "domicilio", false, null, prisma),
+      pagosService.crearOrdenSimulada("comprador-1", "usuario-1", "dir-1", null, "bitcoin", "domicilio", false, false, null, prisma),
     ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
     expect(pagosRepository.crearOrdenConItems).not.toHaveBeenCalled();
   });

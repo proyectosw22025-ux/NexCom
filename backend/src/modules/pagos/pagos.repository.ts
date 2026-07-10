@@ -40,6 +40,7 @@ export const pagosRepository = {
       descuentoCupon:   Decimal;
       puntosUsados?:    number;
       descuentoPuntos?: Decimal;
+      creditoAplicado?: Decimal;
       costoEnvio?:      Decimal;
       metodoEntrega?:   string; // "domicilio" | "retiro_tienda"
       puntoRetiro?:     string | null;
@@ -61,6 +62,7 @@ export const pagosRepository = {
           descuentoCupon:   data.descuentoCupon,
           puntosUsados:     data.puntosUsados ?? 0,
           descuentoPuntos:  data.descuentoPuntos ?? 0,
+          creditoAplicado:  data.creditoAplicado ?? 0,
           costoEnvio:       data.costoEnvio ?? 0,
           metodoEntrega:    data.metodoEntrega ?? "domicilio",
           puntoRetiro:      data.puntoRetiro ?? null,

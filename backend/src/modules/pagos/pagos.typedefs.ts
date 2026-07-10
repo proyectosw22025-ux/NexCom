@@ -44,6 +44,7 @@ export const pagosTypeDefs = /* GraphQL */ `
       metodoPago:    MetodoPagoBoliviano!
       metodoEntrega: String
       usarPuntos:    Boolean
+      usarCredito:   Boolean
       puntoRetiro:   String
     ): OrdenSimuladaResult!
 

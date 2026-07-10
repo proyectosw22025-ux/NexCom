@@ -10,12 +10,13 @@ import { CREAR_DIRECCION } from "@/graphql/direcciones/mutations";
 import { VALIDAR_CUPON } from "@/graphql/cupones/mutations";
 import { CREAR_ORDEN_SIMULADA } from "@/graphql/pagos/mutations";
 import { MIS_PUNTOS } from "@/graphql/fidelidad";
+import { MI_BILLETERA } from "@/graphql/credito";
 import { puntosDeRetiro } from "@/lib/puntos-retiro";
 import { stripeHabilitado } from "@/lib/stripe";
 import { ApolloError } from "@apollo/client";
 import {
   MapPin, Plus, Tag, ShoppingBag, ChevronRight, Loader2, CheckCircle, X,
-  QrCode, Landmark, Truck, Store, Gift, CreditCard,
+  QrCode, Landmark, Truck, Store, Gift, CreditCard, Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Decimal } from "decimal.js";
@@ -53,6 +54,7 @@ export default function CheckoutPage() {
   const [metodoEntrega, setMetodoEntrega]   = useState<"domicilio" | "retiro_tienda">("domicilio");
   const [puntoRetiro, setPuntoRetiro]       = useState<string>("");
   const [usarPuntos, setUsarPuntos]         = useState(false);
+  const [usarCredito, setUsarCredito]       = useState(false);
   const [mostrarFormDir, setMostrarFormDir] = useState(false);
   const [nuevaDir, setNuevaDir] = useState({
     alias: "", destinatario: "", calle: "", zona: "", ciudad: "Santa Cruz",
@@ -64,6 +66,9 @@ export default function CheckoutPage() {
   );
   const { data: puntosData } = useQuery<{ misPuntos: { disponibles: number; valorBs: string } }>(
     MIS_PUNTOS, { fetchPolicy: "cache-and-network" },
+  );
+  const { data: billeteraData } = useQuery<{ miBilletera: { disponible: string } }>(
+    MI_BILLETERA, { fetchPolicy: "cache-and-network" },
   );
   const [validarCupon]       = useMutation(VALIDAR_CUPON);
   const [crearDireccion]     = useMutation(CREAR_DIRECCION);
@@ -99,6 +104,15 @@ export default function CheckoutPage() {
     : new Decimal(0);
 
   const total = baseDescontable.minus(descuentoPuntos).plus(envio);
+
+  // Crédito de la billetera = MEDIO DE PAGO (una sola tienda, flujo simulado).
+  // No se aplica en el flujo de Stripe real (ese cobro lo maneja la pasarela).
+  const creditoDisponible = new Decimal(billeteraData?.miBilletera.disponible ?? "0");
+  const creditoCanjeable  = numVendedores === 1 && creditoDisponible.gt(0)
+    && !(metodoPago === "tarjeta" && stripeHabilitado);
+  const creditoAplicado = usarCredito && creditoCanjeable
+    ? Decimal.min(creditoDisponible, total) : new Decimal(0);
+  const pagarAhora = Decimal.max(total.minus(creditoAplicado), new Decimal(0));
 
   async function handleValidarCupon() {
     if (!codigoCupon.trim()) return;
@@ -169,18 +183,19 @@ export default function CheckoutPage() {
         variables: {
           direccionId, cuponCodigo: cuponAplicado?.codigo ?? null, metodoPago, metodoEntrega,
           usarPuntos: usarPuntos && puntosCanjeables,
+          usarCredito: usarCredito && creditoCanjeable,
           puntoRetiro: metodoEntrega === "retiro_tienda" ? (puntoRetiro || opcionesRetiro[opcionesRetiro.length - 1]) : null,
         },
       });
       const { ordenIds } = data.crearOrdenSimulada;
 
-      // Contra entrega: las órdenes ya quedan confirmadas → directo a confirmación
-      if (metodoPago === "contra_entrega") {
+      // Contra entrega, o crédito que cubre todo el total → ya quedan confirmadas
+      if (metodoPago === "contra_entrega" || pagarAhora.lte(0)) {
         router.push(`/checkout/confirmacion?ordenId=${ordenIds[0]}&count=${ordenIds.length}&status=ok`);
         return;
       }
-      // QR / transferencia: ir a la pantalla de pago para confirmar
-      sessionStorage.setItem("nexcom_checkout", JSON.stringify({ ordenIds, metodoPago, total: total.toFixed(2) }));
+      // QR / transferencia: ir a la pantalla de pago para confirmar (monto de bolsillo)
+      sessionStorage.setItem("nexcom_checkout", JSON.stringify({ ordenIds, metodoPago, total: pagarAhora.toFixed(2) }));
       router.push("/checkout/pago");
     } catch (err: unknown) {
       const msg = err instanceof ApolloError
@@ -475,6 +490,29 @@ export default function CheckoutPage() {
               </div>
             )}
 
+            {/* Crédito de la billetera (dinero de reembolsos) */}
+            {creditoDisponible.gt(0) && (
+              <div className="mb-3 p-3 rounded-xl bg-indigo-50 border border-indigo-100">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox" checked={usarCredito} disabled={!creditoCanjeable}
+                    onChange={(e) => setUsarCredito(e.target.checked)}
+                    className="accent-indigo-500 disabled:opacity-40"
+                  />
+                  <Wallet className="h-4 w-4 text-indigo-600 shrink-0" />
+                  <span className="text-xs text-indigo-800 flex-1">
+                    Usar mi crédito <strong>Bs. {creditoDisponible.toFixed(2)}</strong>
+                  </span>
+                </label>
+                {!creditoCanjeable && numVendedores > 1 && (
+                  <p className="text-[11px] text-indigo-500 mt-1">Solo en compras de una sola tienda.</p>
+                )}
+                {!creditoCanjeable && metodoPago === "tarjeta" && stripeHabilitado && (
+                  <p className="text-[11px] text-indigo-500 mt-1">No disponible pagando con tarjeta real.</p>
+                )}
+              </div>
+            )}
+
             <div className="border-t border-slate-100 pt-3 space-y-1.5">
               <div className="flex justify-between text-sm">
                 <span className="text-slate-500">Subtotal</span>
@@ -496,10 +534,19 @@ export default function CheckoutPage() {
                 <span className="text-slate-500">Envío{metodoEntrega === "domicilio" && numVendedores > 1 ? ` (${numVendedores} tiendas)` : ""}</span>
                 <span className="text-slate-900">{envio.gt(0) ? `Bs. ${envio.toFixed(2)}` : "Gratis"}</span>
               </div>
+              {creditoAplicado.gt(0) && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-indigo-600">Crédito de billetera</span>
+                  <span className="text-indigo-600">−Bs. {creditoAplicado.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-base font-bold pt-1 border-t border-slate-100">
-                <span className="text-slate-900">Total</span>
-                <span className="text-indigo-600">Bs. {total.toFixed(2)}</span>
+                <span className="text-slate-900">{creditoAplicado.gt(0) ? "A pagar ahora" : "Total"}</span>
+                <span className="text-indigo-600">Bs. {pagarAhora.toFixed(2)}</span>
               </div>
+              {creditoAplicado.gt(0) && (
+                <p className="text-[11px] text-slate-400 text-right">Total de la compra: Bs. {total.toFixed(2)}</p>
+              )}
             </div>
 
             <button

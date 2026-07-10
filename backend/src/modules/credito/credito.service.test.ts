@@ -55,6 +55,24 @@ describe("creditoService.acreditarReembolso", () => {
   });
 });
 
+describe("creditoService.registrarUso", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("debita el crédito usado (movimiento USO)", async () => {
+    vi.mocked(creditoRepository.existeMovimiento).mockResolvedValue(false);
+    await creditoService.registrarUso("c1", "orden-1", new Decimal("30"), prisma);
+    expect(creditoRepository.crear).toHaveBeenCalledWith(
+      expect.objectContaining({ tipo: "USO", ordenId: "orden-1" }), prisma,
+    );
+  });
+
+  it("es idempotente por orden (no debita dos veces)", async () => {
+    vi.mocked(creditoRepository.existeMovimiento).mockResolvedValue(true);
+    await creditoService.registrarUso("c1", "orden-1", new Decimal("30"), prisma);
+    expect(creditoRepository.crear).not.toHaveBeenCalled();
+  });
+});
+
 describe("creditoService.cotizarUso", () => {
   beforeEach(() => vi.clearAllMocks());
 

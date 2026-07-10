@@ -26,8 +26,8 @@ export const pagosResolvers = {
 
     crearOrdenSimulada: (
       _: unknown,
-      { direccionId, cuponCodigo, metodoPago, metodoEntrega, usarPuntos, puntoRetiro }:
-        { direccionId: string; cuponCodigo?: string | null; metodoPago: string; metodoEntrega?: string; usarPuntos?: boolean; puntoRetiro?: string | null },
+      { direccionId, cuponCodigo, metodoPago, metodoEntrega, usarPuntos, usarCredito, puntoRetiro }:
+        { direccionId: string; cuponCodigo?: string | null; metodoPago: string; metodoEntrega?: string; usarPuntos?: boolean; usarCredito?: boolean; puntoRetiro?: string | null },
       ctx: NexComContext,
     ) => {
       requireRole(ctx, "COMPRADOR");
@@ -36,7 +36,7 @@ export const pagosResolvers = {
       }
       return pagosService.crearOrdenSimulada(
         ctx.user.perfilCompradorId, ctx.user.id, direccionId, cuponCodigo, metodoPago,
-        metodoEntrega ?? "domicilio", usarPuntos ?? false, puntoRetiro ?? null, ctx.prisma,
+        metodoEntrega ?? "domicilio", usarPuntos ?? false, usarCredito ?? false, puntoRetiro ?? null, ctx.prisma,
       );
     },
 

@@ -6,6 +6,7 @@ import { pagosRepository } from "./pagos.repository.js";
 import { cuponesService } from "../cupones/cupones.service.js";
 import { saldosService } from "../saldos/saldos.service.js";
 import { fidelidadService } from "../fidelidad/fidelidad.service.js";
+import { creditoService } from "../credito/credito.service.js";
 import { costoEnvio, METODOS_ENTREGA } from "../../shared/envios.js";
 import { publishNotificacion } from "../../shared/pubsub.js";
 import { generarCodigoEntrega } from "../../shared/codigo-entrega.util.js";
@@ -116,6 +117,7 @@ export const pagosService = {
     metodoPago: string,
     metodoEntrega: string,
     usarPuntos: boolean,
+    usarCredito: boolean,
     puntoRetiro: string | null | undefined,
     prisma: PrismaClient,
   ) {
@@ -183,8 +185,17 @@ export const pagosService = {
       descuentoPuntos = cotizacion.descuento;
     }
 
+    // Crédito de la billetera: MEDIO DE PAGO (no descuento). Solo en compras de
+    // una sola tienda (como puntos/cupón). El vendedor cobra el total COMPLETO;
+    // el crédito solo reduce lo que el comprador paga de su bolsillo.
+    let creditoDisponible = new Decimal(0);
+    if (usarCredito && !multiVendedor) {
+      creditoDisponible = await creditoService.getDisponible(compradorId, prisma);
+    }
+
     const ordenIds: string[] = [];
-    let totalGeneral = new Decimal(0);
+    let totalGeneral    = new Decimal(0); // total de venta (base del vendedor)
+    let pagarAhora      = new Decimal(0); // lo que el comprador paga de su bolsillo
 
     for (const [vendedorId, grupoItems] of grupos) {
       const subtotal = grupoItems.reduce(
@@ -194,11 +205,15 @@ export const pagosService = {
       // descuentoPuntos solo aplica al único vendedor (single-vendor garantizado si usarPuntos)
       const descPuntosOrden = usarPuntos ? descuentoPuntos : new Decimal(0);
       const total = subtotal.minus(descuento).minus(descPuntosOrden).plus(envioPorOrden);
+      // Crédito aplicado a ESTA orden (no supera el total ni el saldo restante)
+      const creditoAplicado = Decimal.min(creditoDisponible, total).toDecimalPlaces(2);
+      creditoDisponible = creditoDisponible.minus(creditoAplicado);
 
       const orden = await pagosRepository.crearOrdenConItems(
         {
           compradorId, vendedorId, direccionId, direccionSnapshot, subtotal, descuentoCupon: descuento,
           puntosUsados: usarPuntos ? puntosUsados : 0, descuentoPuntos: descPuntosOrden,
+          creditoAplicado,
           costoEnvio: envioPorOrden, metodoEntrega: entrega, puntoRetiro: puntoRetiroFinal, total,
           metodoPago, moneda: "BOB",
           items: grupoItems.map((it) => ({
@@ -213,15 +228,18 @@ export const pagosService = {
       }
       ordenIds.push(orden.id);
       totalGeneral = totalGeneral.plus(total);
+      pagarAhora   = pagarAhora.plus(total.minus(creditoAplicado));
     }
 
-    // Contra entrega: confirmar todas de inmediato (se cobra al entregar)
-    if (metodoPago === "contra_entrega") {
+    // Confirmación inmediata cuando no queda nada por pagar de bolsillo:
+    //  - contra entrega (se cobra al entregar), o
+    //  - el crédito de la billetera cubre el total.
+    if (metodoPago === "contra_entrega" || pagarAhora.lte(0)) {
       for (const id of ordenIds) await this._confirmarOrden(id, compradorId, prisma);
       await pagosRepository.limpiarCarrito(compradorId, prisma);
     }
 
-    return { ordenIds, metodoPago, total: totalGeneral.toString() };
+    return { ordenIds, metodoPago, total: pagarAhora.toString() };
   },
 
   /** Confirma una sola orden (PAGADO) y notifica a comprador y vendedor. */
@@ -243,6 +261,12 @@ export const pagosService = {
     );
     if (!orden.codigoEntrega) {
       await prisma.orden.update({ where: { id: ordenId }, data: { codigoEntrega: generarCodigoEntrega() } });
+    }
+
+    // Billetera: debitar el crédito aplicado como pago (idempotente por orden).
+    const creditoAplicado = new Decimal((orden as { creditoAplicado?: { toString(): string } }).creditoAplicado?.toString() ?? "0");
+    if (creditoAplicado.gt(0)) {
+      await creditoService.registrarUso(orden.comprador!.id, ordenId, creditoAplicado, prisma);
     }
 
     // Fidelidad: debitar puntos canjeados y acreditar puntos ganados (sobre el gasto neto)

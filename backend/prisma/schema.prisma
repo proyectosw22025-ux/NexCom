@@ -535,6 +535,7 @@ model Orden {
   descuentoCupon        Decimal     @default(0) @db.Decimal(12, 4) @map("descuento_cupon")
   puntosUsados          Int         @default(0) @map("puntos_usados")
   descuentoPuntos       Decimal     @default(0) @db.Decimal(12, 4) @map("descuento_puntos")
+  creditoAplicado       Decimal     @default(0) @db.Decimal(12, 4) @map("credito_aplicado") // pagado con la billetera del comprador (medio de pago, NO descuento al vendedor)
   costoEnvio            Decimal     @default(0) @db.Decimal(12, 4) @map("costo_envio")
   metodoEntrega         String      @default("domicilio") @map("metodo_entrega") // "domicilio" | "retiro_tienda"
   puntoRetiro           String?     @map("punto_retiro") // punto de retiro elegido (si metodoEntrega = retiro_tienda)
