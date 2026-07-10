@@ -75,7 +75,7 @@ export function FacturaOrden({ ordenId }: { ordenId: string }) {
             <p className="col-span-2"><span className="text-slate-400">Señor(es):</span> {factura.razonSocial}</p>
           </div>
 
-          <table className="w-full text-xs mb-3">
+          <div className="overflow-x-auto"><table className="w-full text-xs mb-3 min-w-[28rem]">
             <thead>
               <tr className="text-slate-400 border-b border-slate-100">
                 <th className="text-left font-medium py-1">Detalle</th>
@@ -94,7 +94,7 @@ export function FacturaOrden({ ordenId }: { ordenId: string }) {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
 
           <div className="border-t border-slate-100 pt-2 space-y-0.5 text-xs">
             <div className="flex justify-between text-slate-500"><span>Neto</span><span>Bs. {factura.neto}</span></div>

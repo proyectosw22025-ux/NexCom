@@ -89,7 +89,7 @@ export default function VendedorProductosPage() {
             </Link>
           </div>
         ) : (
-          <table className="w-full">
+          <div className="overflow-x-auto"><table className="w-full min-w-[38rem]">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Producto</th>
@@ -157,7 +157,7 @@ export default function VendedorProductosPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
 
         {/* Paginación */}
