@@ -248,7 +248,7 @@ export default function AnaliticaDashboard() {
         {(a?.topVendedores ?? []).length === 0 ? (
           <p className="text-sm text-slate-400 py-12 text-center">Sin ventas en el periodo</p>
         ) : (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm min-w-[40rem]">
             <thead>
               <tr className="border-b border-slate-100 text-left text-xs text-slate-400 uppercase tracking-wide">
                 <th className="px-5 py-2.5 font-semibold">#</th>
@@ -276,7 +276,7 @@ export default function AnaliticaDashboard() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </div>
 
@@ -304,7 +304,7 @@ export default function AnaliticaDashboard() {
         {(a?.comisionPorVendedor ?? []).length === 0 ? (
           <p className="text-sm text-slate-400 py-12 text-center">Sin comisiones registradas en el periodo</p>
         ) : (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm min-w-[40rem]">
             <thead>
               <tr className="border-b border-slate-100 text-left text-xs text-slate-400 uppercase tracking-wide">
                 <th className="px-5 py-2.5 font-semibold">#</th>
@@ -333,7 +333,7 @@ export default function AnaliticaDashboard() {
                 );
               })}
             </tbody>
-          </table>
+          </table></div>
         )}
       </div>
     </div>

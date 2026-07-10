@@ -91,7 +91,7 @@ export default function ClientesDashboard() {
         {(a?.topClientes ?? []).length === 0 ? (
           <p className="text-sm text-slate-400 py-12 text-center">Sin clientes con compras en el periodo</p>
         ) : (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm min-w-[40rem]">
             <thead>
               <tr className="border-b border-slate-100 text-left text-xs text-slate-400 uppercase tracking-wide">
                 <th className="px-5 py-2.5 font-semibold">#</th>
@@ -115,7 +115,7 @@ export default function ClientesDashboard() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </div>
     </div>

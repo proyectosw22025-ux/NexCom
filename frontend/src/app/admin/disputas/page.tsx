@@ -140,7 +140,7 @@ export default function AdminDisputasPage() {
             <section>
               <h2 className="text-sm font-bold text-slate-900 mb-3">Resueltas</h2>
               <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                <table className="w-full text-sm">
+                <div className="overflow-x-auto"><table className="w-full text-sm min-w-[40rem]">
                   <tbody className="divide-y divide-slate-50">
                     {resueltas.map((d) => {
                       const ui = ESTADO_LABEL[d.estado] ?? { label: d.estado, clase: "text-slate-500" };
@@ -155,7 +155,7 @@ export default function AdminDisputasPage() {
                       );
                     })}
                   </tbody>
-                </table>
+                </table></div>
               </div>
             </section>
           )}

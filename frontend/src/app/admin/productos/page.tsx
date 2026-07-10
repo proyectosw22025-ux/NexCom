@@ -100,7 +100,7 @@ export default function AdminProductosPage() {
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm min-w-[40rem]">
             <thead>
               <tr className="border-b border-slate-100">
                 <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Producto</th>
@@ -139,7 +139,7 @@ export default function AdminProductosPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
 
           {totalPaginas > 1 && (
             <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100">

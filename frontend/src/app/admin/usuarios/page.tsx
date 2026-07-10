@@ -140,7 +140,7 @@ export default function AdminUsuariosPage() {
           <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
             <p className="text-sm font-semibold text-slate-700">{filtrados.length} usuario{filtrados.length !== 1 ? "s" : ""}</p>
           </div>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm min-w-[40rem]">
             <thead>
               <tr className="border-b border-slate-100">
                 <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Usuario</th>
@@ -218,7 +218,7 @@ export default function AdminUsuariosPage() {
                 );
               })}
             </tbody>
-          </table>
+          </table></div>
 
           {totalPaginas > 1 && (
             <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100">

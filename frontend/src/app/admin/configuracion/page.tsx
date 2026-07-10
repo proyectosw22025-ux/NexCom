@@ -167,7 +167,7 @@ export default function AdminConfiguracionPage() {
             <Settings className="h-4 w-4 text-slate-400" />
             <p className="text-sm font-semibold text-slate-700">{configs.length} parámetros configurados</p>
           </div>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm min-w-[40rem]">
             <thead>
               <tr className="border-b border-slate-100">
                 <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Clave / Descripción</th>
@@ -182,7 +182,7 @@ export default function AdminConfiguracionPage() {
                 <ConfigRow key={c.clave} config={c} onSave={handleSave} />
               ))}
             </tbody>
-          </table>
+          </table></div>
         </div>
       )}
 
