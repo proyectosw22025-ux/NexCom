@@ -14,7 +14,13 @@ vi.mock("./credito.repository.js", () => ({
   },
 }));
 
-const prisma = {} as PrismaClient;
+// Stub con $transaction pass-through (registrarUso es atómico) y $executeRaw
+// no-op (advisory lock). tx === prisma para que las aserciones sobre los mocks
+// del repositorio sigan recibiendo el mismo objeto.
+const prisma = {
+  $transaction: async (fn: (tx: unknown) => unknown) => fn(prisma),
+  $executeRaw:  async () => 0,
+} as unknown as PrismaClient;
 
 function saldos(reembolso: string, uso: string, retiro: string) {
   vi.mocked(creditoRepository.sumarPorTipo).mockImplementation(async (_c, tipo) =>
@@ -58,11 +64,22 @@ describe("creditoService.acreditarReembolso", () => {
 describe("creditoService.registrarUso", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("debita el crédito usado (movimiento USO)", async () => {
+  it("debita el crédito usado (movimiento USO) cuando hay saldo", async () => {
     vi.mocked(creditoRepository.existeMovimiento).mockResolvedValue(false);
+    saldos("100", "0", "0"); // disponible 100 ≥ 30
     await creditoService.registrarUso("c1", "orden-1", new Decimal("30"), prisma);
     expect(creditoRepository.crear).toHaveBeenCalledWith(
       expect.objectContaining({ tipo: "USO", ordenId: "orden-1" }), prisma,
+    );
+  });
+
+  it("CAPA el débito al saldo disponible (nunca deja la billetera negativa)", async () => {
+    vi.mocked(creditoRepository.existeMovimiento).mockResolvedValue(false);
+    saldos("20", "0", "0"); // disponible 20 < 50 pedido
+    const real = await creditoService.registrarUso("c1", "orden-1", new Decimal("50"), prisma);
+    expect(real.toString()).toBe("20");
+    expect(creditoRepository.crear).toHaveBeenCalledWith(
+      expect.objectContaining({ tipo: "USO", monto: expect.anything() }), prisma,
     );
   });
 

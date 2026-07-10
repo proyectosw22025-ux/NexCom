@@ -60,16 +60,31 @@ export const creditoService = {
     return Decimal.min(disponible, base).toDecimalPlaces(2);
   },
 
-  /** Registra el débito (USO) del crédito aplicado a una orden. Idempotente por orden. */
+  /**
+   * Registra el débito (USO) del crédito aplicado a una orden, de forma ATÓMICA
+   * y sin sobregiro. El lock consultivo por comprador serializa checkouts
+   * concurrentes (check-then-act), y el monto se CAPA al saldo disponible: la
+   * billetera nunca queda negativa aunque dos compras usen el mismo crédito.
+   * Idempotente por orden. Devuelve el monto realmente debitado.
+   */
   async registrarUso(
     compradorId: string, ordenId: string, monto: Decimal, prisma: PrismaClient,
-  ) {
-    if (monto.lte(0)) return;
-    if (await creditoRepository.existeMovimiento(ordenId, "USO", prisma)) return;
-    await creditoRepository.crear(
-      { compradorId, tipo: "USO", monto, ordenId,
-        descripcion: `Crédito usado en orden #${ordenId.slice(-6).toUpperCase()}` },
-      prisma,
-    );
+  ): Promise<Decimal> {
+    if (monto.lte(0)) return new Decimal(0);
+    return prisma.$transaction(async (tx) => {
+      const txp = tx as PrismaClient;
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${compradorId}))`;
+      if (await creditoRepository.existeMovimiento(ordenId, "USO", txp)) return monto; // ya debitado
+      const disponible = await this.getDisponible(compradorId, txp);
+      const real = Decimal.min(disponible, monto).toDecimalPlaces(2);
+      if (real.gt(0)) {
+        await creditoRepository.crear(
+          { compradorId, tipo: "USO", monto: real, ordenId,
+            descripcion: `Crédito usado en orden #${ordenId.slice(-6).toUpperCase()}` },
+          txp,
+        );
+      }
+      return real;
+    });
   },
 };
