@@ -139,7 +139,7 @@ export default function VerificacionPage() {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5">Foto del documento</label>
-                <ImageUploader value={docs} onChange={setDocs} max={1} />
+                <ImageUploader value={docs} onChange={setDocs} max={1} privado />
                 <p className="text-[11px] text-slate-400 mt-1.5">
                   Tu documento es privado: solo lo ve nuestro equipo de verificación. No se muestra a los compradores.
                 </p>

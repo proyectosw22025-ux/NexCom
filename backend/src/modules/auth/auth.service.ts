@@ -23,6 +23,7 @@ import { segundosBloqueo, registrarFallo, limpiarFallos } from "../../shared/log
 import { saldosService } from "../saldos/saldos.service.js";
 import { getConfigNumber } from "../../shared/config.util.js";
 import { publishNotificacion } from "../../shared/pubsub.js";
+import { urlFirmadaKyc } from "../../shared/cloudinary.js";
 import { Decimal } from "decimal.js";
 
 // Campos que devuelve un PerfilVendedorPublico (incluye estado KYC del dueño).
@@ -411,14 +412,16 @@ export async function enviarVerificacion(
   if (!TIPOS_DOCUMENTO.includes(tipo)) {
     throw new GraphQLError("Tipo de documento inválido (CI, NIT o PASAPORTE).", { extensions: { code: "BAD_USER_INPUT" } });
   }
-  if (!/^https?:\/\/\S+/.test(input.documentoUrl)) {
+  // documentoUrl guarda el public_id de Cloudinary (asset privado authenticated),
+  // no una URL pública. La URL de entrega se firma bajo demanda al leer.
+  if (!input.documentoUrl?.trim()) {
     throw new GraphQLError("Debes adjuntar una imagen del documento.", { extensions: { code: "BAD_USER_INPUT" } });
   }
   return prisma.perfilVendedor.update({
     where: { id: perfilVendedorId },
     data: {
       estadoVerificacion:    "PENDIENTE",
-      documentoUrl:          input.documentoUrl,
+      documentoUrl:          input.documentoUrl.trim(),
       documentoTipo:         tipo,
       verificacionEnviadaEn: new Date(),
       verificacionNotas:     null,
@@ -490,7 +493,7 @@ export async function getVerificacionesPendientes(prisma: PrismaClient) {
     ciudad:        r.ciudad,
     email:         r.usuario?.email ?? "",
     telefono:      r.telefono,
-    documentoUrl:  r.documentoUrl,
+    documentoUrl:  urlFirmadaKyc(r.documentoUrl), // URL firmada efímera (privada)
     documentoTipo: r.documentoTipo,
     enviadaEn:     r.verificacionEnviadaEn?.toISOString() ?? null,
   }));

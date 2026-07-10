@@ -3,28 +3,32 @@
 import { useState, useRef } from "react";
 import Image from "next/image";
 import { useMutation } from "@apollo/client";
-import { ImagePlus, Loader2, X, UploadCloud } from "lucide-react";
+import { ImagePlus, Loader2, X, UploadCloud, FileCheck2, Lock } from "lucide-react";
 import { toast } from "sonner";
-import { FIRMAR_SUBIDA_IMAGEN } from "@/graphql/productos/mutations";
+import { FIRMAR_SUBIDA_IMAGEN, FIRMAR_SUBIDA_KYC } from "@/graphql/productos/mutations";
 
 interface ImageUploaderProps {
   value: string[];
   onChange: (urls: string[]) => void;
   max?: number;
+  /** Modo privado (KYC): sube como `authenticated` y guarda el public_id, no la URL. */
+  privado?: boolean;
 }
 
 const MAX_MB = 5;
 
-export function ImageUploader({ value, onChange, max = 6 }: ImageUploaderProps) {
-  const [firmar] = useMutation(FIRMAR_SUBIDA_IMAGEN);
+export function ImageUploader({ value, onChange, max = 6, privado = false }: ImageUploaderProps) {
+  const [firmarImg] = useMutation(FIRMAR_SUBIDA_IMAGEN);
+  const [firmarKyc] = useMutation(FIRMAR_SUBIDA_KYC);
   const [subiendo, setSubiendo] = useState(false);
   const [arrastrando, setArrastrando] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function subirArchivo(file: File): Promise<string | null> {
     // 1. Pedir firma al backend (el secret nunca llega al navegador)
-    const { data } = await firmar();
-    const f = data.firmarSubidaImagen;
+    const f = privado
+      ? (await firmarKyc()).data.firmarSubidaKyc
+      : (await firmarImg()).data.firmarSubidaImagen;
     // 2. Subir directo a Cloudinary con la firma
     const form = new FormData();
     form.append("file", file);
@@ -32,12 +36,15 @@ export function ImageUploader({ value, onChange, max = 6 }: ImageUploaderProps) 
     form.append("timestamp", String(f.timestamp));
     form.append("folder", f.folder);
     form.append("signature", f.signature);
+    if (f.tipo) form.append("type", f.tipo); // authenticated (privado)
     const res = await fetch(`https://api.cloudinary.com/v1_1/${f.cloudName}/image/upload`, {
       method: "POST", body: form,
     });
     if (!res.ok) throw new Error("Cloudinary rechazó la subida");
     const json = await res.json();
-    return json.secure_url as string;
+    // Privado: guardamos el public_id (el asset no es accesible por URL directa);
+    // público: guardamos la URL de entrega.
+    return (privado ? json.public_id : json.secure_url) as string;
   }
 
   async function manejarArchivos(files: FileList | null) {
@@ -97,8 +104,22 @@ export function ImageUploader({ value, onChange, max = 6 }: ImageUploaderProps) 
         />
       </div>
 
-      {/* Miniaturas */}
-      {value.length > 0 && (
+      {/* Adjuntos */}
+      {value.length > 0 && privado && (
+        <div className="flex flex-wrap gap-2">
+          {value.map((id) => (
+            <div key={id} className="flex items-center gap-2 px-3 py-2 rounded-xl border border-emerald-200 bg-emerald-50">
+              <FileCheck2 className="h-4 w-4 text-emerald-600" />
+              <span className="text-xs font-medium text-emerald-800">Documento adjuntado</span>
+              <button type="button" onClick={() => quitar(id)} aria-label="Quitar documento"
+                className="p-0.5 rounded hover:bg-emerald-200 transition-colors">
+                <X className="h-3.5 w-3.5 text-emerald-700" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      {value.length > 0 && !privado && (
         <div className="flex flex-wrap gap-2">
           {value.map((url, i) => (
             <div key={url} className="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-200 group">
@@ -120,9 +141,14 @@ export function ImageUploader({ value, onChange, max = 6 }: ImageUploaderProps) 
           ))}
         </div>
       )}
-      {value.length === 0 && (
+      {value.length === 0 && !privado && (
         <p className="text-xs text-slate-400 flex items-center gap-1.5">
           <ImagePlus className="h-3.5 w-3.5" /> La primera imagen será la principal del producto.
+        </p>
+      )}
+      {privado && (
+        <p className="text-xs text-slate-400 flex items-center gap-1.5">
+          <Lock className="h-3.5 w-3.5" /> Tu documento se guarda de forma privada; solo lo ve el equipo de verificación.
         </p>
       )}
     </div>

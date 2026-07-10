@@ -1,6 +1,6 @@
-import { requireAuth } from "../../shared/guards.js";
+import { requireAuth, requireRole } from "../../shared/guards.js";
 import type { NexComContext } from "../../shared/types/context.type.js";
-import { firmarSubida } from "../../shared/cloudinary.js";
+import { firmarSubida, firmarSubidaKyc } from "../../shared/cloudinary.js";
 
 export const uploadsResolvers = {
   Mutation: {
@@ -10,6 +10,12 @@ export const uploadsResolvers = {
     firmarSubidaImagen: (_: unknown, __: unknown, ctx: NexComContext) => {
       requireAuth(ctx);
       return firmarSubida();
+    },
+
+    // Documento KYC: subida PRIVADA (authenticated). Solo el vendedor.
+    firmarSubidaKyc: (_: unknown, __: unknown, ctx: NexComContext) => {
+      requireRole(ctx, "VENDEDOR");
+      return firmarSubidaKyc();
     },
   },
 };

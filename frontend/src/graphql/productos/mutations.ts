@@ -6,6 +6,12 @@ export const FIRMAR_SUBIDA_IMAGEN = gql`
   }
 `;
 
+export const FIRMAR_SUBIDA_KYC = gql`
+  mutation FirmarSubidaKyc {
+    firmarSubidaKyc { cloudName apiKey timestamp folder signature tipo }
+  }
+`;
+
 export const CREAR_PRODUCTO = gql`
   mutation CrearProducto($input: ProductoInput!) {
     crearProducto(input: $input) {

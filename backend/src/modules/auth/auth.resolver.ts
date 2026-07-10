@@ -2,6 +2,7 @@ import { GraphQLError } from "graphql";
 import type { NexComContext } from "../../shared/types/context.type.js";
 import { requireAuth, requireRole } from "../../shared/guards.js";
 import { registroPermitido } from "../../shared/login-throttle.js";
+import { urlFirmadaKyc } from "../../shared/cloudinary.js";
 import * as service from "./auth.service.js";
 
 export const authResolvers = {
@@ -16,6 +17,10 @@ export const authResolvers = {
     // Disputas perdidas (on-demand): señal de confianza para comprador y nivel de tienda
     disputasPerdidas: (parent: { id: string }, _: unknown, ctx: NexComContext) =>
       service.contarDisputasPerdidas(parent.id, ctx.prisma),
+
+    // documentoUrl guarda el public_id del KYC (asset privado); se entrega como
+    // URL firmada efímera. Solo llega poblado al dueño vía 'me'; null en público.
+    documentoUrl: (parent: { documentoUrl?: string | null }) => urlFirmadaKyc(parent.documentoUrl),
 
     // Serialización ISO explícita (Prisma devuelve Date)
     planVenceEn: (parent: { planVenceEn?: Date | string | null }) =>
