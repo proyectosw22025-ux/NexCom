@@ -29,6 +29,12 @@ const DIAS_CIERRE_ORDEN = 7;
 // vendedor envíe antes de cancelar y reembolsar automáticamente la garantía.
 const DIAS_CANCELACION_SIN_ENVIO = 7;
 
+// Reserva de checkout: horas que una orden puede quedar en PENDIENTE_PAGO (pago
+// no completado, p.ej. QR/transferencia abandonada) antes de cancelarse y
+// DEVOLVER el stock. El stock se descuenta al crear la orden (anti-oversell),
+// así que sin esta limpieza las unidades quedarían perdidas para siempre.
+const HORAS_ABANDONO_PAGO = 24;
+
 function bad(msg: string) {
   return new GraphQLError(msg, { extensions: { code: "BAD_USER_INPUT" } });
 }
@@ -274,6 +280,7 @@ export const ordenesService = {
    */
   async barridoEscrow(prisma: PrismaClient) {
     await this._procesarAutoLiberaciones(null, prisma);
+    await this._cancelarPagosAbandonados(prisma);
     await this._cancelarOrdenesSinEnvio({}, prisma);
     await this._cerrarOrdenesEntregadas({}, prisma);
     // Auto-resolución a favor del comprador cuando nadie responde a tiempo
@@ -389,6 +396,45 @@ export const ordenesService = {
           data: { ordenId: o.id, estadoAnterior: "ENTREGADO", estadoNuevo: "COMPLETADO", cambiadoPorId: "system", notas: "Cierre automático post-entrega" },
         });
       });
+    }
+  },
+
+  /**
+   * Limpieza de checkouts abandonados: órdenes en PENDIENTE_PAGO por más de
+   * HORAS_ABANDONO_PAGO se CANCELAN y DEVUELVEN el stock (que se había
+   * descontado al crear la orden para evitar sobreventa). Sin esto, cada QR o
+   * transferencia abandonada dejaría inventario perdido. Atómico por CAS: si el
+   * webhook confirma el pago en paralelo (→ PAGADO), la cancelación pierde la
+   * carrera y NO restituye stock (evita el cruce de lógica).
+   */
+  async _cancelarPagosAbandonados(prisma: PrismaClient) {
+    const limite = new Date(Date.now() - HORAS_ABANDONO_PAGO * 3_600_000);
+    const abandonadas = await prisma.orden.findMany({
+      where:  { estado: "PENDIENTE_PAGO", creadoEn: { lte: limite } },
+      select: { id: true, compradorId: true, items: { select: { productoId: true, cantidad: true } } },
+    });
+    for (const o of abandonadas) {
+      const gano = await prisma.$transaction(async (tx) => {
+        const cas = await tx.orden.updateMany({
+          where: { id: o.id, estado: "PENDIENTE_PAGO" },
+          data:  { estado: "CANCELADO" },
+        });
+        if (cas.count === 0) return false; // el pago se confirmó en paralelo
+        await tx.historialEstadoOrden.create({
+          data: { ordenId: o.id, estadoAnterior: "PENDIENTE_PAGO", estadoNuevo: "CANCELADO",
+            cambiadoPorId: "system", notas: "Cancelación automática: el pago no se completó a tiempo" },
+        });
+        for (const it of o.items) {
+          await tx.producto.update({ where: { id: it.productoId }, data: { stock: { increment: it.cantidad } } });
+        }
+        return true;
+      });
+      if (!gano) continue;
+      await this._notificarComprador(
+        o.compradorId, o.id, "ORDEN_CANCELADA", "Pedido cancelado",
+        `Tu orden #${o.id.slice(-6).toUpperCase()} se canceló porque el pago no se completó a tiempo. Las unidades volvieron a estar disponibles.`,
+        prisma,
+      );
     }
   },
 };

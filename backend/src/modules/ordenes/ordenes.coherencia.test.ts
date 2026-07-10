@@ -29,6 +29,7 @@ function makePrisma(casCount: number) {
     producto:            { update: vi.fn() },
   };
   return {
+    _tx: tx, // expuesto solo para aserciones del test
     orden:            { findMany: vi.fn().mockResolvedValue([ordenVencida]) },
     $transaction:     async (fn: (t: unknown) => unknown) => fn(tx),
     eventoSeguridad:  { create: vi.fn() },
@@ -57,5 +58,24 @@ describe("coherencia escrow: auto-cancelación por no-envío vs. respuesta tard�
     // "Gana quien transicionó primero": la orden ya fue enviada, no hay doble efecto.
     expect(saldosService.registrarReembolso).not.toHaveBeenCalled();
     expect(creditoService.acreditarReembolso).not.toHaveBeenCalled();
+  });
+});
+
+describe("coherencia: limpieza de checkouts abandonados (stock huérfano) vs. pago tardío", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("CAS gana (count=1): cancela y DEVUELVE el stock de la orden abandonada", async () => {
+    const prisma = makePrisma(1);
+    await ordenesService._cancelarPagosAbandonados(prisma);
+    // restock: increment por cada ítem
+    expect((prisma as unknown as { _tx: { producto: { update: ReturnType<typeof vi.fn> } } })._tx.producto.update)
+      .toHaveBeenCalledWith(expect.objectContaining({ data: { stock: { increment: 1 } } }));
+  });
+
+  it("CAS pierde (count=0): el webhook confirmó el pago justo antes → NO restituye stock", async () => {
+    const prisma = makePrisma(0);
+    await ordenesService._cancelarPagosAbandonados(prisma);
+    expect((prisma as unknown as { _tx: { producto: { update: ReturnType<typeof vi.fn> } } })._tx.producto.update)
+      .not.toHaveBeenCalled();
   });
 });
