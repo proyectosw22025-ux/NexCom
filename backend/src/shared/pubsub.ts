@@ -2,16 +2,13 @@ import Redis from "ioredis";
 import { createPubSub } from "graphql-yoga";
 import { createRedisEventTarget } from "@graphql-yoga/redis-event-target";
 import { env } from "../config/env.js";
-
-// Upstash usa rediss:// (TLS), Redis local usa redis://
-const isTLS = env.REDIS_URL.startsWith("rediss://");
+import { baseRedisOptions } from "./redis.client.js";
 
 function createConnection() {
   return new Redis(env.REDIS_URL, {
-    lazyConnect:          true,
-    retryStrategy:        (times) => Math.min(times * 100, 3000),
+    ...baseRedisOptions(),
+    // El subscriber usa comandos bloqueantes: no limitar reintentos por request.
     maxRetriesPerRequest: null,
-    ...(isTLS ? { tls: { rejectUnauthorized: false } } : {}),
   });
 }
 
