@@ -1,0 +1,15 @@
+{
+  "name": "Recoge NexCom",
+  "short_name": "Recoge",
+  "description": "Recoge tus pedidos, revisa tu saldo y tus reportes. Funciona con y sin conexión.",
+  "start_url": "/recoge",
+  "scope": "/recoge",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f8fafc",
+  "theme_color": "#4f46e5",
+  "lang": "es-BO",
+  "icons": [
+    { "src": "/recoge-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Recoge NexCom">
+  <rect width="512" height="512" rx="112" fill="#4f46e5"/>
+  <g fill="none" stroke="#ffffff" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M168 208 L256 162 L344 208 L344 316 L256 362 L168 316 Z"/>
+    <path d="M168 208 L256 254 L344 208"/>
+    <path d="M256 254 L256 362"/>
+  </g>
+</svg>
