@@ -4,9 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ShoppingBag, User, Package, LogOut, Store, Wallet } from "lucide-react";
 import { DashboardTopbar } from "@/components/layout/DashboardTopbar";
+import { MobileNavDrawer } from "@/components/layout/MobileNavDrawer";
 import { useUiPrefs } from "@/context/ui-prefs-context";
 
 const NAV = [
@@ -21,6 +22,8 @@ export default function CompradorLayout({ children }: { children: React.ReactNod
   const { sidebarColapsado: col } = useUiPrefs();
   const router   = useRouter();
   const pathname = usePathname();
+  const [mobileNav, setMobileNav] = useState(false);
+  const cerrarSesion = async () => { await logout(); router.replace("/"); };
 
   useEffect(() => {
     if (!isLoading && (!user || user.rol !== "COMPRADOR")) {
@@ -32,8 +35,8 @@ export default function CompradorLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      {/* Sidebar */}
-      <aside className={`${col ? "w-[4.5rem]" : "w-60"} transition-[width] duration-300 bg-white border-r border-slate-200 flex flex-col shrink-0 sticky top-0 h-screen`}>
+      {/* Sidebar (solo desktop) */}
+      <aside className={`${col ? "w-[4.5rem]" : "w-60"} transition-[width] duration-300 bg-white border-r border-slate-200 hidden md:flex flex-col shrink-0 sticky top-0 h-screen`}>
         <div className="px-4 py-5 border-b border-slate-100">
           <Link href="/" className={`flex items-center gap-2.5 ${col ? "justify-center" : ""}`} title="NexCom">
             <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-lg flex items-center justify-center shrink-0">
@@ -112,9 +115,18 @@ export default function CompradorLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
 
+      {/* Drawer móvil */}
+      <MobileNavDrawer
+        open={mobileNav} onClose={() => setMobileNav(false)}
+        nav={NAV} rootHref="/comprador" accent="indigo"
+        brandLabel="Mi Cuenta" brandIcon={ShoppingBag}
+        userLabel={user.perfilComprador?.nombreCompleto ?? user.email}
+        onLogout={cerrarSesion}
+      />
+
       {/* Main */}
-      <main className="flex-1 overflow-auto">
-        <DashboardTopbar accent="indigo" />
+      <main className="flex-1 overflow-auto min-w-0">
+        <DashboardTopbar accent="indigo" onMenu={() => setMobileNav(true)} />
         {children}
       </main>
     </div>

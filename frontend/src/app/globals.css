@@ -27,6 +27,11 @@ body {
   to   { transform: translateX(0);    opacity: 1; }
 }
 
+@keyframes slide-in-left {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+
 @keyframes fade-in-backdrop {
   from { opacity: 0; }
   to   { opacity: 1; }
@@ -39,6 +44,9 @@ body {
 
 .animate-slide-from-right {
   animation: slide-from-right 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.animate-slide-in-left {
+  animation: slide-in-left 0.25s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .animate-fade-in-backdrop {
@@ -158,7 +166,7 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in, .animate-scale-in, .animate-pop-in, .animate-float-soft,
-  .animate-stagger-fade-up, .animate-slide-from-right, .animate-grow-x,
+  .animate-stagger-fade-up, .animate-slide-from-right, .animate-slide-in-left, .animate-grow-x,
   .animate-float-y, .animate-float-y-2, .animate-gradient, .animate-blob,
   .animate-cart-pop, .animate-reveal-zoom { animation: none; opacity: 1; transform: none; }
   .hover-lift:hover { transform: none; }
