@@ -8,6 +8,11 @@ import { publishNotificacion } from "../../shared/pubsub.js";
 const COMISION_POR_PLAN: Record<string, number> = { FREE: 0.10, PRO: 0.05 };
 const COMISION_DEFECTO = 0.10;
 const MIN_RETIRO = new Decimal(50); // Bs.
+// Asentamiento: días que un pago liberado queda "disputable" (ventana de
+// devolución) antes de ser RETIRABLE. Evita que el vendedor retire dinero que
+// aún podría reembolsarse y deje su saldo en negativo. Coincide con la ventana
+// de devolución (7 días desde la entrega/liberación).
+const DIAS_ASENTAMIENTO = 7;
 
 function bad(msg: string) {
   return new GraphQLError(msg, { extensions: { code: "BAD_USER_INPUT" } });
@@ -92,7 +97,8 @@ export const saldosService = {
   // ── Consultas del vendedor ───────────────────────────────────────────────────
 
   async getSaldo(vendedorId: string, prisma: PrismaClient) {
-    const [ventas, retencion, liberacion, reembolsos, suscripciones, pendiente, pagado] = await Promise.all([
+    const desdeAsentamiento = new Date(Date.now() - DIAS_ASENTAMIENTO * 86_400_000);
+    const [ventas, retencion, liberacion, reembolsos, suscripciones, pendiente, pagado, libReciente, reembolsoReciente] = await Promise.all([
       saldosRepository.sumarMovimientos(vendedorId, "VENTA", prisma),       // legacy: directo a disponible
       saldosRepository.sumarMovimientos(vendedorId, "RETENCION", prisma),   // entra a retenido
       saldosRepository.sumarMovimientos(vendedorId, "LIBERACION", prisma),  // retenido → disponible
@@ -100,6 +106,8 @@ export const saldosService = {
       saldosRepository.sumarMovimientos(vendedorId, "SUSCRIPCION", prisma), // débito: plan PRO
       saldosRepository.sumarRetiros(vendedorId, "PENDIENTE", prisma),
       saldosRepository.sumarRetiros(vendedorId, "PAGADO", prisma),
+      saldosRepository.sumarMovimientosDesde(vendedorId, "LIBERACION", desdeAsentamiento, prisma),
+      saldosRepository.sumarMovimientosDesde(vendedorId, "REEMBOLSO",  desdeAsentamiento, prisma),
     ]);
     const venta      = new Decimal(ventas.monto);
     const ret        = new Decimal(retencion.monto);
@@ -111,17 +119,26 @@ export const saldosService = {
 
     // En garantía (escrow): retenido aún no liberado ni reembolsado.
     const retenido   = ret.minus(lib).minus(reembolso);
-    // Disponible para retiro: ventas legacy + lo liberado, menos retiros y suscripciones.
+    // Disponible (total acreditado): ventas legacy + lo liberado, menos retiros y suscripciones.
     const disponible = venta.plus(lib).minus(enRevision).minus(retirado).minus(suscrito);
+    // En asentamiento: lo liberado en los últimos DIAS_ASENTAMIENTO días (aún
+    // devolvible), neto de reembolsos recientes. No es retirable todavía.
+    const enAsentamiento = Decimal.max(
+      new Decimal(libReciente).minus(new Decimal(reembolsoReciente)), new Decimal(0),
+    );
+    // Retirable AHORA: disponible menos lo que sigue en asentamiento (nunca < 0).
+    const retirable  = Decimal.max(disponible.minus(enAsentamiento), new Decimal(0));
     // Neto histórico generado (incluye lo que sigue retenido).
     const generado   = venta.plus(ret).minus(reembolso);
     return {
-      disponible:    dosDecimales(disponible),
-      retenido:      dosDecimales(retenido),
-      generado:      dosDecimales(generado),
-      enRevision:    dosDecimales(enRevision),
-      retirado:      dosDecimales(retirado),
-      comisionTotal: dosDecimales(new Decimal(ventas.comision).plus(retencion.comision)),
+      disponible:     dosDecimales(disponible),
+      retirable:      dosDecimales(retirable),
+      enAsentamiento: dosDecimales(enAsentamiento),
+      retenido:       dosDecimales(retenido),
+      generado:       dosDecimales(generado),
+      enRevision:     dosDecimales(enRevision),
+      retirado:       dosDecimales(retirado),
+      comisionTotal:  dosDecimales(new Decimal(ventas.comision).plus(retencion.comision)),
     };
   },
 
@@ -166,8 +183,13 @@ export const saldosService = {
     const retiro = await prisma.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${vendedorId}))`;
       const saldo = await this.getSaldo(vendedorId, tx as PrismaClient);
-      if (monto.gt(new Decimal(saldo.disponible))) {
-        throw bad(`El monto supera tu saldo disponible (Bs. ${saldo.disponible}).`);
+      // Solo lo RETIRABLE (fuera del asentamiento): así un reembolso posterior
+      // nunca deja el saldo en negativo (el dinero "disputable" no salió).
+      if (monto.gt(new Decimal(saldo.retirable))) {
+        const enAsent = new Decimal(saldo.enAsentamiento).gt(0)
+          ? ` (Bs. ${saldo.enAsentamiento} están en asentamiento por la ventana de devolución de ${DIAS_ASENTAMIENTO} días).`
+          : ".";
+        throw bad(`El monto supera tu saldo retirable (Bs. ${saldo.retirable})${enAsent}`);
       }
       return saldosRepository.crearRetiro(
         { vendedorId, monto: monto.toString(), banco, numeroCuenta, titular }, tx as PrismaClient,

@@ -28,6 +28,7 @@ vi.mock("./saldos.repository.js", () => ({
       };
     }),
     sumarRetiros: vi.fn(async () => "0"),
+    sumarMovimientosDesde: vi.fn(async () => "0"), // sin asentamiento en este test
   },
 }));
 vi.mock("../../shared/pubsub.js", () => ({ publishNotificacion: vi.fn() }));

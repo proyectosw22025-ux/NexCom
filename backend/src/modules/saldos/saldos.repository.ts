@@ -40,6 +40,15 @@ export const saldosRepository = {
     return r._sum.monto?.toString() ?? "0";
   },
 
+  /** Suma de movimientos de un tipo creados desde `desde` (para el asentamiento). */
+  async sumarMovimientosDesde(vendedorId: string, tipo: Tipo, desde: Date, prisma: PrismaClient) {
+    const r = await prisma.movimientoSaldo.aggregate({
+      where: { vendedorId, tipo, creadoEn: { gte: desde } },
+      _sum:  { monto: true },
+    });
+    return r._sum.monto?.toString() ?? "0";
+  },
+
   async listMovimientos(vendedorId: string, prisma: PrismaClient) {
     return prisma.movimientoSaldo.findMany({
       where: { vendedorId }, orderBy: { creadoEn: "desc" }, take: 50,

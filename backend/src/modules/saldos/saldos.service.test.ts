@@ -11,6 +11,7 @@ vi.mock("./saldos.repository.js", () => ({
     findVentaPorOrden:      vi.fn(),
     findMovimientoPorOrden: vi.fn(),
     sumarMovimientos:       vi.fn(),
+    sumarMovimientosDesde:  vi.fn().mockResolvedValue("0"),
     sumarRetiros:          vi.fn(),
     listMovimientos:       vi.fn(),
     getVerificado:         vi.fn(),
@@ -124,6 +125,25 @@ describe("saldosService.getSaldo", () => {
       retenido: "200.00", disponible: "250.00", generado: "600.00",
       enRevision: "50.00", retirado: "100.00", comisionTotal: "50.00",
     });
+  });
+
+  it("descuenta del retirable lo liberado en los últimos 7 días (asentamiento)", async () => {
+    const map: Record<string, { monto: string; comision: string }> = {
+      VENTA:       { monto: "0",   comision: "0" },
+      RETENCION:   { monto: "300", comision: "0" },
+      LIBERACION:  { monto: "300", comision: "0" }, // todo liberado
+      REEMBOLSO:   { monto: "0",   comision: "0" },
+      SUSCRIPCION: { monto: "0",   comision: "0" },
+    };
+    vi.mocked(saldosRepository.sumarMovimientos).mockImplementation(async (_v, tipo) => map[tipo]);
+    vi.mocked(saldosRepository.sumarRetiros).mockResolvedValue("0");
+    // De lo liberado, 120 fue en los últimos 7 días → aún en asentamiento.
+    vi.mocked(saldosRepository.sumarMovimientosDesde).mockImplementation(async (_v, tipo) =>
+      tipo === "LIBERACION" ? "120" : "0",
+    );
+    const s = await saldosService.getSaldo("v1", prisma);
+    // disponible = 300; enAsentamiento = 120; retirable = 300 - 120 = 180
+    expect(s).toMatchObject({ disponible: "300.00", enAsentamiento: "120.00", retirable: "180.00" });
   });
 });
 

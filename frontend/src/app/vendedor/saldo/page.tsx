@@ -8,7 +8,7 @@ import { MI_SALDO, SOLICITAR_RETIRO } from "@/graphql/saldos";
 import { formatRelativeTime } from "@/lib/format-relative-time";
 import { useAuth } from "@/context/auth-context";
 
-interface Saldo { disponible: string; retenido: string; generado: string; enRevision: string; retirado: string; comisionTotal: string }
+interface Saldo { disponible: string; retirable: string; enAsentamiento: string; retenido: string; generado: string; enRevision: string; retirado: string; comisionTotal: string }
 interface Movimiento { id: string; tipo: string; monto: string; comision: string; ordenIdCorto: string | null; descripcion: string; creadoEn: string }
 interface Retiro { id: string; monto: string; estado: string; banco: string; numeroCuenta: string; titular: string; notaAdmin: string | null; creadoEn: string }
 
@@ -73,7 +73,12 @@ export default function VendedorSaldoPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
         <div className="bg-gradient-to-br from-indigo-600 to-violet-600 rounded-2xl p-5 text-white">
           <p className="text-xs font-semibold uppercase tracking-wide text-indigo-100">Disponible para retirar</p>
-          <p className="text-3xl font-extrabold mt-2">Bs. {saldo?.disponible ?? "0.00"}</p>
+          <p className="text-3xl font-extrabold mt-2">Bs. {saldo?.retirable ?? "0.00"}</p>
+          {Number(saldo?.enAsentamiento ?? "0") > 0 && (
+            <p className="text-xs text-indigo-100 mt-1.5">
+              + Bs. {saldo?.enAsentamiento} en asentamiento (se libera al pasar la ventana de devolución de 7 días)
+            </p>
+          )}
         </div>
         <div className="surface-emerald rounded-2xl border border-emerald-200 p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 flex items-center gap-1.5">
@@ -100,12 +105,16 @@ export default function VendedorSaldoPage() {
           <div className="bg-white rounded-2xl border border-slate-200 p-5">
             <h2 className="text-sm font-bold text-slate-900 mb-4">Solicitar retiro</h2>
             <form onSubmit={handleSolicitar} className="space-y-3">
-              <input
-                type="number" min={0} step="0.01" inputMode="decimal" required
-                value={form.monto} onChange={(e) => setForm((f) => ({ ...f, monto: e.target.value }))}
-                placeholder="Monto (Bs.)"
-                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
-              />
+              <div>
+                <input
+                  type="number" min={0} step="0.01" inputMode="decimal" required
+                  max={saldo?.retirable}
+                  value={form.monto} onChange={(e) => setForm((f) => ({ ...f, monto: e.target.value }))}
+                  placeholder="Monto (Bs.)"
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">Retirable: Bs. {saldo?.retirable ?? "0.00"} (mínimo Bs. 50)</p>
+              </div>
               <input
                 required value={form.banco} onChange={(e) => setForm((f) => ({ ...f, banco: e.target.value }))}
                 placeholder="Banco (ej. Banco Unión)"

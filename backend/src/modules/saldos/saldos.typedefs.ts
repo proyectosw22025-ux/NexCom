@@ -1,11 +1,13 @@
 export const saldosTypeDefs = /* GraphQL */ `
   type Saldo {
-    disponible:    String!
-    retenido:      String!   # en garantía (escrow) hasta confirmar entrega
-    generado:      String!
-    enRevision:    String!
-    retirado:      String!
-    comisionTotal: String!
+    disponible:     String!
+    retirable:      String!   # disponible menos lo que está en asentamiento (retirable ahora)
+    enAsentamiento: String!   # liberado hace <7 días, aún devolvible; no retirable
+    retenido:       String!   # en garantía (escrow) hasta confirmar entrega
+    generado:       String!
+    enRevision:     String!
+    retirado:       String!
+    comisionTotal:  String!
   }
 
   type MovimientoSaldo {
