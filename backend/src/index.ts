@@ -211,7 +211,14 @@ async function bootstrap() {
         });
         if (orden && orden.estado === "PENDIENTE_PAGO") {
           const notificacionesCreadas = await prisma.$transaction(async (tx) => {
-            await tx.orden.update({ where: { id: orden.id }, data: { estado: "PAGADO" } });
+            // CAS: confirma solo si la orden SIGUE en PENDIENTE_PAGO. Dos webhooks
+            // concurrentes (Stripe reintenta) ya no pueden doble-procesar el pago
+            // (doble retención/puntos). Si otro ganó, aborta sin efectos.
+            const cas = await tx.orden.updateMany({
+              where: { id: orden.id, estado: "PENDIENTE_PAGO" },
+              data:  { estado: "PAGADO" },
+            });
+            if (cas.count === 0) return null;
             if (orden.pago) {
               const chargeId = (intent.latest_charge as string) ?? null;
               await tx.pago.update({
@@ -257,35 +264,38 @@ async function bootstrap() {
             return [notifComprador, notifVendedor];
           });
 
-          for (const notif of notificacionesCreadas) {
-            publishNotificacion(notif.usuarioId, {
-              id:       notif.id,
-              tipo:     notif.tipo,
-              titulo:   notif.titulo,
-              mensaje:  notif.mensaje,
-              leido:    notif.leido,
-              url:      notif.url,
-              ordenId:  notif.ordenId,
-              creadoEn: notif.creadoEn.toISOString(),
-            });
-          }
+          // Solo si el CAS ganó la confirmación (no un webhook duplicado).
+          if (notificacionesCreadas) {
+            for (const notif of notificacionesCreadas) {
+              publishNotificacion(notif.usuarioId, {
+                id:       notif.id,
+                tipo:     notif.tipo,
+                titulo:   notif.titulo,
+                mensaje:  notif.mensaje,
+                leido:    notif.leido,
+                url:      notif.url,
+                ordenId:  notif.ordenId,
+                creadoEn: notif.creadoEn.toISOString(),
+              });
+            }
 
-          // Compra Protegida — mismo tratamiento que el camino simulado
-          // (_confirmarOrden): el pago real también RETIENE en garantía, genera
-          // el QR del paquete y acredita fidelidad. Todo idempotente por orden.
-          await saldosService.registrarRetencion(
-            orden.vendedorId, orden.id, orden.total.toString(), orden.vendedor.plan ?? "FREE", prisma,
-          );
-          if (!orden.codigoEntrega) {
-            await prisma.orden.update({ where: { id: orden.id }, data: { codigoEntrega: generarCodigoEntrega() } });
+            // Compra Protegida — mismo tratamiento que el camino simulado
+            // (_confirmarOrden): el pago real también RETIENE en garantía, genera
+            // el QR del paquete y acredita fidelidad. Todo idempotente por orden.
+            await saldosService.registrarRetencion(
+              orden.vendedorId, orden.id, orden.total.toString(), orden.vendedor.plan ?? "FREE", prisma,
+            );
+            if (!orden.codigoEntrega) {
+              await prisma.orden.update({ where: { id: orden.id }, data: { codigoEntrega: generarCodigoEntrega() } });
+            }
+            if (orden.puntosUsados > 0) {
+              await fidelidadService.registrarCanje(orden.compradorId, orden.id, orden.puntosUsados, prisma);
+            }
+            const gastoNeto = new Decimal(orden.subtotal.toString())
+              .minus(orden.descuentoCupon.toString())
+              .minus(orden.descuentoPuntos.toString());
+            await fidelidadService.registrarGanados(orden.compradorId, orden.id, gastoNeto, prisma);
           }
-          if (orden.puntosUsados > 0) {
-            await fidelidadService.registrarCanje(orden.compradorId, orden.id, orden.puntosUsados, prisma);
-          }
-          const gastoNeto = new Decimal(orden.subtotal.toString())
-            .minus(orden.descuentoCupon.toString())
-            .minus(orden.descuentoPuntos.toString());
-          await fidelidadService.registrarGanados(orden.compradorId, orden.id, gastoNeto, prisma);
         }
       } else if (event.type === "payment_intent.payment_failed") {
         const intent = event.data.object as Stripe.PaymentIntent;
