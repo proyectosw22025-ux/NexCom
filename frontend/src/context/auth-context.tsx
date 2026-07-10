@@ -8,7 +8,7 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-import { apolloClient } from "@/lib/apollo-client";
+import { apolloClient, purgePersistedCache } from "@/lib/apollo-client";
 import { ME } from "@/graphql/auth/queries";
 import { REFRESH_TOKEN, LOGOUT } from "@/graphql/auth/mutations";
 
@@ -116,6 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch { /* limpiar localmente de todas formas */ }
     clearTokens();
     apolloClient.clearStore();
+    purgePersistedCache(); // no dejar saldo/pedidos de un usuario en el dispositivo
     setState({ user: null, isLoading: false });
   }, []);
 

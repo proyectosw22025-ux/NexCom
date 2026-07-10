@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
 import { Home, QrCode, Wallet, WifiOff } from "lucide-react";
 import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 const NAV = [
   { href: "/recoge",          label: "Inicio",   icon: Home },
@@ -16,15 +16,7 @@ const NAV = [
  *  navegación inferior fija. Registra el service worker e indica si no hay red. */
 export function RecogeShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [online, setOnline] = useState(true);
-
-  useEffect(() => {
-    const set = () => setOnline(navigator.onLine);
-    set();
-    window.addEventListener("online", set);
-    window.addEventListener("offline", set);
-    return () => { window.removeEventListener("online", set); window.removeEventListener("offline", set); };
-  }, []);
+  const online = useOnlineStatus();
 
   return (
     <div className="min-h-[100dvh] bg-slate-50 flex flex-col max-w-md mx-auto">

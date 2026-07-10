@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { useQuery } from "@apollo/client";
-import { Wallet, Loader2, LogIn } from "lucide-react";
+import { Wallet, Loader2, LogIn, WifiOff } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { MI_SALDO } from "@/graphql/saldos";
 import { MI_BILLETERA } from "@/graphql/credito";
 
 export default function RecogeSaldo() {
   const { user, isLoading } = useAuth();
+  const online = useOnlineStatus();
   const esVendedor = user?.rol === "VENDEDOR";
 
   const { data: saldoData, loading: lS } = useQuery(MI_SALDO, {
@@ -39,6 +41,13 @@ export default function RecogeSaldo() {
       <h1 className="text-lg font-bold text-slate-900 flex items-center gap-2">
         <Wallet className="h-5 w-5 text-indigo-600" /> {esVendedor ? "Mi saldo" : "Mi billetera"}
       </h1>
+
+      {!online && (
+        <div className="flex items-center gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-700">
+          <WifiOff className="h-4 w-4 shrink-0" />
+          Sin conexión — mostrando los últimos datos guardados.
+        </div>
+      )}
 
       {loading && !saldo && !bill ? (
         <div className="flex items-center gap-2 py-10 justify-center text-slate-400">

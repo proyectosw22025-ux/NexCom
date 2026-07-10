@@ -3,8 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@apollo/client";
-import { QrCode, Loader2, Package, LogIn, ArrowLeft, Store } from "lucide-react";
+import { QrCode, Loader2, Package, LogIn, ArrowLeft, Store, WifiOff } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { MIS_ORDENES } from "@/graphql/ordenes/queries";
 import { RecogerPedido } from "@/components/ordenes/RecogerPedido";
 
@@ -15,6 +16,7 @@ interface Orden {
 
 export default function RecogeEscanear() {
   const { user, isLoading } = useAuth();
+  const online = useOnlineStatus();
   const esComprador = user?.rol === "COMPRADOR";
   const { data, loading, refetch } = useQuery<{ misOrdenes: Orden[] }>(MIS_ORDENES, {
     fetchPolicy: "cache-and-network", skip: !esComprador,
@@ -47,6 +49,22 @@ export default function RecogeEscanear() {
   }
 
   const porRecoger = (data?.misOrdenes ?? []).filter((o) => o.estado === "ENVIADO");
+
+  // Confirmar la recepción valida el QR/OTP contra el servidor: requiere red.
+  if (!online) {
+    return (
+      <div className="p-6 text-center">
+        <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center mx-auto mb-3">
+          <WifiOff className="h-6 w-6 text-amber-600" />
+        </div>
+        <p className="text-sm font-semibold text-slate-800">Sin conexión</p>
+        <p className="text-sm text-slate-500 mt-1">
+          Para escanear y confirmar la recepción necesitas conexión a internet. Puedes seguir viendo tu saldo y pedidos sin red.
+        </p>
+        <Link href="/recoge/saldo" className="mt-3 inline-block text-xs text-indigo-600 font-semibold">Ver mi saldo →</Link>
+      </div>
+    );
+  }
 
   // Vista de escaneo de una orden concreta
   if (activa) {
