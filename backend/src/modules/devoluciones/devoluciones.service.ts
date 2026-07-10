@@ -12,6 +12,7 @@ const DEVOLUCION_DIAS    = 7;                            // ventana desde la ent
 const MOTIVO_MIN         = 5;
 const TIPOS_PROBLEMA     = ["DEFECTUOSO", "NO_CORRESPONDE", "INCOMPLETO", "OTRO"];
 const MAX_EVIDENCIA      = 5;
+const DIAS_AUTO_RESOLVER = 5;                           // el vendedor que ignora N días pierde la devolución
 
 function bad(msg: string) {
   return new GraphQLError(msg, { extensions: { code: "BAD_USER_INPUT" } });
@@ -156,6 +157,36 @@ export const devolucionesService = {
       );
     }
     return mapDevolucion(actualizada as DevolucionRow, "");
+  },
+
+  /**
+   * Auto-resolución (cron): las devoluciones que el vendedor ignora por más de
+   * DIAS_AUTO_RESOLVER días se aprueban a favor del comprador. Protege al
+   * comprador de vendedores que nunca responden. Reusa el camino de aprobación
+   * (reembolso + clawback + billetera) y es idempotente por los movimientos.
+   */
+  async autoResolverVencidas(prisma: PrismaClient) {
+    const limite = new Date(Date.now() - DIAS_AUTO_RESOLVER * 86_400_000);
+    const vencidas = await devolucionesRepository.findSolicitadasVencidas(limite, prisma);
+    for (const dev of vencidas) {
+      const idCorto = dev.ordenId.slice(-6).toUpperCase();
+      const nota = "Aprobada automáticamente: el vendedor no respondió a tiempo.";
+      await devolucionesRepository.reembolsar(dev.id, nota, dev.orden!.items, prisma);
+      await saldosService.registrarReembolso(dev.vendedor!.id, dev.ordenId, prisma);
+      await creditoService.acreditarReembolso(
+        dev.comprador!.id, dev.ordenId, new Decimal(dev.montoReembolso.toString()), prisma,
+      );
+      await notificar(
+        prisma, dev.comprador!.usuarioId, "DEVOLUCION_RESUELTA", "Devolución aprobada automáticamente",
+        `Tu devolución de la orden #${idCorto} se aprobó porque el vendedor no respondió. Se acreditó Bs. ${dev.montoReembolso.toString()} a tu billetera.`,
+        `/comprador/saldo`,
+      );
+      await notificar(
+        prisma, dev.vendedor!.usuarioId, "DEVOLUCION_RESUELTA", "Devolución aprobada por inacción",
+        `La devolución de la orden #${idCorto} se aprobó automáticamente por falta de respuesta.`,
+        `/vendedor/devoluciones`,
+      );
+    }
   },
 
   async getMisDevoluciones(compradorId: string, prisma: PrismaClient) {

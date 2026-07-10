@@ -4,6 +4,8 @@ import type { PrismaClient } from "@prisma/client";
 import { ordenesRepository } from "./ordenes.repository.js";
 import { saldosService } from "../saldos/saldos.service.js";
 import { creditoService } from "../credito/credito.service.js";
+import { devolucionesService } from "../devoluciones/devoluciones.service.js";
+import { disputasService } from "../disputas/disputas.service.js";
 import { generarCodigoEntrega } from "../../shared/codigo-entrega.util.js";
 import { publishNotificacion } from "../../shared/pubsub.js";
 
@@ -274,6 +276,9 @@ export const ordenesService = {
     await this._procesarAutoLiberaciones(null, prisma);
     await this._cancelarOrdenesSinEnvio({}, prisma);
     await this._cerrarOrdenesEntregadas({}, prisma);
+    // Auto-resolución a favor del comprador cuando nadie responde a tiempo
+    await devolucionesService.autoResolverVencidas(prisma);
+    await disputasService.autoResolverVencidas(prisma);
 
     // Vencimiento del plan PRO: degradar a FREE al terminar el periodo pagado
     const vencidos = await prisma.perfilVendedor.findMany({

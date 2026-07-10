@@ -3,17 +3,19 @@ import type { PrismaClient } from "@prisma/client";
 
 import { devolucionesRepository } from "./devoluciones.repository.js";
 import { devolucionesService } from "./devoluciones.service.js";
+import { creditoService } from "../credito/credito.service.js";
 
 vi.mock("./devoluciones.repository.js", () => ({
   devolucionesRepository: {
-    findOrdenParaDevolucion: vi.fn(),
-    crear:                   vi.fn(),
-    findConParticipantes:    vi.fn(),
-    rechazar:                vi.fn(),
-    reembolsar:              vi.fn(),
-    findByComprador:         vi.fn(),
-    findByVendedor:          vi.fn(),
-    findByOrden:             vi.fn(),
+    findOrdenParaDevolucion:  vi.fn(),
+    crear:                    vi.fn(),
+    findConParticipantes:     vi.fn(),
+    rechazar:                 vi.fn(),
+    reembolsar:               vi.fn(),
+    findByComprador:          vi.fn(),
+    findByVendedor:           vi.fn(),
+    findByOrden:              vi.fn(),
+    findSolicitadasVencidas:  vi.fn(),
   },
 }));
 vi.mock("../saldos/saldos.service.js", () => ({
@@ -158,5 +160,34 @@ describe("devolucionesService.responder", () => {
     await expect(
       devolucionesService.responder("vend-1", "u-vend", "dev-1", true, null, prisma),
     ).rejects.toMatchObject({ extensions: { code: "BAD_USER_INPUT" } });
+  });
+});
+
+describe("devolucionesService.autoResolverVencidas", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("aprueba automáticamente las devoluciones que el vendedor ignoró y acredita la billetera", async () => {
+    vi.mocked(devolucionesRepository.findSolicitadasVencidas).mockResolvedValue([{
+      id: "dev-1", ordenId: "orden-1", montoReembolso: { toString: () => "150.00" },
+      comprador: { id: "comp-1", usuarioId: "u-comp" },
+      vendedor:  { id: "vend-1", usuarioId: "u-vend" },
+      orden:     { items: [{ productoId: "p1", cantidad: 1 }] },
+    }] as never);
+    vi.mocked(devolucionesRepository.reembolsar).mockResolvedValue({ id: "dev-1" } as never);
+
+    await devolucionesService.autoResolverVencidas(prisma);
+
+    expect(devolucionesRepository.reembolsar).toHaveBeenCalledWith(
+      "dev-1", expect.stringContaining("no respondió"), [{ productoId: "p1", cantidad: 1 }], prisma,
+    );
+    expect(creditoService.acreditarReembolso).toHaveBeenCalledWith(
+      "comp-1", "orden-1", expect.anything(), prisma,
+    );
+  });
+
+  it("no hace nada si no hay devoluciones vencidas", async () => {
+    vi.mocked(devolucionesRepository.findSolicitadasVencidas).mockResolvedValue([] as never);
+    await devolucionesService.autoResolverVencidas(prisma);
+    expect(devolucionesRepository.reembolsar).not.toHaveBeenCalled();
   });
 });

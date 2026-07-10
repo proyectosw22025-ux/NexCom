@@ -8,6 +8,7 @@ import { publishNotificacion } from "../../shared/pubsub.js";
 
 const MOTIVOS_VALIDOS  = ["NO_RECIBIDO", "PRODUCTO_INCORRECTO", "DANADO", "OTRO"];
 const ESTADOS_ABRIBLES = ["PAGADO", "EN_PREPARACION", "ENVIADO"]; // mientras el pago sigue retenido
+const DIAS_AUTO_DISPUTA = 5; // sin resolución del admin en N días → a favor del comprador
 
 function bad(msg: string) {
   return new GraphQLError(msg, { extensions: { code: "BAD_USER_INPUT" } });
@@ -114,6 +115,30 @@ export const disputasService = {
 
     await prisma.eventoSeguridad.create({ data: { tipo: "DISPUTA_RESUELTA", usuarioId: adminUsuarioId, ordenId: d.ordenId, metadata: { aFavor: input.aFavor } } });
     return mapDisputa(await disputasRepository.findConOrden(input.disputaId, prisma));
+  },
+
+  /**
+   * Auto-resolución (cron): las disputas que nadie resuelve en DIAS_AUTO_DISPUTA
+   * días se cierran a favor del comprador (reembolso desde el escrow). Evita que
+   * un pago quede retenido indefinidamente si el admin no media. Reusa el camino
+   * de reembolso e idempotencia por movimientos.
+   */
+  async autoResolverVencidas(prisma: PrismaClient) {
+    const limite = new Date(Date.now() - DIAS_AUTO_DISPUTA * 86_400_000);
+    const vencidas = await disputasRepository.listAbiertasVencidas(limite, prisma);
+    for (const d of vencidas) {
+      const orden = d.orden;
+      const idCorto = d.ordenId.slice(-6).toUpperCase();
+      const nota = "Resuelta automáticamente a favor del comprador por falta de mediación.";
+      await disputasRepository.resolverReembolso(d.id, d.ordenId, "system", nota, orden.items, prisma);
+      await saldosService.registrarReembolso(d.vendedorId, d.ordenId, prisma);
+      await creditoService.acreditarReembolso(orden.comprador!.id, d.ordenId, new Decimal(orden.total.toString()), prisma);
+      await notificar(prisma, orden.comprador!.usuarioId, "DISPUTA_RESUELTA", "Reclamo aprobado automáticamente",
+        `Tu reclamo de la orden #${idCorto} se aprobó por falta de respuesta. Se acreditó Bs. ${orden.total.toString()} a tu billetera.`, `/comprador/saldo`, d.ordenId);
+      await notificar(prisma, orden.vendedor!.usuarioId, "DISPUTA_RESUELTA", "Reclamo resuelto por inacción",
+        `El reclamo de la orden #${idCorto} se resolvió a favor del comprador por falta de respuesta.`, `/vendedor/ordenes/${d.ordenId}`, d.ordenId);
+      await prisma.eventoSeguridad.create({ data: { tipo: "DISPUTA_AUTO_RESUELTA", ordenId: d.ordenId, metadata: { aFavor: "COMPRADOR" } } });
+    }
   },
 
   async getMisDisputas(compradorId: string, prisma: PrismaClient) {

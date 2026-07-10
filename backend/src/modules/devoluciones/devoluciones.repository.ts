@@ -106,4 +106,17 @@ export const devolucionesRepository = {
   async findByOrden(ordenId: string, prisma: PrismaClient) {
     return prisma.devolucion.findUnique({ where: { ordenId } });
   },
+
+  /** Devoluciones SOLICITADAS sin responder desde hace más de `limite` (auto-resolución). */
+  async findSolicitadasVencidas(limite: Date, prisma: PrismaClient) {
+    return prisma.devolucion.findMany({
+      where:  { estado: "SOLICITADA", creadoEn: { lte: limite } },
+      select: {
+        id: true, ordenId: true, montoReembolso: true,
+        comprador: { select: { id: true, usuarioId: true } },
+        vendedor:  { select: { id: true, usuarioId: true } },
+        orden:     { select: { items: { select: { productoId: true, cantidad: true } } } },
+      },
+    });
+  },
 };

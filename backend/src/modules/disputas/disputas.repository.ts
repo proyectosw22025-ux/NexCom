@@ -43,6 +43,14 @@ export const disputasRepository = {
     });
   },
 
+  /** Disputas ABIERTAS sin resolver desde hace más de `limite` (auto-resolución). */
+  listAbiertasVencidas(limite: Date, prisma: PrismaClient) {
+    return prisma.disputa.findMany({
+      where:   { estado: "ABIERTA", creadoEn: { lte: limite } },
+      include: { orden: { include: ordenSel } },
+    });
+  },
+
   /** Resuelve a favor del COMPRADOR: orden CANCELADA, restock, disputa cerrada. */
   async resolverReembolso(
     id: string, ordenId: string, adminId: string, nota: string | null,
