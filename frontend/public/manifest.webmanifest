@@ -2,6 +2,7 @@
   "name": "Recoge NexCom",
   "short_name": "Recoge",
   "description": "Recoge tus pedidos, revisa tu saldo y tus reportes. Funciona con y sin conexión.",
+  "id": "/recoge",
   "start_url": "/recoge",
   "scope": "/recoge",
   "display": "standalone",
@@ -9,10 +10,11 @@
   "background_color": "#f8fafc",
   "theme_color": "#4f46e5",
   "lang": "es-BO",
+  "dir": "ltr",
+  "categories": ["shopping", "business"],
   "icons": [
-    { "src": "/icons/recoge-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/recoge-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/recoge-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
-    { "src": "/recoge-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+    { "src": "https://nex-com-eight.vercel.app/icons/recoge-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "https://nex-com-eight.vercel.app/icons/recoge-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "https://nex-com-eight.vercel.app/icons/recoge-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }
