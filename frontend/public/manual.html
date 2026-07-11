@@ -1,0 +1,571 @@
+<title>Manual de usuario · NexCom</title>
+<style>
+  :root{
+    --bg:#f7f8fb; --surface:#ffffff; --surface-2:#f1f3f9;
+    --ink:#0f172a; --ink-soft:#47536b; --ink-faint:#8a93a6;
+    --border:#e5e8f0; --border-strong:#d3d8e4;
+    --accent:#4f46e5; --accent-2:#7c3aed; --accent-ink:#4338ca;
+    --accent-soft:#eef1ff;
+    --good:#047857; --warn:#b45309; --info:#0369a1; --danger:#b91c1c;
+    --shadow:0 1px 2px rgba(16,24,40,.04), 0 8px 24px -12px rgba(16,24,40,.14);
+    --radius:16px;
+    --maxw:1180px;
+    --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "SFMono-Regular", "Cascadia Code", "Roboto Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0b1020; --surface:#121a2e; --surface-2:#0f1626;
+      --ink:#e7ebf5; --ink-soft:#a6b0c6; --ink-faint:#6b7691;
+      --border:#233049; --border-strong:#2c3b58;
+      --accent:#818cf8; --accent-2:#a78bfa; --accent-ink:#c7d0ff;
+      --accent-soft:#1a2340;
+      --good:#34d399; --warn:#fbbf24; --info:#60a5fa; --danger:#f87171;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 12px 30px -14px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#f7f8fb; --surface:#ffffff; --surface-2:#f1f3f9;
+    --ink:#0f172a; --ink-soft:#47536b; --ink-faint:#8a93a6;
+    --border:#e5e8f0; --border-strong:#d3d8e4;
+    --accent:#4f46e5; --accent-2:#7c3aed; --accent-ink:#4338ca;
+    --accent-soft:#eef1ff;
+    --good:#047857; --warn:#b45309; --info:#0369a1; --danger:#b91c1c;
+    --shadow:0 1px 2px rgba(16,24,40,.04), 0 8px 24px -12px rgba(16,24,40,.14);
+  }
+  :root[data-theme="dark"]{
+    --bg:#0b1020; --surface:#121a2e; --surface-2:#0f1626;
+    --ink:#e7ebf5; --ink-soft:#a6b0c6; --ink-faint:#6b7691;
+    --border:#233049; --border-strong:#2c3b58;
+    --accent:#818cf8; --accent-2:#a78bfa; --accent-ink:#c7d0ff;
+    --accent-soft:#1a2340;
+    --good:#34d399; --warn:#fbbf24; --info:#60a5fa; --danger:#f87171;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 12px 30px -14px rgba(0,0,0,.6);
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0}
+  .wrap, .page{
+    font-family:var(--font);
+    background:
+      radial-gradient(1200px 480px at 100% -10%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 60%),
+      var(--bg);
+    color:var(--ink);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  a{color:inherit}
+  h1,h2,h3,h4{text-wrap:balance;line-height:1.2;margin:0}
+  p{margin:0}
+  .tnum{font-variant-numeric:tabular-nums}
+
+  /* ---- Top bar ---- */
+  .topbar{
+    position:sticky; top:0; z-index:40;
+    backdrop-filter:saturate(1.4) blur(10px);
+    background:color-mix(in srgb, var(--bg) 82%, transparent);
+    border-bottom:1px solid var(--border);
+  }
+  .topbar-in{max-width:var(--maxw);margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:12px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.01em}
+  .brand-mark{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:#fff;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 4px 12px -4px color-mix(in srgb,var(--accent) 60%,transparent)}
+  .brand small{display:block;font-weight:600;font-size:11px;color:var(--ink-faint);letter-spacing:.02em}
+  .topbar .spacer{flex:1}
+  .pill-btn{
+    display:inline-flex;align-items:center;gap:7px;border:1px solid var(--border-strong);
+    background:var(--surface);color:var(--ink-soft);border-radius:999px;padding:7px 13px;font-size:13px;font-weight:600;cursor:pointer}
+  .pill-btn:hover{border-color:var(--accent);color:var(--accent)}
+  .pill-btn svg{width:15px;height:15px}
+
+  /* ---- Layout ---- */
+  .shell{max-width:var(--maxw);margin:0 auto;padding:28px 20px 80px;display:grid;grid-template-columns:250px 1fr;gap:40px}
+  @media (max-width:900px){ .shell{grid-template-columns:1fr;gap:0} }
+
+  /* ---- TOC ---- */
+  .toc{position:sticky;top:78px;align-self:start;height:calc(100vh - 100px);overflow:auto;padding-right:6px}
+  .toc h4{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-faint);margin:18px 8px 8px}
+  .toc a{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:9px;color:var(--ink-soft);
+    text-decoration:none;font-size:13.5px;font-weight:500;border-left:2px solid transparent}
+  .toc a:hover{background:var(--surface-2);color:var(--ink)}
+  .toc a.active{background:var(--accent-soft);color:var(--accent-ink);font-weight:700}
+  .toc a svg{width:15px;height:15px;flex:none;opacity:.85}
+  @media (max-width:900px){
+    .toc{position:static;height:auto;overflow:visible;border:1px solid var(--border);border-radius:var(--radius);
+      background:var(--surface);margin:16px 0;padding:6px}
+    .toc.collapsed .toc-body{display:none}
+    .toc-toggle{display:flex}
+  }
+  .toc-toggle{display:none;align-items:center;gap:8px;width:100%;justify-content:space-between;
+    background:none;border:none;color:var(--ink);font-weight:700;padding:10px;cursor:pointer;font-size:14px;font-family:inherit}
+
+  /* ---- Content ---- */
+  .content{min-width:0;max-width:760px}
+  .hero{
+    border:1px solid var(--border);border-radius:22px;background:var(--surface);box-shadow:var(--shadow);
+    padding:30px 28px;margin-bottom:8px;position:relative;overflow:hidden}
+  .hero::after{content:"";position:absolute;inset:auto -60px -80px auto;width:260px;height:260px;border-radius:50%;
+    background:radial-gradient(circle at 30% 30%, color-mix(in srgb,var(--accent-2) 26%,transparent), transparent 70%);pointer-events:none}
+  .eyebrow{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
+  .hero h1{font-size:clamp(28px,4.4vw,40px);letter-spacing:-.02em}
+  .hero p.lead{margin-top:12px;color:var(--ink-soft);font-size:16.5px;max-width:60ch}
+  .hero .meta{margin-top:18px;display:flex;flex-wrap:wrap;gap:8px}
+  .tag{font-size:12px;font-weight:600;color:var(--ink-soft);background:var(--surface-2);border:1px solid var(--border);
+    padding:5px 10px;border-radius:999px}
+  .tag b{color:var(--accent-ink)}
+
+  .rolecards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:22px 0 8px}
+  .rolecard{border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:15px;text-decoration:none;
+    display:flex;flex-direction:column;gap:6px;transition:transform .15s ease, border-color .15s ease, box-shadow .15s}
+  .rolecard:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:var(--shadow)}
+  .rolecard .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:#fff;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2))}
+  .rolecard .ic svg{width:18px;height:18px}
+  .rolecard b{font-size:14.5px}
+  .rolecard span{font-size:12.5px;color:var(--ink-faint)}
+
+  section.doc{scroll-margin-top:80px;padding-top:40px}
+  .sec-head{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+  .sec-ic{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;flex:none;
+    color:var(--accent);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 22%,transparent)}
+  .sec-ic svg{width:19px;height:19px}
+  section.doc h2{font-size:24px;letter-spacing:-.015em}
+  section.doc > p.intro{color:var(--ink-soft);margin:10px 0 4px;font-size:15.5px}
+  h3.sub{font-size:17px;margin:30px 0 8px;letter-spacing:-.01em}
+  .content p{margin:12px 0;color:var(--ink)}
+  .content p.muted{color:var(--ink-soft)}
+
+  /* steps */
+  ol.steps{list-style:none;counter-reset:s;margin:14px 0;padding:0;display:flex;flex-direction:column;gap:2px}
+  ol.steps>li{counter-increment:s;position:relative;padding:12px 0 12px 46px;border-bottom:1px dashed var(--border)}
+  ol.steps>li:last-child{border-bottom:none}
+  ol.steps>li::before{content:counter(s);position:absolute;left:0;top:10px;width:30px;height:30px;border-radius:9px;
+    display:grid;place-items:center;font-weight:800;font-size:14px;color:#fff;font-variant-numeric:tabular-nums;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2))}
+  ol.steps>li b{font-weight:700}
+  ol.steps>li .hint{display:block;color:var(--ink-soft);font-size:14px;margin-top:3px}
+
+  ul.ticks{list-style:none;margin:12px 0;padding:0;display:flex;flex-direction:column;gap:9px}
+  ul.ticks li{position:relative;padding-left:28px;color:var(--ink)}
+  ul.ticks li::before{content:"";position:absolute;left:2px;top:8px;width:14px;height:14px;border-radius:5px;
+    background:color-mix(in srgb,var(--accent) 16%,transparent);border:1.5px solid var(--accent)}
+  ul.ticks li b{font-weight:700}
+
+  /* callouts */
+  .note{border:1px solid var(--border);border-left:4px solid var(--c,var(--accent));background:var(--surface);
+    border-radius:12px;padding:13px 15px;margin:16px 0;display:flex;gap:11px;box-shadow:var(--shadow)}
+  .note .ni{flex:none;width:20px;height:20px;color:var(--c,var(--accent))}
+  .note .ni svg{width:20px;height:20px}
+  .note b{color:var(--c,var(--accent));font-weight:700}
+  .note.tip{--c:var(--good)}
+  .note.warn{--c:var(--warn)}
+  .note.info{--c:var(--info)}
+  .note.feat{--c:var(--accent-2)}
+  .note p{margin:0;font-size:14.5px;color:var(--ink)}
+
+  /* status chips */
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+  .chip{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;padding:5px 11px;border-radius:999px;
+    color:var(--c);background:color-mix(in srgb,var(--c) 13%,transparent);border:1px solid color-mix(in srgb,var(--c) 32%,transparent)}
+  .chip::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--c)}
+  .flow{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:14px 0}
+  .flow .arrow{color:var(--ink-faint);font-weight:700}
+
+  /* mini cards grid */
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:16px 0}
+  .card{border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:16px;box-shadow:var(--shadow)}
+  .card h4{font-size:14.5px;display:flex;align-items:center;gap:8px}
+  .card h4 svg{width:16px;height:16px;color:var(--accent)}
+  .card p{font-size:13.5px;color:var(--ink-soft);margin:8px 0 0}
+  .kbd{font-family:var(--mono);font-size:12.5px;background:var(--surface-2);border:1px solid var(--border);
+    border-radius:6px;padding:1px 7px;color:var(--accent-ink)}
+  .bs{font-family:var(--mono);font-weight:700;color:var(--accent-ink);font-variant-numeric:tabular-nums}
+
+  /* faq */
+  details.faq{border:1px solid var(--border);border-radius:12px;background:var(--surface);margin:10px 0;overflow:hidden}
+  details.faq summary{cursor:pointer;padding:14px 16px;font-weight:700;font-size:15px;list-style:none;display:flex;
+    align-items:center;justify-content:space-between;gap:10px}
+  details.faq summary::-webkit-details-marker{display:none}
+  details.faq summary::after{content:"+";color:var(--accent);font-weight:800;font-size:19px;transition:transform .2s}
+  details.faq[open] summary::after{transform:rotate(45deg)}
+  details.faq .fa{padding:0 16px 15px;color:var(--ink-soft);font-size:14.5px}
+
+  table.ref{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px}
+  .tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px}
+  table.ref th,table.ref td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--border)}
+  table.ref th{background:var(--surface-2);font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-faint)}
+  table.ref tr:last-child td{border-bottom:none}
+  table.ref td b{color:var(--ink)}
+
+  .divider{height:1px;background:var(--border);margin:8px 0}
+  footer.mf{max-width:var(--maxw);margin:0 auto;padding:26px 20px 50px;color:var(--ink-faint);font-size:13px;
+    border-top:1px solid var(--border);display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between}
+  footer.mf b{color:var(--ink-soft)}
+
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+  html{scroll-behavior:smooth}
+</style>
+
+<div class="page">
+  <header class="topbar">
+    <div class="topbar-in">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        </span>
+        <div>NexCom<small>Manual de usuario</small></div>
+      </div>
+      <div class="spacer"></div>
+      <button class="pill-btn" id="themeToggle" aria-label="Cambiar tema">
+        <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <span id="themeLabel">Tema</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="shell">
+    <!-- ============ TOC ============ -->
+    <nav class="toc collapsed" id="toc" aria-label="Índice">
+      <button class="toc-toggle" id="tocToggle" aria-expanded="false">
+        <span>Índice del manual</span>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="toc-body">
+        <h4>Empezar</h4>
+        <a href="#intro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>Bienvenida</a>
+        <a href="#primeros-pasos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>Primeros pasos</a>
+        <h4>Guías por rol</h4>
+        <a href="#cliente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg>Cliente (comprar)</a>
+        <a href="#vendedor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1-5h16l1 5"/><path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/><path d="M9 21v-6h6v6"/></svg>Vendedor (vender)</a>
+        <a href="#admin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6v6c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V6Z"/><path d="m9 12 2 2 4-4"/></svg>Administrador</a>
+        <a href="#recoge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>App “Recoge NexCom”</a>
+        <h4>Referencia</h4>
+        <a href="#estados"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>Estados del pedido</a>
+        <a href="#glosario"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>Glosario</a>
+        <a href="#faq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>Preguntas frecuentes</a>
+      </div>
+    </nav>
+
+    <!-- ============ CONTENT ============ -->
+    <main class="content">
+      <div class="hero" id="intro">
+        <div class="eyebrow">NexCom · Marketplace boliviano</div>
+        <h1>Cómo usar NexCom, paso a paso</h1>
+        <p class="lead">NexCom conecta a microempresas de Bolivia con sus clientes. Compra y vende con pago en bolivianos (QR, transferencia o contra entrega) y <b>Compra Protegida</b> en cada pedido: el dinero se libera al vendedor solo cuando confirmas que recibiste tu producto.</p>
+        <div class="meta">
+          <span class="tag">Moneda: <b>Boliviano (Bs.)</b></span>
+          <span class="tag">Roles: <b>Cliente · Vendedor · Admin</b></span>
+          <span class="tag">Incluye la app <b>Recoge NexCom</b></span>
+        </div>
+        <div class="rolecards">
+          <a class="rolecard" href="#cliente"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg></span><b>Soy cliente</b><span>Quiero comprar productos</span></a>
+          <a class="rolecard" href="#vendedor"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1-5h16l1 5"/><path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/></svg></span><b>Soy vendedor</b><span>Quiero vender en mi tienda</span></a>
+          <a class="rolecard" href="#admin"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6v6c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V6Z"/></svg></span><b>Soy admin</b><span>Modero la plataforma</span></a>
+        </div>
+      </div>
+
+      <!-- ===== PRIMEROS PASOS ===== -->
+      <section class="doc" id="primeros-pasos">
+        <div class="sec-head">
+          <span class="sec-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
+          <h2>Primeros pasos</h2>
+        </div>
+        <p class="intro">Crear tu cuenta toma menos de un minuto. Eliges tu rol al registrarte.</p>
+
+        <h3 class="sub">Crear una cuenta</h3>
+        <ol class="steps">
+          <li><b>Entra a “Crear cuenta”</b><span class="hint">Desde la página principal, botón superior derecho.</span></li>
+          <li><b>Elige tu rol: Cliente o Vendedor</b><span class="hint">Cliente para comprar; Vendedor para abrir tu tienda. El rol de Administrador lo asigna la plataforma.</span></li>
+          <li><b>Completa tus datos</b><span class="hint">Cliente: nombre completo. Vendedor: nombre del negocio. Más un correo y contraseña.</span></li>
+          <li><b>Inicia sesión</b><span class="hint">Entras directo a tu panel según tu rol.</span></li>
+        </ol>
+        <div class="note tip"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12c1 1 1 2 1 3h6c0-1 0-2 1-3a7 7 0 0 0-4-12Z"/></svg></span><p><b>Consejo:</b> tras iniciar sesión, cada rol tiene su propio menú lateral. El cliente aterriza en la tienda; el vendedor y el admin, en su panel.</p></div>
+      </section>
+
+      <!-- ===== CLIENTE ===== -->
+      <section class="doc" id="cliente">
+        <div class="sec-head">
+          <span class="sec-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg></span>
+          <h2>Guía del Cliente</h2>
+        </div>
+        <p class="intro">Tu menú: <span class="kbd">Mi Panel</span> · <span class="kbd">Mis Pedidos</span> · <span class="kbd">Mi Billetera</span> · <span class="kbd">Mi Perfil</span>. Y la tienda para explorar productos.</p>
+
+        <h3 class="sub">1 · Encontrar y comprar un producto</h3>
+        <ol class="steps">
+          <li><b>Explora o busca</b><span class="hint">Navega el catálogo o usa el buscador. Puedes guardar productos en <b>Favoritos</b>.</span></li>
+          <li><b>Abre el producto y revisa el detalle</b><span class="hint">Precio en Bs., stock, fotos, valoraciones y preguntas. Si hay una oferta activa, verás el precio con descuento.</span></li>
+          <li><b>Agrégalo al carrito</b><span class="hint">Elige la cantidad. El carrito se abre desde el ícono superior.</span></li>
+          <li><b>Ve al checkout</b><span class="hint">Botón “Finalizar compra”.</span></li>
+        </ol>
+
+        <h3 class="sub">2 · Finalizar la compra (checkout)</h3>
+        <ol class="steps">
+          <li><b>Elige tu dirección de entrega</b><span class="hint">Puedes guardar varias direcciones en tu perfil.</span></li>
+          <li><b>Elige el método de entrega</b><span class="hint">A domicilio o retiro en tienda/punto. El costo de envío depende del departamento.</span></li>
+          <li><b>Elige el método de pago</b><span class="hint">QR, transferencia bancaria, contra entrega o tarjeta (modo demostración). Todo en bolivianos.</span></li>
+          <li><b>Aplica descuentos (opcional)</b><span class="hint">Cupón de la tienda, tus puntos de fidelidad y/o saldo de tu billetera. Solo en compras de una sola tienda.</span></li>
+          <li><b>Confirma y paga</b><span class="hint">Con QR o transferencia, sube tu comprobante. Con contra entrega, pagas al recibir.</span></li>
+        </ol>
+        <div class="note feat"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6v6c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V6Z"/><path d="m9 12 2 2 4-4"/></svg></span><p><b>Compra Protegida:</b> tu dinero queda retenido “en garantía”. El vendedor <b>no lo recibe</b> hasta que confirmes que recibiste el pedido. Si algo sale mal, se te reembolsa a tu billetera.</p></div>
+
+        <h3 class="sub">3 · Recibir el pedido y confirmar por QR</h3>
+        <p class="muted">Cuando tu pedido está <b>Enviado</b>, cada paquete trae un QR. Confirmar la recepción libera el pago al vendedor.</p>
+        <ol class="steps">
+          <li><b>Abre el pedido y pulsa “Recoger pedido”</b><span class="hint">Desde <span class="kbd">Mis Pedidos</span> o desde la app Recoge NexCom.</span></li>
+          <li><b>El sistema genera un código temporal (OTP)</b><span class="hint">Es tu segundo factor de seguridad; dura unos minutos.</span></li>
+          <li><b>Escanea el QR del paquete</b><span class="hint">Con la cámara. El pedido pasa a <b>Entregado</b> y el pago se libera.</span></li>
+        </ol>
+        <div class="note info"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg></span><p>Si no confirmas, el sistema libera el pago automáticamente pasada la ventana de protección, para no dejar el dinero del vendedor atrapado.</p></div>
+
+        <h3 class="sub">4 · Mi Billetera</h3>
+        <div class="grid2">
+          <div class="card"><h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M16 12h.01M2 10h20"/></svg>Saldo disponible</h4><p>Recibe tus <b>reembolsos</b>. Puedes usar ese crédito en tu próxima compra o retirarlo a tu cuenta bancaria.</p></div>
+          <div class="card"><h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Retirar a banco</h4><p>Ingresa banco, número de cuenta y titular. Retiro mínimo <span class="bs">Bs. 20</span>. El administrador procesa la solicitud.</p></div>
+        </div>
+
+        <h3 class="sub">5 · Si algo sale mal: devoluciones y reclamos</h3>
+        <div class="grid2">
+          <div class="card"><h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M3 13a9 9 0 1 0 3-7.7L3 8"/></svg>Devolución</h4><p>Para un pedido <b>ya entregado</b> (hasta 7 días). Explica el motivo y adjunta <b>fotos</b> como evidencia. Si el vendedor no responde en 5 días, se aprueba a tu favor y se reembolsa a tu billetera.</p></div>
+          <div class="card"><h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 1 21h22L12 2Z"/><path d="M12 9v5M12 17h.01"/></svg>Reclamo (disputa)</h4><p>Si tu pago sigue <b>retenido</b> (aún no recibiste), abre un reclamo. La plataforma media; si nadie responde en 5 días, se resuelve a tu favor.</p></div>
+        </div>
+
+        <h3 class="sub">6 · Valorar y ganar puntos</h3>
+        <ul class="ticks">
+          <li>Después de recibir, <b>califica al vendedor</b> (estrellas + comentario). Ayuda a la comunidad.</li>
+          <li>Cada compra suma <b>puntos de fidelidad</b> que luego canjeas como descuento en el checkout.</li>
+        </ul>
+      </section>
+
+      <!-- ===== VENDEDOR ===== -->
+      <section class="doc" id="vendedor">
+        <div class="sec-head">
+          <span class="sec-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1-5h16l1 5"/><path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/><path d="M9 21v-6h6v6"/></svg></span>
+          <h2>Guía del Vendedor</h2>
+        </div>
+        <p class="intro">Tu menú: <span class="kbd">Panel</span> · <span class="kbd">Mis Productos</span> · <span class="kbd">Ofertas</span> · <span class="kbd">Cupones</span> · <span class="kbd">Órdenes</span> · <span class="kbd">Saldo</span> · <span class="kbd">Devoluciones</span> · <span class="kbd">Valoraciones</span> · <span class="kbd">Verificación</span> · <span class="kbd">Mi plan</span>.</p>
+
+        <h3 class="sub">1 · Publicar un producto</h3>
+        <ol class="steps">
+          <li><b>Ve a “Mis Productos” → “Nuevo”</b></li>
+          <li><b>Completa nombre, descripción y categoría</b></li>
+          <li><b>Pon el precio en Bs. y el stock</b><span class="hint">El stock se descuenta solo con cada venta y se repone si un pedido se cancela.</span></li>
+          <li><b>Sube fotos y publica</b><span class="hint">Puedes desactivar un producto cuando quieras sin borrarlo.</span></li>
+        </ol>
+
+        <h3 class="sub">2 · Ofertas y cupones</h3>
+        <div class="grid2">
+          <div class="card"><h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12 12 4H4v8l8 8 8-8Z"/><path d="M7 7h.01"/></svg>Ofertas</h4><p>Aplica un <b>descuento porcentual</b> a productos por un rango de fechas. Los clientes ven el precio rebajado al instante.</p></div>
+          <div class="card"><h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v3a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-3a3 3 0 0 1 0-6V6a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1Z"/></svg>Cupones</h4><p>Crea códigos con un límite de usos. El cliente los aplica en el checkout de tu tienda.</p></div>
+        </div>
+
+        <h3 class="sub">3 · Gestionar órdenes y enviar</h3>
+        <p class="muted">Cuando te compran, la orden entra como <b>Pagado</b>. Tú la haces avanzar:</p>
+        <div class="flow">
+          <span class="chip" style="--c:var(--info)">Pagado</span><span class="arrow">→</span>
+          <span class="chip" style="--c:var(--accent-2)">En preparación</span><span class="arrow">→</span>
+          <span class="chip" style="--c:#2563eb">Enviado</span>
+        </div>
+        <ol class="steps">
+          <li><b>Prepara el pedido</b><span class="hint">Marca “En preparación” desde <span class="kbd">Órdenes</span>.</span></li>
+          <li><b>Imprime la etiqueta con el QR del paquete</b><span class="hint">Pégala en la caja antes de enviarla. Ese QR es el que el cliente escanea para confirmar.</span></li>
+          <li><b>Marca “Enviado”</b><span class="hint">El cliente recibe un aviso de que su pedido está en camino.</span></li>
+        </ol>
+        <div class="note warn"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 1 21h22L12 2Z"/><path d="M12 9v5M12 17h.01"/></svg></span><p><b>Importante:</b> si no envías a tiempo, el pedido se cancela solo y el dinero se le reembolsa al cliente. Envía dentro del plazo para conservar la venta.</p></div>
+
+        <h3 class="sub">4 · Tu saldo y cómo retirar</h3>
+        <div class="tablewrap">
+          <table class="ref">
+            <thead><tr><th>Concepto</th><th>Qué significa</th></tr></thead>
+            <tbody>
+              <tr><td><b>En garantía</b></td><td>Ventas cobradas pero retenidas hasta que el cliente confirme la entrega.</td></tr>
+              <tr><td><b>En asentamiento</b></td><td>Ya liberado, pero espera 7 días (ventana de devolución) antes de ser retirable.</td></tr>
+              <tr><td><b>Disponible / Retirable</b></td><td>Lo que ya puedes solicitar para retirar a tu banco.</td></tr>
+              <tr><td><b>Generado</b></td><td>Total histórico de tus ventas netas.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <ul class="ticks">
+          <li>Comisión de la plataforma: <b>10%</b> en plan FREE, <b>5%</b> en plan PRO.</li>
+          <li>Retiro mínimo <span class="bs">Bs. 50</span>. Requiere tener tu cuenta <b>verificada</b> (KYC).</li>
+        </ul>
+
+        <h3 class="sub">5 · Verificación (KYC) y plan</h3>
+        <div class="grid2">
+          <div class="card"><h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6v6c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V6Z"/><path d="m9 12 2 2 4-4"/></svg>Verificación</h4><p>Sube tus documentos en <span class="kbd">Verificación</span>. La plataforma los revisa; una vez aprobado, puedes retirar tu dinero. Tus documentos se guardan de forma privada.</p></div>
+          <div class="card"><h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7Z"/></svg>Plan FREE vs PRO</h4><p>PRO baja tu comisión del 10% al 5%. Se cobra de tu saldo disponible; al vencer, vuelves a FREE.</p></div>
+        </div>
+
+        <h3 class="sub">6 · Devoluciones y valoraciones</h3>
+        <ul class="ticks">
+          <li>En <span class="kbd">Devoluciones</span>, <b>responde</b> las solicitudes (aprobar o rechazar) con una nota. Si no respondes en 5 días, se aprueban a favor del cliente.</li>
+          <li>En <span class="kbd">Valoraciones</span> ves las reseñas de tus clientes. Buen servicio = mejor reputación y más ventas.</li>
+        </ul>
+      </section>
+
+      <!-- ===== ADMIN ===== -->
+      <section class="doc" id="admin">
+        <div class="sec-head">
+          <span class="sec-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6v6c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V6Z"/><path d="m9 12 2 2 4-4"/></svg></span>
+          <h2>Guía del Administrador</h2>
+        </div>
+        <p class="intro">El admin mantiene la plataforma sana y confiable. Menú: Dashboard, Usuarios, Verificaciones, Productos, Cupones, Retiros, Disputas, Seguridad, Reportes y Configuración.</p>
+        <div class="grid2">
+          <div class="card"><h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M16 3.1a3 3 0 0 1 0 5.8M21 20a6 6 0 0 0-4-5.6"/></svg>Usuarios</h4><p>Activar o desactivar cuentas y cambiar roles. Base de la moderación.</p></div>
+          <div class="card"><h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6v6c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V6Z"/><path d="m9 12 2 2 4-4"/></svg>Verificaciones (KYC)</h4><p>Revisar y aprobar los documentos de los vendedores para habilitar sus retiros.</p></div>
+          <div class="card"><h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Retiros</h4><p>Aprobar o rechazar solicitudes de retiro de vendedores y clientes, con nota.</p></div>
+          <div class="card"><h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 1 21h22L12 2Z"/><path d="M12 9v5M12 17h.01"/></svg>Disputas</h4><p>Mediar reclamos: <b>a favor del cliente</b> (reembolso) o <b>a favor del vendedor</b> (liberar el pago), según la evidencia.</p></div>
+          <div class="card"><h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18M7 14l3-3 3 3 5-6"/></svg>Reportes</h4><p>Métricas de ventas por fecha, comisión ganada por tienda y más, para tomar decisiones.</p></div>
+          <div class="card"><h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.82 1.17V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 8 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 3 12.6H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 8Z"/></svg>Seguridad y Config.</h4><p>Registro de eventos sensibles y ajustes generales de la plataforma.</p></div>
+        </div>
+        <div class="note info"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg></span><p>Varias tareas se resuelven <b>solas</b>: pedidos no enviados se cancelan y reembolsan; devoluciones y reclamos sin respuesta se aprueban a favor del cliente. El admin interviene sobre todo en casos con evidencia en conflicto.</p></div>
+      </section>
+
+      <!-- ===== RECOGE ===== -->
+      <section class="doc" id="recoge">
+        <div class="sec-head">
+          <span class="sec-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></span>
+          <h2>App “Recoge NexCom”</h2>
+        </div>
+        <p class="intro">Una app móvil ligera para lo esencial: <b>recoger pedidos</b> por QR y ver tu <b>saldo</b>. Funciona <b>con y sin conexión</b>.</p>
+
+        <h3 class="sub">Instalarla en tu teléfono</h3>
+        <ol class="steps">
+          <li><b>Abre la sección <span class="kbd">/recoge</span> en el navegador del teléfono</b></li>
+          <li><b>Toca el menú del navegador → “Instalar app” / “Añadir a inicio”</b><span class="hint">Aparecerá el ícono “Recoge NexCom” en tu pantalla, como una app normal.</span></li>
+        </ol>
+
+        <div class="grid2">
+          <div class="card"><h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M21 21v.01M17 21h.01M21 17h.01"/></svg>Escanear</h4><p>Confirma la recepción de tus pedidos leyendo el QR del paquete. Requiere conexión (valida el código de forma segura).</p></div>
+          <div class="card"><h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 3 8l4-1 2-4 3 3 3-3 2 4 4 1-2 4.5"/><path d="M5 12.5V19a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6.5"/></svg>Saldo sin red</h4><p>Tu saldo y tus últimos pedidos se guardan en el dispositivo: puedes consultarlos aunque te quedes sin internet.</p></div>
+        </div>
+        <div class="note tip"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span><p>La app se actualiza sola con la plataforma. Un aviso te indica cuando estás “sin conexión” y qué acciones necesitan red.</p></div>
+      </section>
+
+      <!-- ===== ESTADOS ===== -->
+      <section class="doc" id="estados">
+        <div class="sec-head">
+          <span class="sec-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg></span>
+          <h2>Estados del pedido</h2>
+        </div>
+        <p class="intro">El “semáforo” de cada compra. Así lees el estado de un vistazo:</p>
+        <div class="chips">
+          <span class="chip" style="--c:var(--warn)">Pendiente de pago</span>
+          <span class="chip" style="--c:var(--info)">Pagado</span>
+          <span class="chip" style="--c:var(--accent-2)">En preparación</span>
+          <span class="chip" style="--c:#2563eb">Enviado</span>
+          <span class="chip" style="--c:var(--good)">Entregado</span>
+          <span class="chip" style="--c:#16a34a">Completado</span>
+          <span class="chip" style="--c:var(--danger)">Cancelado</span>
+        </div>
+        <div class="tablewrap">
+          <table class="ref">
+            <thead><tr><th>Estado</th><th>Qué está pasando</th></tr></thead>
+            <tbody>
+              <tr><td><b>Pendiente de pago</b></td><td>Falta completar el pago (QR/transferencia). El stock ya está reservado.</td></tr>
+              <tr><td><b>Pagado</b></td><td>Pago confirmado. El dinero queda en garantía (Compra Protegida).</td></tr>
+              <tr><td><b>En preparación</b></td><td>El vendedor está alistando el pedido.</td></tr>
+              <tr><td><b>Enviado</b></td><td>En camino. El cliente ya puede escanear el QR para confirmar.</td></tr>
+              <tr><td><b>Entregado</b></td><td>Recepción confirmada. El pago se libera al vendedor.</td></tr>
+              <tr><td><b>Completado</b></td><td>Ciclo cerrado (tras la ventana de devolución o al valorar).</td></tr>
+              <tr><td><b>Cancelado</b></td><td>Anulado (pago no completado o vendedor no envió). Stock devuelto y dinero reembolsado.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ===== GLOSARIO ===== -->
+      <section class="doc" id="glosario">
+        <div class="sec-head">
+          <span class="sec-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></span>
+          <h2>Glosario</h2>
+        </div>
+        <div class="tablewrap">
+          <table class="ref">
+            <tbody>
+              <tr><td><b>Bs.</b></td><td>Bolivianos, la moneda de toda la plataforma.</td></tr>
+              <tr><td><b>Compra Protegida</b></td><td>El pago se retiene hasta que confirmas la entrega. Te protege de no recibir tu producto.</td></tr>
+              <tr><td><b>En garantía / retenido</b></td><td>Dinero cobrado pero aún no entregado al vendedor.</td></tr>
+              <tr><td><b>Asentamiento</b></td><td>Los 7 días que un pago liberado espera (por si hay devolución) antes de ser retirable.</td></tr>
+              <tr><td><b>Billetera</b></td><td>Tu saldo de reembolsos como cliente: úsalo en compras o retíralo a tu banco.</td></tr>
+              <tr><td><b>KYC / Verificación</b></td><td>Validación de identidad del vendedor para poder retirar dinero.</td></tr>
+              <tr><td><b>Comisión</b></td><td>Porcentaje que la plataforma retiene por venta (10% FREE, 5% PRO).</td></tr>
+              <tr><td><b>Puntos de fidelidad</b></td><td>Se ganan comprando y se canjean como descuento.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ===== FAQ ===== -->
+      <section class="doc" id="faq">
+        <div class="sec-head">
+          <span class="sec-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span>
+          <h2>Preguntas frecuentes</h2>
+        </div>
+        <details class="faq"><summary>¿En qué moneda se paga?</summary><div class="fa">Siempre en <b>bolivianos (Bs.)</b>. Los métodos son QR, transferencia bancaria, contra entrega y tarjeta (esta última en modo demostración).</div></details>
+        <details class="faq"><summary>¿Cuándo recibe el vendedor su dinero?</summary><div class="fa">Solo cuando el cliente <b>confirma la entrega</b> (escaneando el QR) o cuando vence la ventana de protección. Antes de eso, el dinero está en garantía.</div></details>
+        <details class="faq"><summary>Compré y no me llegó. ¿Qué hago?</summary><div class="fa">Si el pedido aún no figura entregado, abre un <b>reclamo</b> desde el detalle del pedido. Si ya figura entregado pero llegó mal, abre una <b>devolución</b> con fotos. En ambos casos, si el vendedor no responde a tiempo, se resuelve a tu favor y se te reembolsa a la billetera.</div></details>
+        <details class="faq"><summary>¿Puedo usar cupón, puntos y billetera juntos?</summary><div class="fa">Sí, en compras de <b>una sola tienda</b>. En el checkout puedes combinar el cupón de la tienda, tus puntos y tu saldo de billetera.</div></details>
+        <details class="faq"><summary>Soy vendedor, ¿por qué no puedo retirar?</summary><div class="fa">Necesitas <b>verificar tu cuenta</b> (subir documentos en “Verificación”) y tener saldo <b>retirable</b> (fuera del asentamiento de 7 días), con un mínimo de <span class="bs">Bs. 50</span>.</div></details>
+        <details class="faq"><summary>¿La app Recoge funciona sin internet?</summary><div class="fa">Sí para <b>consultar</b> tu saldo y tus últimos pedidos. El <b>escaneo</b> para confirmar la recepción sí necesita conexión, porque valida el código de forma segura contra el servidor.</div></details>
+      </section>
+
+    </main>
+  </div>
+
+  <footer class="mf">
+    <span>Manual de usuario · <b>NexCom</b> — Marketplace boliviano para microempresas.</span>
+    <span>Moneda: <b>Bs.</b> · Compra Protegida en cada pedido.</span>
+  </footer>
+</div>
+
+<script>
+  (function(){
+    var root = document.documentElement;
+    var btn = document.getElementById('themeToggle');
+    var label = document.getElementById('themeLabel');
+    var icon = document.getElementById('themeIcon');
+    var moon = '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/>';
+    var sun  = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>';
+    function apply(t){
+      root.setAttribute('data-theme', t);
+      if(label) label.textContent = (t === 'dark') ? 'Claro' : 'Oscuro';
+      if(icon) icon.innerHTML = (t === 'dark') ? sun : moon;
+    }
+    var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    apply(prefersDark ? 'dark' : 'light');
+    if(btn) btn.addEventListener('click', function(){
+      apply(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    });
+
+    // Mobile TOC toggle
+    var toc = document.getElementById('toc');
+    var tocToggle = document.getElementById('tocToggle');
+    if(tocToggle) tocToggle.addEventListener('click', function(){
+      var collapsed = toc.classList.toggle('collapsed');
+      tocToggle.setAttribute('aria-expanded', String(!collapsed));
+    });
+    // On desktop show expanded by default
+    function syncToc(){ if(window.innerWidth > 900){ toc.classList.remove('collapsed'); } else if(!toc.dataset.touched){ toc.classList.add('collapsed'); } }
+    syncToc(); window.addEventListener('resize', syncToc);
+    // close TOC after choosing a link on mobile
+    Array.prototype.forEach.call(document.querySelectorAll('.toc a'), function(a){
+      a.addEventListener('click', function(){ if(window.innerWidth <= 900){ toc.classList.add('collapsed'); toc.dataset.touched='1'; } });
+    });
+
+    // Scrollspy
+    var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+    var map = {};
+    links.forEach(function(a){ var id = a.getAttribute('href').slice(1); map[id] = a; });
+    var sections = Object.keys(map).map(function(id){ return document.getElementById(id); }).filter(Boolean);
+    var obs = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){
+          links.forEach(function(l){ l.classList.remove('active'); });
+          if(map[e.target.id]) map[e.target.id].classList.add('active');
+        }
+      });
+    }, { rootMargin: '-45% 0px -50% 0px', threshold: 0 });
+    sections.forEach(function(s){ obs.observe(s); });
+  })();
+</script>
