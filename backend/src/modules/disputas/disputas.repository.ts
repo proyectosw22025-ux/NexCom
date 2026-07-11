@@ -51,25 +51,35 @@ export const disputasRepository = {
     });
   },
 
-  /** Resuelve a favor del COMPRADOR: orden CANCELADA, restock, disputa cerrada. */
+  /**
+   * Resuelve a favor del COMPRADOR: orden CANCELADA, restock, disputa cerrada.
+   *
+   * CAS por estado: la transición ABIERTA → RESUELTA_COMPRADOR solo la gana un
+   * proceso. Sin esto, si el admin resuelve justo cuando el cron
+   * `autoResolverVencidas` la cierra, el stock se repondría dos veces (el
+   * reembolso de dinero ya es idempotente, pero el `increment` de stock no).
+   * El restock + cancelación de la orden ocurren solo en la pasada ganadora.
+   */
   async resolverReembolso(
     id: string, ordenId: string, adminId: string, nota: string | null,
     items: Array<{ productoId: string; cantidad: number }>, prisma: PrismaClient,
   ) {
     const orden = await prisma.orden.findUniqueOrThrow({ where: { id: ordenId }, select: { estado: true } });
     return prisma.$transaction(async (tx) => {
-      const d = await tx.disputa.update({
-        where: { id },
+      const cas = await tx.disputa.updateMany({
+        where: { id, estado: "ABIERTA" },
         data:  { estado: "RESUELTA_COMPRADOR", resolucionNota: nota, resueltoPorId: adminId, resueltoEn: new Date() },
       });
-      await tx.orden.update({ where: { id: ordenId }, data: { estado: "CANCELADO", disputaAbierta: false } });
-      await tx.historialEstadoOrden.create({
-        data: { ordenId, estadoAnterior: orden.estado as never, estadoNuevo: "CANCELADO", cambiadoPorId: adminId, notas: "Disputa resuelta a favor del comprador" },
-      });
-      for (const it of items) {
-        await tx.producto.update({ where: { id: it.productoId }, data: { stock: { increment: it.cantidad } } });
+      if (cas.count === 1) {
+        await tx.orden.update({ where: { id: ordenId }, data: { estado: "CANCELADO", disputaAbierta: false } });
+        await tx.historialEstadoOrden.create({
+          data: { ordenId, estadoAnterior: orden.estado as never, estadoNuevo: "CANCELADO", cambiadoPorId: adminId, notas: "Disputa resuelta a favor del comprador" },
+        });
+        for (const it of items) {
+          await tx.producto.update({ where: { id: it.productoId }, data: { stock: { increment: it.cantidad } } });
+        }
       }
-      return d;
+      return tx.disputa.findUnique({ where: { id } });
     });
   },
 

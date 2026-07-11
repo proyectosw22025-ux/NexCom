@@ -66,6 +66,12 @@ export const devolucionesRepository = {
   /**
    * Aprueba el reembolso de forma atómica: marca REEMBOLSADA y devuelve el stock
    * de cada ítem de la orden al inventario (transacción).
+   *
+   * CAS por estado: la transición SOLICITADA → REEMBOLSADA solo la gana UN
+   * proceso. Sin esto, si el vendedor aprueba justo cuando el cron
+   * `autoResolverVencidas` la resuelve (o ante un doble clic), el stock se
+   * repondría dos veces (los movimientos de dinero ya son idempotentes, pero el
+   * `increment` de stock no). El restock ocurre solo en la pasada ganadora.
    */
   async reembolsar(
     id: string,
@@ -74,16 +80,19 @@ export const devolucionesRepository = {
     prisma: PrismaClient,
   ) {
     return prisma.$transaction(async (tx) => {
-      for (const it of items) {
-        await tx.producto.update({
-          where: { id: it.productoId },
-          data:  { stock: { increment: it.cantidad } },
-        });
-      }
-      return tx.devolucion.update({
-        where: { id },
+      const cas = await tx.devolucion.updateMany({
+        where: { id, estado: "SOLICITADA" },
         data:  { estado: "REEMBOLSADA", respuestaVendedor: respuesta },
       });
+      if (cas.count === 1) {
+        for (const it of items) {
+          await tx.producto.update({
+            where: { id: it.productoId },
+            data:  { stock: { increment: it.cantidad } },
+          });
+        }
+      }
+      return tx.devolucion.findUnique({ where: { id } });
     });
   },
 
