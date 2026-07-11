@@ -87,14 +87,14 @@ export default function CompradorOrdenDetallePage() {
   if (!orden) return (
     <div className="p-8 text-center">
       <p className="text-slate-500">Pedido no encontrado.</p>
-      <Link href="/comprador/ordenes" className="text-indigo-600 text-sm mt-2 inline-block hover:underline">← Volver</Link>
+      <Link href="/cliente/ordenes" className="text-indigo-600 text-sm mt-2 inline-block hover:underline">← Volver</Link>
     </div>
   );
 
   return (
     <div className="p-8 max-w-3xl">
       <div className="flex items-center gap-3 mb-6">
-        <Link href="/comprador/ordenes" className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors">
+        <Link href="/cliente/ordenes" className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors">
           <ArrowLeft className="h-4 w-4 text-slate-600" />
         </Link>
         <div className="flex-1">

@@ -27,7 +27,7 @@ function formatFecha(iso: string) {
 
 export default function AdminUsuariosPage() {
   const [search,    setSearch]    = useState("");
-  const [rolFiltro, setRolFiltro] = useState<"TODOS" | "ADMIN" | "VENDEDOR" | "COMPRADOR">("TODOS");
+  const [rolFiltro, setRolFiltro] = useState<"TODOS" | "ADMIN" | "VENDEDOR" | "CLIENTE">("TODOS");
   const [pagina,    setPagina]    = useState(1);
 
   const { data, loading, refetch } = useQuery<{
@@ -76,7 +76,7 @@ export default function AdminUsuariosPage() {
   }
 
   async function handleCambiarRol(id: string, rolActual: string) {
-    const roles = ["ADMIN", "VENDEDOR", "COMPRADOR"].filter(r => r !== rolActual);
+    const roles = ["ADMIN", "VENDEDOR", "CLIENTE"].filter(r => r !== rolActual);
     const nuevoRol = prompt(`Cambiar rol de ${rolActual} a:\n${roles.join(" / ")}\n\nEscribe el nuevo rol:`);
     if (!nuevoRol || !roles.includes(nuevoRol.toUpperCase())) {
       toast.error("Rol inválido.");
@@ -116,7 +116,7 @@ export default function AdminUsuariosPage() {
           accent="slate"
           value={rolFiltro}
           onChange={(rol) => { setRolFiltro(rol); setPagina(1); }}
-          options={(["TODOS", "ADMIN", "VENDEDOR", "COMPRADOR"] as const).map((rol) => ({
+          options={(["TODOS", "ADMIN", "VENDEDOR", "CLIENTE"] as const).map((rol) => ({
             value: rol,
             label: rol === "TODOS" ? "Todos" : rol.charAt(0) + rol.slice(1).toLowerCase(),
             count: rol === "TODOS"
@@ -169,7 +169,7 @@ export default function AdminUsuariosPage() {
                         title="Cambiar rol"
                         className="hover:opacity-70 transition-opacity"
                       >
-                        <Badge variant={u.rol.toLowerCase() as "admin" | "vendedor" | "comprador"} size="sm" />
+                        <Badge variant={u.rol.toLowerCase() as "admin" | "vendedor" | "cliente"} size="sm" />
                       </button>
                     </td>
                     <td className="px-5 py-3 text-center">

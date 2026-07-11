@@ -65,7 +65,7 @@ export default function RecogeHome() {
           </p>
           <p className="text-xs text-slate-400">Ver disponible y movimientos</p>
         </Link>
-        <Link href={user.rol === "VENDEDOR" ? "/vendedor/ordenes" : "/comprador/ordenes"}
+        <Link href={user.rol === "VENDEDOR" ? "/vendedor/ordenes" : "/cliente/ordenes"}
           className="rounded-2xl bg-white border border-slate-200 p-4">
           <Package className="h-5 w-5 text-violet-600 mb-2" />
           <p className="text-sm font-semibold text-slate-900">Mis pedidos</p>

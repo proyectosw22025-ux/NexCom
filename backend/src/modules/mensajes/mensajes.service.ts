@@ -12,7 +12,7 @@ interface UsuarioCtx {
 
 export const mensajesService = {
   async getConversaciones(user: UsuarioCtx, prisma: PrismaClient) {
-    const esComprador = user.rol === "COMPRADOR";
+    const esComprador = user.rol === "CLIENTE";
     const perfilId = esComprador ? user.perfilCompradorId : user.perfilVendedorId;
     if (!perfilId) return [];
 

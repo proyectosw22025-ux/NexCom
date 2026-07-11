@@ -43,7 +43,7 @@ function makePrisma(casCount: number) {
 describe("coherencia escrow: auto-cancelación por no-envío vs. respuesta tardía del vendedor", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("CAS gana (count=1): cancela, reembolsa al vendedor y acredita la billetera del comprador", async () => {
+  it("CAS gana (count=1): cancela, reembolsa al vendedor y acredita la billetera del cliente", async () => {
     const prisma = makePrisma(1);
     await ordenesService._cancelarOrdenesSinEnvio({}, prisma);
     expect(saldosService.registrarReembolso).toHaveBeenCalledWith("v1", "orden-1", prisma);

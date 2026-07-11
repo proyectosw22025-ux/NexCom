@@ -2,7 +2,7 @@ export const authTypeDefs = /* GraphQL */ `
   enum Rol {
     ADMIN
     VENDEDOR
-    COMPRADOR
+    CLIENTE
   }
 
   type PerfilVendedorPublico {
@@ -19,7 +19,7 @@ export const authTypeDefs = /* GraphQL */ `
     planVenceEn:   String   # fin del periodo PRO pagado (null en FREE)
     verificado:    Boolean!
     respondeRapido: Boolean!
-    disputasPerdidas: Int!    # reclamos resueltos a favor del comprador (señal de confianza)
+    disputasPerdidas: Int!    # reclamos resueltos a favor del cliente (señal de confianza)
     # KYC — solo visibles para el dueño del perfil (vía 'me'); null en tienda pública
     estadoVerificacion: String  # NO_ENVIADO | PENDIENTE | APROBADO | RECHAZADO
     verificacionNotas:  String  # motivo de rechazo

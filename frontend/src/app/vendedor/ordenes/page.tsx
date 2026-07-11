@@ -128,7 +128,7 @@ export default function VendedorOrdenesPage() {
                   <p className="text-xs text-slate-400 mb-0.5">Orden #{o.id.slice(-8).toUpperCase()}</p>
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-semibold text-slate-900">
-                      {o.comprador?.nombreCompleto ?? "Comprador"}
+                      {o.comprador?.nombreCompleto ?? "Cliente"}
                     </p>
                     {o.comprador?.telefono && (
                       <span className="text-xs text-slate-400">{o.comprador.telefono}</span>

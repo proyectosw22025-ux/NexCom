@@ -117,7 +117,7 @@ export const ordenesTypeDefs = /* GraphQL */ `
 
   extend type Mutation {
     avanzarEstadoOrden(id: ID!, notas: String, comprobanteUrl: String): OrdenVendedor!
-    # Respaldo sin cámara: el comprador confirma manualmente la recepción
+    # Respaldo sin cámara: el cliente confirma manualmente la recepción
     marcarOrdenEntregada(id: ID!): Orden!
     # Recojo con escaneo (flujo principal): iniciar sesión OTP → escanear QR del paquete
     iniciarRecojo(id: ID!): SesionRecojo!

@@ -16,7 +16,7 @@ function bad(msg: string) {
 
 export const creditoService = {
   /**
-   * Saldo disponible de la billetera del comprador:
+   * Saldo disponible de la billetera del cliente:
    *   REEMBOLSO − USO − retiros activos (PENDIENTE + PAGADO).
    * Los retiros pendientes RESERVAN el saldo (no se puede gastar lo que ya
    * pediste retirar); los rechazados no descuentan (vuelve a estar disponible).
@@ -49,7 +49,7 @@ export const creditoService = {
   },
 
   /**
-   * Acredita a la billetera del comprador el reembolso de una orden (dinero real
+   * Acredita a la billetera del cliente el reembolso de una orden (dinero real
    * que vuelve). Idempotente por orden: no acredita dos veces la misma devolución.
    */
   async acreditarReembolso(
@@ -115,7 +115,7 @@ export const creditoService = {
     };
   },
 
-  /** El comprador solicita retirar su crédito a una cuenta bancaria (atómico). */
+  /** El cliente solicita retirar su crédito a una cuenta bancaria (atómico). */
   async solicitarRetiro(
     compradorId: string,
     input: { monto: string; banco: string; numeroCuenta: string; titular: string },
@@ -161,7 +161,7 @@ export const creditoService = {
     }));
   },
 
-  /** El admin marca el retiro como pagado o rechazado y notifica al comprador. */
+  /** El admin marca el retiro como pagado o rechazado y notifica al cliente. */
   async resolverRetiro(id: string, aprobar: boolean, nota: string | null, prisma: PrismaClient) {
     const retiro = await creditoRepository.findRetiro(id, prisma);
     if (!retiro) throw new GraphQLError("Retiro no encontrado.", { extensions: { code: "NOT_FOUND" } });
@@ -178,7 +178,7 @@ export const creditoService = {
         mensaje: aprobar
           ? `Tu retiro de Bs. ${montoTxt} fue procesado a tu cuenta.`
           : `Tu retiro de Bs. ${montoTxt} fue rechazado.${nota?.trim() ? ` Motivo: ${nota.trim()}` : ""} El saldo vuelve a tu billetera.`,
-        url: "/comprador/saldo",
+        url: "/cliente/saldo",
       },
     });
     try {

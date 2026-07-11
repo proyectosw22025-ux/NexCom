@@ -25,7 +25,7 @@ const OTP_RECOJO_TTL_MS = 10 * 60 * 1000; // 10 min
 // Cierre automático: días tras la ENTREGA para pasar a COMPLETADO (finalizada)
 const DIAS_CIERRE_ORDEN = 7;
 
-// Protección al comprador: días máximos en PAGADO/EN_PREPARACION sin que el
+// Protección al cliente: días máximos en PAGADO/EN_PREPARACION sin que el
 // vendedor envíe antes de cancelar y reembolsar automáticamente la garantía.
 const DIAS_CANCELACION_SIN_ENVIO = 7;
 
@@ -110,7 +110,7 @@ export const ordenesService = {
       );
     }
 
-    // Aviso al comprador cuando su pedido sale en camino (paso del flujo de recojo)
+    // Aviso al cliente cuando su pedido sale en camino (paso del flujo de recojo)
     if (estadoNuevo === "ENVIADO") {
       await this._notificarComprador(
         orden.compradorId, id,
@@ -122,7 +122,7 @@ export const ordenesService = {
     return actualizada;
   },
 
-  /** Notifica al comprador de una orden (best-effort: no rompe el flujo si falla). */
+  /** Notifica al cliente de una orden (best-effort: no rompe el flujo si falla). */
   async _notificarComprador(
     compradorId: string, ordenId: string, tipo: string, titulo: string, mensaje: string, prisma: PrismaClient,
   ) {
@@ -130,18 +130,18 @@ export const ordenesService = {
       const perfil = await prisma.perfilComprador.findUnique({ where: { id: compradorId }, select: { usuarioId: true } });
       if (!perfil) return;
       const n = await prisma.notificacion.create({
-        data: { usuarioId: perfil.usuarioId, tipo, titulo, mensaje, url: `/comprador/ordenes/${ordenId}`, ordenId },
+        data: { usuarioId: perfil.usuarioId, tipo, titulo, mensaje, url: `/cliente/ordenes/${ordenId}`, ordenId },
       });
       publishNotificacion(perfil.usuarioId, {
         id: n.id, tipo: n.tipo, titulo: n.titulo, mensaje: n.mensaje,
         leido: n.leido, url: n.url, ordenId: n.ordenId, creadoEn: n.creadoEn.toISOString(),
       });
     } catch (err) {
-      console.error("[Ordenes] No se pudo notificar al comprador:", (err as Error).message);
+      console.error("[Ordenes] No se pudo notificar al cliente:", (err as Error).message);
     }
   },
 
-  /** El COMPRADOR confirma la recepción → entrega + liberación de la garantía. */
+  /** El CLIENTE confirma la recepción → entrega + liberación de la garantía. */
   async marcarEntregada(id: string, compradorId: string, usuarioId: string, prisma: PrismaClient) {
     const orden = await ordenesRepository.findOneByComprador(id, compradorId, prisma);
     if (!orden) {
@@ -157,7 +157,7 @@ export const ordenesService = {
   },
 
   /**
-   * Paso 1 del recojo: el COMPRADOR pulsa "Recoger pedido". El sistema genera un
+   * Paso 1 del recojo: el CLIENTE pulsa "Recoger pedido". El sistema genera un
    * OTP temporal (segundo factor de la sesión de escaneo) ligado a la orden.
    * El escaneo del QR del paquete + este OTP prueban posesión física + identidad.
    */
@@ -176,7 +176,7 @@ export const ordenesService = {
   },
 
   /**
-   * Paso 2 del recojo: el COMPRADOR escanea el QR físico del paquete. El backend
+   * Paso 2 del recojo: el CLIENTE escanea el QR físico del paquete. El backend
    * valida las 5 condiciones del flujo de Compra Protegida:
    *   1. usuario autenticado (guard en el resolver)
    *   2. la orden pertenece al usuario (compradorId)
@@ -275,7 +275,7 @@ export const ordenesService = {
   /**
    * Barrido GLOBAL del escrow (cron): garantiza que la liberación, cancelación
    * por no-envío, cierre de órdenes y vencimiento del plan PRO ocurran aunque
-   * nadie abra la app (antes eran perezosos al listar → un comprador que no
+   * nadie abra la app (antes eran perezosos al listar → un cliente que no
    * entraba nunca recibía su reembolso). Se ejecuta bajo lock distribuido.
    */
   async barridoEscrow(prisma: PrismaClient) {
@@ -283,7 +283,7 @@ export const ordenesService = {
     await this._cancelarPagosAbandonados(prisma);
     await this._cancelarOrdenesSinEnvio({}, prisma);
     await this._cerrarOrdenesEntregadas({}, prisma);
-    // Auto-resolución a favor del comprador cuando nadie responde a tiempo
+    // Auto-resolución a favor del cliente cuando nadie responde a tiempo
     await devolucionesService.autoResolverVencidas(prisma);
     await disputasService.autoResolverVencidas(prisma);
 
@@ -308,7 +308,7 @@ export const ordenesService = {
   },
 
   /**
-   * Protección al comprador (reverso de la auto-liberación): órdenes que llevan
+   * Protección al cliente (reverso de la auto-liberación): órdenes que llevan
    * más de N días en PAGADO/EN_PREPARACION sin que el vendedor las envíe se
    * CANCELAN automáticamente — reembolso desde el escrow (revierte la retención,
    * el vendedor no recibe nada), restitución de stock, auditoría y avisos.
@@ -356,7 +356,7 @@ export const ordenesService = {
 
       // Reembolso desde el escrow (idempotente — revierte la retención exacta)
       await saldosService.registrarReembolso(o.vendedorId, o.id, prisma);
-      // Acredita el total a la billetera del comprador (dinero de vuelta)
+      // Acredita el total a la billetera del cliente (dinero de vuelta)
       await creditoService.acreditarReembolso(o.compradorId, o.id, new Decimal(o.total.toString()), prisma);
       await prisma.eventoSeguridad.create({
         data: { tipo: "CANCELACION_AUTO_SIN_ENVIO", ordenId: o.id, metadata: { total: o.total.toString() } },
@@ -371,7 +371,7 @@ export const ordenesService = {
 
   /**
    * Cierre del ciclo: órdenes ENTREGADAS hace más de N días pasan a COMPLETADO
-   * (finalizada) automáticamente. La valoración del comprador también las
+   * (finalizada) automáticamente. La valoración del cliente también las
    * completa (flujo existente); esto cubre a quienes no valoran. Perezoso
    * al listar órdenes, con historial de auditoría por orden (O(vencidas)).
    */

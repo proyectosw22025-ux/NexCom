@@ -11,10 +11,10 @@ import { MobileNavDrawer } from "@/components/layout/MobileNavDrawer";
 import { useUiPrefs } from "@/context/ui-prefs-context";
 
 const NAV = [
-  { href: "/comprador",          label: "Mi Panel",    icon: ShoppingBag },
-  { href: "/comprador/ordenes",  label: "Mis Pedidos", icon: Package },
-  { href: "/comprador/saldo",    label: "Mi Billetera", icon: Wallet },
-  { href: "/comprador/perfil",   label: "Mi Perfil",   icon: User },
+  { href: "/cliente",          label: "Mi Panel",    icon: ShoppingBag },
+  { href: "/cliente/ordenes",  label: "Mis Pedidos", icon: Package },
+  { href: "/cliente/saldo",    label: "Mi Billetera", icon: Wallet },
+  { href: "/cliente/perfil",   label: "Mi Perfil",   icon: User },
 ];
 
 export default function CompradorLayout({ children }: { children: React.ReactNode }) {
@@ -26,7 +26,7 @@ export default function CompradorLayout({ children }: { children: React.ReactNod
   const cerrarSesion = async () => { await logout(); router.replace("/"); };
 
   useEffect(() => {
-    if (!isLoading && (!user || user.rol !== "COMPRADOR")) {
+    if (!isLoading && (!user || user.rol !== "CLIENTE")) {
       router.replace("/login");
     }
   }, [user, isLoading, router]);
@@ -61,7 +61,7 @@ export default function CompradorLayout({ children }: { children: React.ReactNod
                 <p className="text-xs font-semibold text-slate-900 truncate">
                   {user.perfilComprador?.nombreCompleto ?? user.email}
                 </p>
-                <p className="text-[10px] text-slate-400">Comprador</p>
+                <p className="text-[10px] text-slate-400">Cliente</p>
               </div>
             )}
           </div>
@@ -82,7 +82,7 @@ export default function CompradorLayout({ children }: { children: React.ReactNod
 
         <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
           {NAV.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href || (href !== "/comprador" && pathname.startsWith(href));
+            const active = pathname === href || (href !== "/cliente" && pathname.startsWith(href));
             return (
               <Link
                 key={href}
@@ -118,7 +118,7 @@ export default function CompradorLayout({ children }: { children: React.ReactNod
       {/* Drawer móvil */}
       <MobileNavDrawer
         open={mobileNav} onClose={() => setMobileNav(false)}
-        nav={NAV} rootHref="/comprador" accent="indigo"
+        nav={NAV} rootHref="/cliente" accent="indigo"
         brandLabel="Mi Cuenta" brandIcon={ShoppingBag}
         userLabel={user.perfilComprador?.nombreCompleto ?? user.email}
         onLogout={cerrarSesion}

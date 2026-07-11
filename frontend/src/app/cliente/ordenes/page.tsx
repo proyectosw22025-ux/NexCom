@@ -78,7 +78,7 @@ export default function CompradorOrdenesPage() {
           {ordenes.map((o) => (
             <Link
               key={o.id}
-              href={`/comprador/ordenes/${o.id}`}
+              href={`/cliente/ordenes/${o.id}`}
               className="block bg-white rounded-2xl border border-slate-200 p-5
                          hover:shadow-md hover:shadow-slate-200/60 transition-all"
             >

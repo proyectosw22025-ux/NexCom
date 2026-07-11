@@ -8,7 +8,7 @@ import { publishNotificacion } from "../../shared/pubsub.js";
 
 const MOTIVOS_VALIDOS  = ["NO_RECIBIDO", "PRODUCTO_INCORRECTO", "DANADO", "OTRO"];
 const ESTADOS_ABRIBLES = ["PAGADO", "EN_PREPARACION", "ENVIADO"]; // mientras el pago sigue retenido
-const DIAS_AUTO_DISPUTA = 5; // sin resolución del admin en N días → a favor del comprador
+const DIAS_AUTO_DISPUTA = 5; // sin resolución del admin en N días → a favor del cliente
 
 function bad(msg: string) {
   return new GraphQLError(msg, { extensions: { code: "BAD_USER_INPUT" } });
@@ -72,7 +72,7 @@ export const disputasService = {
 
     const idCorto = input.ordenId.slice(-6).toUpperCase();
     await notificar(prisma, orden.vendedor!.usuarioId, "DISPUTA_ABIERTA", "Reclamo abierto",
-      `El comprador abrió un reclamo en la orden #${idCorto}. La plataforma lo revisará.`, `/vendedor/ordenes/${input.ordenId}`, input.ordenId);
+      `El cliente abrió un reclamo en la orden #${idCorto}. La plataforma lo revisará.`, `/vendedor/ordenes/${input.ordenId}`, input.ordenId);
     const admins = await prisma.usuario.findMany({ where: { rol: "ADMIN", activo: true }, select: { id: true } });
     for (const a of admins) {
       await notificar(prisma, a.id, "DISPUTA_ABIERTA", "Nueva disputa por mediar",
@@ -86,7 +86,7 @@ export const disputasService = {
     input: { disputaId: string; aFavor: string; nota?: string | null },
     prisma: PrismaClient,
   ) {
-    if (!["COMPRADOR", "VENDEDOR"].includes(input.aFavor)) throw bad("Resolución inválida.");
+    if (!["CLIENTE", "VENDEDOR"].includes(input.aFavor)) throw bad("Resolución inválida.");
     const d = await disputasRepository.findConOrden(input.disputaId, prisma);
     if (!d) throw notFound();
     if (d.estado !== "ABIERTA") throw bad("Esta disputa ya fue resuelta.");
@@ -95,22 +95,22 @@ export const disputasService = {
     const nota = input.nota?.trim() || null;
     const idCorto = d.ordenId.slice(-6).toUpperCase();
 
-    if (input.aFavor === "COMPRADOR") {
+    if (input.aFavor === "CLIENTE") {
       await disputasRepository.resolverReembolso(input.disputaId, d.ordenId, adminUsuarioId, nota, orden.items, prisma);
       await saldosService.registrarReembolso(d.vendedorId, d.ordenId, prisma);
-      // Acredita el total a la billetera del comprador (dinero de vuelta)
+      // Acredita el total a la billetera del cliente (dinero de vuelta)
       await creditoService.acreditarReembolso(orden.comprador!.id, d.ordenId, new Decimal(orden.total.toString()), prisma);
       await notificar(prisma, orden.comprador!.usuarioId, "DISPUTA_RESUELTA", "Reclamo aprobado",
-        `Tu reclamo de la orden #${idCorto} fue aprobado. Se acreditó Bs. ${orden.total.toString()} a tu billetera.`, `/comprador/saldo`, d.ordenId);
+        `Tu reclamo de la orden #${idCorto} fue aprobado. Se acreditó Bs. ${orden.total.toString()} a tu billetera.`, `/cliente/saldo`, d.ordenId);
       await notificar(prisma, orden.vendedor!.usuarioId, "DISPUTA_RESUELTA", "Reclamo resuelto",
-        `El reclamo de la orden #${idCorto} se resolvió a favor del comprador (reembolso).`, `/vendedor/ordenes/${d.ordenId}`, d.ordenId);
+        `El reclamo de la orden #${idCorto} se resolvió a favor del cliente (reembolso).`, `/vendedor/ordenes/${d.ordenId}`, d.ordenId);
     } else {
       await disputasRepository.resolverLiberacion(input.disputaId, d.ordenId, adminUsuarioId, nota, prisma);
       await saldosService.liberarFondos(d.vendedorId, d.ordenId, prisma);
       await notificar(prisma, orden.vendedor!.usuarioId, "DISPUTA_RESUELTA", "Reclamo resuelto a tu favor",
         `El reclamo de la orden #${idCorto} se resolvió a tu favor. Tu pago fue liberado.`, `/vendedor/ordenes/${d.ordenId}`, d.ordenId);
       await notificar(prisma, orden.comprador!.usuarioId, "DISPUTA_RESUELTA", "Reclamo cerrado",
-        `Tu reclamo de la orden #${idCorto} fue revisado y se liberó el pago al vendedor.`, `/comprador/ordenes/${d.ordenId}`, d.ordenId);
+        `Tu reclamo de la orden #${idCorto} fue revisado y se liberó el pago al vendedor.`, `/cliente/ordenes/${d.ordenId}`, d.ordenId);
     }
 
     await prisma.eventoSeguridad.create({ data: { tipo: "DISPUTA_RESUELTA", usuarioId: adminUsuarioId, ordenId: d.ordenId, metadata: { aFavor: input.aFavor } } });
@@ -119,7 +119,7 @@ export const disputasService = {
 
   /**
    * Auto-resolución (cron): las disputas que nadie resuelve en DIAS_AUTO_DISPUTA
-   * días se cierran a favor del comprador (reembolso desde el escrow). Evita que
+   * días se cierran a favor del cliente (reembolso desde el escrow). Evita que
    * un pago quede retenido indefinidamente si el admin no media. Reusa el camino
    * de reembolso e idempotencia por movimientos.
    */
@@ -129,15 +129,15 @@ export const disputasService = {
     for (const d of vencidas) {
       const orden = d.orden;
       const idCorto = d.ordenId.slice(-6).toUpperCase();
-      const nota = "Resuelta automáticamente a favor del comprador por falta de mediación.";
+      const nota = "Resuelta automáticamente a favor del cliente por falta de mediación.";
       await disputasRepository.resolverReembolso(d.id, d.ordenId, "system", nota, orden.items, prisma);
       await saldosService.registrarReembolso(d.vendedorId, d.ordenId, prisma);
       await creditoService.acreditarReembolso(orden.comprador!.id, d.ordenId, new Decimal(orden.total.toString()), prisma);
       await notificar(prisma, orden.comprador!.usuarioId, "DISPUTA_RESUELTA", "Reclamo aprobado automáticamente",
-        `Tu reclamo de la orden #${idCorto} se aprobó por falta de respuesta. Se acreditó Bs. ${orden.total.toString()} a tu billetera.`, `/comprador/saldo`, d.ordenId);
+        `Tu reclamo de la orden #${idCorto} se aprobó por falta de respuesta. Se acreditó Bs. ${orden.total.toString()} a tu billetera.`, `/cliente/saldo`, d.ordenId);
       await notificar(prisma, orden.vendedor!.usuarioId, "DISPUTA_RESUELTA", "Reclamo resuelto por inacción",
-        `El reclamo de la orden #${idCorto} se resolvió a favor del comprador por falta de respuesta.`, `/vendedor/ordenes/${d.ordenId}`, d.ordenId);
-      await prisma.eventoSeguridad.create({ data: { tipo: "DISPUTA_AUTO_RESUELTA", ordenId: d.ordenId, metadata: { aFavor: "COMPRADOR" } } });
+        `El reclamo de la orden #${idCorto} se resolvió a favor del cliente por falta de respuesta.`, `/vendedor/ordenes/${d.ordenId}`, d.ordenId);
+      await prisma.eventoSeguridad.create({ data: { tipo: "DISPUTA_AUTO_RESUELTA", ordenId: d.ordenId, metadata: { aFavor: "CLIENTE" } } });
     }
   },
 

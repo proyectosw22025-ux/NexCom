@@ -6,7 +6,7 @@ import { Printer, Package, ShieldCheck } from "lucide-react";
 
 /**
  * Etiqueta del paquete para el VENDEDOR: QR único de la orden (+ código impreso
- * como respaldo) para imprimir y pegar en la caja antes de enviarla. El comprador
+ * como respaldo) para imprimir y pegar en la caja antes de enviarla. El cliente
  * la escaneará al recibir para liberar el pago retenido.
  */
 export function EtiquetaPaquete({ ordenId, codigo, destinatario, ciudad }:
@@ -33,7 +33,7 @@ export function EtiquetaPaquete({ ordenId, codigo, destinatario, ciudad }:
             <Package className="h-4 w-4 text-indigo-600" /> Etiqueta del paquete
           </h2>
           <p className="text-xs text-slate-500 mt-1">
-            Imprime esta etiqueta y pégala en la caja <strong>antes de enviarla</strong>. El comprador
+            Imprime esta etiqueta y pégala en la caja <strong>antes de enviarla</strong>. El cliente
             escaneará el QR al recibir el paquete y recién entonces se libera tu pago.
           </p>
         </div>

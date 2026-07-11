@@ -52,7 +52,7 @@ export const disputasRepository = {
   },
 
   /**
-   * Resuelve a favor del COMPRADOR: orden CANCELADA, restock, disputa cerrada.
+   * Resuelve a favor del CLIENTE: orden CANCELADA, restock, disputa cerrada.
    *
    * CAS por estado: la transición ABIERTA → RESUELTA_COMPRADOR solo la gana un
    * proceso. Sin esto, si el admin resuelve justo cuando el cron
@@ -73,7 +73,7 @@ export const disputasRepository = {
       if (cas.count === 1) {
         await tx.orden.update({ where: { id: ordenId }, data: { estado: "CANCELADO", disputaAbierta: false } });
         await tx.historialEstadoOrden.create({
-          data: { ordenId, estadoAnterior: orden.estado as never, estadoNuevo: "CANCELADO", cambiadoPorId: adminId, notas: "Disputa resuelta a favor del comprador" },
+          data: { ordenId, estadoAnterior: orden.estado as never, estadoNuevo: "CANCELADO", cambiadoPorId: adminId, notas: "Disputa resuelta a favor del cliente" },
         });
         for (const it of items) {
           await tx.producto.update({ where: { id: it.productoId }, data: { stock: { increment: it.cantidad } } });

@@ -14,7 +14,7 @@ import { REFRESH_TOKEN, LOGOUT } from "@/graphql/auth/mutations";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
-export type Rol = "ADMIN" | "VENDEDOR" | "COMPRADOR";
+export type Rol = "ADMIN" | "VENDEDOR" | "CLIENTE";
 
 export interface UsuarioSesion {
   id:              string;

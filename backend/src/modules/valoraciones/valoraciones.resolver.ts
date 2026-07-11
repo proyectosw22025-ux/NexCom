@@ -12,7 +12,7 @@ type CrearValoracionInput = {
 export const valoracionesResolvers = {
   Query: {
     misValoraciones: (_: unknown, __: unknown, ctx: NexComContext) => {
-      requireRole(ctx, "COMPRADOR");
+      requireRole(ctx, "CLIENTE");
       if (!ctx.user?.perfilCompradorId) {
         throw new GraphQLError("Perfil de comprador no encontrado.", { extensions: { code: "NOT_FOUND" } });
       }
@@ -38,7 +38,7 @@ export const valoracionesResolvers = {
       { input }: { input: CrearValoracionInput },
       ctx: NexComContext,
     ) => {
-      requireRole(ctx, "COMPRADOR");
+      requireRole(ctx, "CLIENTE");
       if (!ctx.user?.perfilCompradorId) {
         throw new GraphQLError("Perfil de comprador no encontrado.", { extensions: { code: "NOT_FOUND" } });
       }

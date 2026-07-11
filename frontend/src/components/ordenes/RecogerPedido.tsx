@@ -9,7 +9,7 @@ import { QrScannerRecojo } from "./QrScannerRecojo";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 /**
- * Flujo "Recoger pedido" del comprador (orden ENVIADA):
+ * Flujo "Recoger pedido" del cliente (orden ENVIADA):
  *   1. iniciarRecojo → OTP temporal (2º factor de la sesión de escaneo)
  *   2. escanear el QR físico del paquete (o código manual)
  *   3. confirmarRecojo → backend valida las 5 condiciones → entrega + libera fondos

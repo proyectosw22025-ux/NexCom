@@ -73,7 +73,7 @@ export function ProductoPreguntas({ productoId, vendedorId }: ProductoPreguntasP
   const [texto, setTexto] = useState("");
 
   const preguntas = data?.preguntasProducto ?? [];
-  const puedePreguntar = user && user.rol === "COMPRADOR";
+  const puedePreguntar = user && user.rol === "CLIENTE";
 
   async function preguntar() {
     if (texto.trim().length < 5) { toast.error("Escribe una pregunta más detallada."); return; }

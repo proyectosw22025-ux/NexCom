@@ -103,7 +103,7 @@ describe("mensajesService.getConversaciones", () => {
     vi.mocked(mensajesRepository.contarNoLeidos).mockResolvedValue(new Map([["c1", 2]]));
 
     const r = await mensajesService.getConversaciones(
-      { id: "u1", rol: "COMPRADOR", perfilCompradorId: "comp-1" }, prisma,
+      { id: "u1", rol: "CLIENTE", perfilCompradorId: "comp-1" }, prisma,
     );
 
     expect(r[0]).toMatchObject({ id: "c1", otroNombre: "Tienda X", noLeidos: 2, ultimoMensaje: "Hola" });
@@ -111,7 +111,7 @@ describe("mensajesService.getConversaciones", () => {
 
   it("devuelve vacío si el usuario no tiene el perfil correspondiente", async () => {
     const r = await mensajesService.getConversaciones(
-      { id: "u1", rol: "COMPRADOR", perfilCompradorId: null }, prisma,
+      { id: "u1", rol: "CLIENTE", perfilCompradorId: null }, prisma,
     );
     expect(r).toEqual([]);
   });

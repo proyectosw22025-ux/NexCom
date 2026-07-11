@@ -59,7 +59,7 @@ export default function VendedorOrdenDetallePage() {
   async function handleAvanzar(input: { notas?: string; comprobanteUrl?: string }) {
     try {
       await avanzar({ variables: { id, notas: input.notas ?? null, comprobanteUrl: input.comprobanteUrl ?? null } });
-      toast.success("Estado de orden actualizado. El comprador fue notificado.");
+      toast.success("Estado de orden actualizado. El cliente fue notificado.");
       refetch();
     } catch (err: unknown) {
       const msg = err instanceof ApolloError ? (err.graphQLErrors[0]?.message ?? "Error.") : "Error.";
@@ -101,11 +101,11 @@ export default function VendedorOrdenDetallePage() {
       </div>
 
       <div className="space-y-5">
-        {/* Comprador */}
+        {/* Cliente */}
         {orden.comprador && (
           <div className="bg-white rounded-2xl border border-slate-200 p-6">
             <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide mb-3 flex items-center gap-2">
-              <User className="h-4 w-4 text-indigo-600" /> Comprador
+              <User className="h-4 w-4 text-indigo-600" /> Cliente
             </h2>
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 bg-indigo-100 rounded-full flex items-center justify-center">
@@ -194,7 +194,7 @@ export default function VendedorOrdenDetallePage() {
               <ShieldCheck className="h-4 w-4 text-emerald-600" /> Pago retenido en garantía
             </p>
             <p className="text-xs text-slate-500 mt-1">
-              Se libera cuando el comprador escanee el QR del paquete al recibirlo
+              Se libera cuando el cliente escanee el QR del paquete al recibirlo
               {orden.autoLiberaEn && (
                 <> o automáticamente el {new Date(orden.autoLiberaEn).toLocaleDateString("es-BO", { day: "2-digit", month: "short", year: "numeric" })} si no hay reclamo</>
               )}.

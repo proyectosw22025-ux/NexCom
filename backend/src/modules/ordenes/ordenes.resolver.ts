@@ -6,7 +6,7 @@ import { ordenesService } from "./ordenes.service.js";
 export const ordenesResolvers = {
   Query: {
     misOrdenes: (_: unknown, __: unknown, ctx: NexComContext) => {
-      requireRole(ctx, "COMPRADOR");
+      requireRole(ctx, "CLIENTE");
       if (!ctx.user?.perfilCompradorId) {
         throw new GraphQLError("Perfil de comprador no encontrado.", { extensions: { code: "NOT_FOUND" } });
       }
@@ -14,7 +14,7 @@ export const ordenesResolvers = {
     },
 
     miOrden: (_: unknown, { id }: { id: string }, ctx: NexComContext) => {
-      requireRole(ctx, "COMPRADOR");
+      requireRole(ctx, "CLIENTE");
       if (!ctx.user?.perfilCompradorId) {
         throw new GraphQLError("Perfil de comprador no encontrado.", { extensions: { code: "NOT_FOUND" } });
       }
@@ -60,7 +60,7 @@ export const ordenesResolvers = {
     },
 
     marcarOrdenEntregada: (_: unknown, { id }: { id: string }, ctx: NexComContext) => {
-      requireRole(ctx, "COMPRADOR");
+      requireRole(ctx, "CLIENTE");
       if (!ctx.user?.perfilCompradorId) {
         throw new GraphQLError("Perfil de comprador no encontrado.", { extensions: { code: "NOT_FOUND" } });
       }
@@ -68,7 +68,7 @@ export const ordenesResolvers = {
     },
 
     iniciarRecojo: (_: unknown, { id }: { id: string }, ctx: NexComContext) => {
-      requireRole(ctx, "COMPRADOR"); // 1. usuario autenticado
+      requireRole(ctx, "CLIENTE"); // 1. usuario autenticado
       if (!ctx.user?.perfilCompradorId) {
         throw new GraphQLError("Perfil de comprador no encontrado.", { extensions: { code: "NOT_FOUND" } });
       }
@@ -80,7 +80,7 @@ export const ordenesResolvers = {
       { id, codigoQr, otp }: { id: string; codigoQr: string; otp: string },
       ctx: NexComContext,
     ) => {
-      requireRole(ctx, "COMPRADOR"); // 1. usuario autenticado
+      requireRole(ctx, "CLIENTE"); // 1. usuario autenticado
       if (!ctx.user?.perfilCompradorId) {
         throw new GraphQLError("Perfil de comprador no encontrado.", { extensions: { code: "NOT_FOUND" } });
       }

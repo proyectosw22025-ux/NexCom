@@ -19,19 +19,19 @@ export default function FavoritosPage() {
 
   const { data, loading } = useQuery<{ misFavoritos: Favorito[] }>(MIS_FAVORITOS, {
     fetchPolicy: "cache-and-network",
-    skip: !user || user.rol !== "COMPRADOR",
+    skip: !user || user.rol !== "CLIENTE",
   });
 
   const favoritos = data?.misFavoritos ?? [];
 
   // No autenticado o no comprador
-  if (!authLoading && (!user || user.rol !== "COMPRADOR")) {
+  if (!authLoading && (!user || user.rol !== "CLIENTE")) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-24 text-center">
         <Heart className="h-12 w-12 text-slate-200 mx-auto mb-4" />
         <h1 className="text-xl font-bold text-slate-900 mb-2">Tus favoritos</h1>
         <p className="text-sm text-slate-500 mb-6">
-          Inicia sesión como comprador para guardar y ver tus productos favoritos.
+          Inicia sesión como cliente para guardar y ver tus productos favoritos.
         </p>
         <Link
           href="/login?redirect=/favoritos"

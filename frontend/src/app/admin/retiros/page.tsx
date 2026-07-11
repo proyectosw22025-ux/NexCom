@@ -31,7 +31,7 @@ export default function AdminRetirosPage() {
   const [notas, setNotas] = useState<Record<string, string>>({});
   const [procesando, setProcesando] = useState<string | null>(null);
 
-  // Retiros de la billetera del comprador
+  // Retiros de la billetera del cliente
   const { data: bData } = useQuery<{ retirosCreditoPendientes: RetiroComprador[] }>(
     RETIROS_CREDITO_PENDIENTES, { fetchPolicy: "cache-and-network" },
   );

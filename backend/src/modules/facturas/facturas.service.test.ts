@@ -44,7 +44,7 @@ describe("facturasService.solicitar", () => {
     expect(arg.iva.toFixed(2)).toBe("13.00");
   });
 
-  it("rechaza si el solicitante no es el comprador de la orden (NOT_FOUND)", async () => {
+  it("rechaza si el solicitante no es el cliente de la orden (NOT_FOUND)", async () => {
     vi.mocked(facturasRepository.findOrdenParaFactura).mockResolvedValue(ordenPagada as never);
     await expect(
       facturasService.solicitar("OTRO", "orden-1", "123", "X", prisma),

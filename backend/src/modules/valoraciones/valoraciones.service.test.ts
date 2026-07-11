@@ -55,7 +55,7 @@ describe("valoracionesService.crear", () => {
     expect(ordenFindFirst).not.toHaveBeenCalled();
   });
 
-  it("lanza NOT_FOUND si la orden no pertenece al comprador", async () => {
+  it("lanza NOT_FOUND si la orden no pertenece al cliente", async () => {
     ordenFindFirst.mockResolvedValue(null);
 
     await expect(

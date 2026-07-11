@@ -1,4 +1,4 @@
-// Puntos de retiro por ciudad (zonas). Estáticos: el comprador elige dónde recoger
+// Puntos de retiro por ciudad (zonas). Estáticos: el cliente elige dónde recoger
 // su pedido cuando opta por "retiro en punto". Siempre incluye la opción de la tienda.
 
 const EN_TIENDA = "En la tienda del vendedor";

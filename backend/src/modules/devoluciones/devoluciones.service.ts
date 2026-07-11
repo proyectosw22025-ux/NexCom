@@ -139,21 +139,21 @@ export const devolucionesService = {
       actualizada = await devolucionesRepository.reembolsar(id, nota, dev.orden!.items, prisma);
       // 1) Revertir el neto acreditado al vendedor (clawback de su saldo)
       await saldosService.registrarReembolso(dev.vendedor!.id, dev.ordenId, prisma);
-      // 2) Acreditar el total a la BILLETERA del comprador (a dónde vuelve la plata)
+      // 2) Acreditar el total a la BILLETERA del cliente (a dónde vuelve la plata)
       await creditoService.acreditarReembolso(
         dev.comprador!.id, dev.ordenId, new Decimal(dev.montoReembolso.toString()), prisma,
       );
       await notificar(
         prisma, dev.comprador!.usuarioId, "DEVOLUCION_RESUELTA", "Devolución aprobada",
         `Tu devolución de la orden #${idCorto} fue aprobada. Se acreditó Bs. ${dev.montoReembolso.toString()} a tu billetera.`,
-        `/comprador/saldo`,
+        `/cliente/saldo`,
       );
     } else {
       actualizada = await devolucionesRepository.rechazar(id, nota, prisma);
       await notificar(
         prisma, dev.comprador!.usuarioId, "DEVOLUCION_RESUELTA", "Devolución rechazada",
         `Tu devolución de la orden #${idCorto} fue rechazada.${nota ? ` Motivo: ${nota}` : ""}`,
-        `/comprador/ordenes/${dev.ordenId}`,
+        `/cliente/ordenes/${dev.ordenId}`,
       );
     }
     return mapDevolucion(actualizada as DevolucionRow, "");
@@ -161,7 +161,7 @@ export const devolucionesService = {
 
   /**
    * Auto-resolución (cron): las devoluciones que el vendedor ignora por más de
-   * DIAS_AUTO_RESOLVER días se aprueban a favor del comprador. Protege al
+   * DIAS_AUTO_RESOLVER días se aprueban a favor del cliente. Protege al
    * comprador de vendedores que nunca responden. Reusa el camino de aprobación
    * (reembolso + clawback + billetera) y es idempotente por los movimientos.
    */
@@ -179,7 +179,7 @@ export const devolucionesService = {
       await notificar(
         prisma, dev.comprador!.usuarioId, "DEVOLUCION_RESUELTA", "Devolución aprobada automáticamente",
         `Tu devolución de la orden #${idCorto} se aprobó porque el vendedor no respondió. Se acreditó Bs. ${dev.montoReembolso.toString()} a tu billetera.`,
-        `/comprador/saldo`,
+        `/cliente/saldo`,
       );
       await notificar(
         prisma, dev.vendedor!.usuarioId, "DEVOLUCION_RESUELTA", "Devolución aprobada por inacción",

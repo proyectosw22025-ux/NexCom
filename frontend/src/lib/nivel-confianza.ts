@@ -13,7 +13,7 @@ export interface VendedorNivelData {
   disputasPerdidas?: number | null;
 }
 
-// Umbrales de reclamos (disputas resueltas a favor del comprador / ventas).
+// Umbrales de reclamos (disputas resueltas a favor del cliente / ventas).
 // Con menos de MIN_MUESTRA ventas no se juzga (muestra insuficiente).
 const MIN_MUESTRA = 5;
 const TASA_ALERTA = 0.15; // ≥15% → tienda "en observación"
@@ -30,7 +30,7 @@ export function tasaReclamos(v: VendedorNivelData): number {
   return (v.disputasPerdidas ?? 0) / ventas;
 }
 
-/** Tienda con demasiados reclamos → pierde beneficios y se marca al comprador. */
+/** Tienda con demasiados reclamos → pierde beneficios y se marca al cliente. */
 export function reclamosAltos(v: VendedorNivelData): boolean {
   return tasaReclamos(v) >= TASA_ALERTA;
 }

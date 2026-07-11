@@ -77,7 +77,7 @@ type UsuarioConPerfil = NonNullable<Awaited<ReturnType<typeof repo.findUsuarioCo
 async function buildAuthPayload(usuario: UsuarioConPerfil, prisma: PrismaClient, dispositivo?: string) {
   const accessToken = signAccessToken({
     id:                usuario.id,
-    rol:               usuario.rol as "ADMIN" | "VENDEDOR" | "COMPRADOR",
+    rol:               usuario.rol as "ADMIN" | "VENDEDOR" | "CLIENTE",
     perfilVendedorId:  usuario.perfilVendedor?.id  ?? null,
     perfilCompradorId: usuario.perfilComprador?.id ?? null,
   });
@@ -372,7 +372,7 @@ export async function vendedorRespondeRapido(
 }
 
 /**
- * Nº de disputas que el vendedor PERDIÓ (resueltas a favor del comprador).
+ * Nº de disputas que el vendedor PERDIÓ (resueltas a favor del cliente).
  * Señal de confianza: alimenta el nivel de la tienda y la transparencia al
  * comprador. Se computa on-demand (field resolver), nunca en listados.
  */

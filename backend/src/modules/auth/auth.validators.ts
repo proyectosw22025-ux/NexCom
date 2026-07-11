@@ -9,8 +9,8 @@ export const registerSchema = z
   .object({
     email: z.string().email("Email inválido").toLowerCase(),
     password: passwordSchema,
-    rol: z.enum(["VENDEDOR", "COMPRADOR"], {
-      errorMap: () => ({ message: "El rol debe ser VENDEDOR o COMPRADOR" }),
+    rol: z.enum(["VENDEDOR", "CLIENTE"], {
+      errorMap: () => ({ message: "El rol debe ser VENDEDOR o CLIENTE" }),
     }),
     datosVendedor: z
       .object({
@@ -35,7 +35,7 @@ export const registerSchema = z
         message: "El nombre del negocio es requerido para vendedores",
       });
     }
-    if (data.rol === "COMPRADOR" && !data.datosComprador?.nombreCompleto) {
+    if (data.rol === "CLIENTE" && !data.datosComprador?.nombreCompleto) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["datosComprador", "nombreCompleto"],

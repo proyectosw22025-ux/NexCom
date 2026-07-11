@@ -71,7 +71,7 @@ export async function updatePasswordHash(
 interface CreateUsuarioData {
   email:        string;
   passwordHash: string;
-  rol:          "VENDEDOR" | "COMPRADOR";
+  rol:          "VENDEDOR" | "CLIENTE";
   verificado?:  boolean; // true mientras la verificación por correo está desactivada
   datosVendedor?: {
     nombreNegocio: string;
@@ -110,7 +110,7 @@ export async function createUsuarioConPerfil(
               },
             }
           : {}),
-        ...(data.rol === "COMPRADOR" && data.datosComprador
+        ...(data.rol === "CLIENTE" && data.datosComprador
           ? {
               perfilComprador: {
                 create: {

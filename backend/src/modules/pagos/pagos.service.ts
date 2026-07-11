@@ -187,7 +187,7 @@ export const pagosService = {
 
     // Crédito de la billetera: MEDIO DE PAGO (no descuento). Solo en compras de
     // una sola tienda (como puntos/cupón). El vendedor cobra el total COMPLETO;
-    // el crédito solo reduce lo que el comprador paga de su bolsillo.
+    // el crédito solo reduce lo que el cliente paga de su bolsillo.
     let creditoDisponible = new Decimal(0);
     if (usarCredito && !multiVendedor) {
       creditoDisponible = await creditoService.getDisponible(compradorId, prisma);
@@ -195,7 +195,7 @@ export const pagosService = {
 
     const ordenIds: string[] = [];
     let totalGeneral    = new Decimal(0); // total de venta (base del vendedor)
-    let pagarAhora      = new Decimal(0); // lo que el comprador paga de su bolsillo
+    let pagarAhora      = new Decimal(0); // lo que el cliente paga de su bolsillo
 
     for (const [vendedorId, grupoItems] of grupos) {
       const subtotal = grupoItems.reduce(
@@ -255,7 +255,7 @@ export const pagosService = {
     await pagosRepository.confirmarPagoSimulado(ordenId, orden.pago?.id ?? null, compradorId, metodo, prisma);
 
     // Compra Protegida: RETENER el neto en garantía (no disponible para el vendedor
-    // hasta la confirmación de entrega) y generar el código de entrega del comprador.
+    // hasta la confirmación de entrega) y generar el código de entrega del cliente.
     await saldosService.registrarRetencion(
       orden.vendedor!.id, ordenId, orden.total.toString(), orden.vendedor!.plan ?? "FREE", prisma,
     );
@@ -281,7 +281,7 @@ export const pagosService = {
     const idCorto = ordenId.slice(-6).toUpperCase();
     const eventos = [
       { usuarioId: orden.comprador!.usuarioId, tipo: "PAGO_CONFIRMADO", titulo: "¡Pedido confirmado!",
-        mensaje: `Tu orden #${idCorto} fue confirmada.`, url: `/comprador/ordenes/${ordenId}` },
+        mensaje: `Tu orden #${idCorto} fue confirmada.`, url: `/cliente/ordenes/${ordenId}` },
       { usuarioId: orden.vendedor!.usuarioId, tipo: "NUEVA_ORDEN", titulo: "Nueva orden recibida",
         mensaje: `Tienes una nueva orden #${idCorto}.`, url: `/vendedor/ordenes/${ordenId}` },
     ];

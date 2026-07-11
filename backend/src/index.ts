@@ -248,7 +248,7 @@ async function bootstrap() {
                 tipo:      "PAGO_CONFIRMADO",
                 titulo:    "¡Pago confirmado!",
                 mensaje:   `Tu orden #${orden.id.slice(-6).toUpperCase()} fue pagada exitosamente.`,
-                url:       `/comprador/ordenes/${orden.id}`,
+                url:       `/cliente/ordenes/${orden.id}`,
               },
             });
             const notifVendedor = await tx.notificacion.create({

@@ -156,7 +156,7 @@ async function main() {
     const u = await prisma.usuario.upsert({
       where: { email }, update: { activo: true, verificado: true },
       create: {
-        email, passwordHash: hashC, rol: "COMPRADOR", verificado: true, activo: true,
+        email, passwordHash: hashC, rol: "CLIENTE", verificado: true, activo: true,
         perfilComprador: { create: { nombreCompleto: nombre, telefono: `+591 7${rint(1000000, 9999999)}` } },
       },
       include: { perfilComprador: true },

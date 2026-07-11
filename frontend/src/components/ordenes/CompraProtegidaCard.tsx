@@ -3,7 +3,7 @@
 import { ShieldCheck, ScanLine } from "lucide-react";
 
 /**
- * Estado de la garantía para el COMPRADOR. No muestra ningún código: la prueba
+ * Estado de la garantía para el CLIENTE. No muestra ningún código: la prueba
  * de entrega es escanear el QR físico que viaja pegado al paquete (posesión +
  * identidad). Solo informa que el pago está protegido y cómo confirmar.
  */

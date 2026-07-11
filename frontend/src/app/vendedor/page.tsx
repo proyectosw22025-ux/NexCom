@@ -105,7 +105,7 @@ export default function VendedorDashboard() {
                 >
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-slate-900 truncate">
-                      {o.comprador?.nombreCompleto ?? "Comprador"}
+                      {o.comprador?.nombreCompleto ?? "Cliente"}
                     </p>
                     <p className="text-xs text-slate-400">Orden #{o.id.slice(-8).toUpperCase()}</p>
                   </div>

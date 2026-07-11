@@ -10,7 +10,7 @@ export const pagosResolvers = {
       { direccionId, cuponCodigo }: { direccionId: string; cuponCodigo?: string | null },
       ctx: NexComContext,
     ) => {
-      requireRole(ctx, "COMPRADOR");
+      requireRole(ctx, "CLIENTE");
       if (!ctx.user?.perfilCompradorId) {
         throw new GraphQLError("Perfil de comprador no encontrado.", { extensions: { code: "NOT_FOUND" } });
       }
@@ -30,7 +30,7 @@ export const pagosResolvers = {
         { direccionId: string; cuponCodigo?: string | null; metodoPago: string; metodoEntrega?: string; usarPuntos?: boolean; usarCredito?: boolean; puntoRetiro?: string | null },
       ctx: NexComContext,
     ) => {
-      requireRole(ctx, "COMPRADOR");
+      requireRole(ctx, "CLIENTE");
       if (!ctx.user?.perfilCompradorId) {
         throw new GraphQLError("Perfil de comprador no encontrado.", { extensions: { code: "NOT_FOUND" } });
       }
@@ -45,7 +45,7 @@ export const pagosResolvers = {
       { ordenIds }: { ordenIds: string[] },
       ctx: NexComContext,
     ) => {
-      requireRole(ctx, "COMPRADOR");
+      requireRole(ctx, "CLIENTE");
       if (!ctx.user?.perfilCompradorId) {
         throw new GraphQLError("Perfil de comprador no encontrado.", { extensions: { code: "NOT_FOUND" } });
       }

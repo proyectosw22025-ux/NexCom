@@ -22,7 +22,7 @@ function validarRango(p: RangoReporte): RangoResuelto {
   return resolverRango(p);
 }
 
-const ROLES_VALIDOS = ["ADMIN", "VENDEDOR", "COMPRADOR"];
+const ROLES_VALIDOS = ["ADMIN", "VENDEDOR", "CLIENTE"];
 
 // ── Helpers de analítica (compartidos por los reportes) ──────────────────────
 const deltaPct = (cur: number, prev: number) =>

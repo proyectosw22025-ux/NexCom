@@ -27,7 +27,7 @@ type ActualizarDireccionInput = {
 export const direccionesResolvers = {
   Query: {
     misDirecciones: (_: unknown, __: unknown, ctx: NexComContext) => {
-      requireRole(ctx, "COMPRADOR");
+      requireRole(ctx, "CLIENTE");
       if (!ctx.user?.perfilCompradorId) {
         throw new GraphQLError("Perfil de comprador no encontrado.", { extensions: { code: "NOT_FOUND" } });
       }
@@ -37,7 +37,7 @@ export const direccionesResolvers = {
 
   Mutation: {
     crearDireccion: (_: unknown, { input }: { input: CrearDireccionInput }, ctx: NexComContext) => {
-      requireRole(ctx, "COMPRADOR");
+      requireRole(ctx, "CLIENTE");
       if (!ctx.user?.perfilCompradorId) {
         throw new GraphQLError("Perfil de comprador no encontrado.", { extensions: { code: "NOT_FOUND" } });
       }
@@ -49,7 +49,7 @@ export const direccionesResolvers = {
       { id, input }: { id: string; input: ActualizarDireccionInput },
       ctx: NexComContext,
     ) => {
-      requireRole(ctx, "COMPRADOR");
+      requireRole(ctx, "CLIENTE");
       if (!ctx.user?.perfilCompradorId) {
         throw new GraphQLError("Perfil de comprador no encontrado.", { extensions: { code: "NOT_FOUND" } });
       }
@@ -57,7 +57,7 @@ export const direccionesResolvers = {
     },
 
     eliminarDireccion: (_: unknown, { id }: { id: string }, ctx: NexComContext) => {
-      requireRole(ctx, "COMPRADOR");
+      requireRole(ctx, "CLIENTE");
       if (!ctx.user?.perfilCompradorId) {
         throw new GraphQLError("Perfil de comprador no encontrado.", { extensions: { code: "NOT_FOUND" } });
       }
@@ -65,7 +65,7 @@ export const direccionesResolvers = {
     },
 
     setPrincipal: (_: unknown, { id }: { id: string }, ctx: NexComContext) => {
-      requireRole(ctx, "COMPRADOR");
+      requireRole(ctx, "CLIENTE");
       if (!ctx.user?.perfilCompradorId) {
         throw new GraphQLError("Perfil de comprador no encontrado.", { extensions: { code: "NOT_FOUND" } });
       }

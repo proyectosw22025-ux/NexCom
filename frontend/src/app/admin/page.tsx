@@ -75,7 +75,7 @@ export default function AdminPage() {
   const totalProductosActivos = productosActivosData?.productos?.total ?? 0;
 
   const totalVendedores   = usuarios.filter(u => u.rol === "VENDEDOR").length;
-  const totalCompradores  = usuarios.filter(u => u.rol === "COMPRADOR").length;
+  const totalCompradores  = usuarios.filter(u => u.rol === "CLIENTE").length;
   const usuariosActivos   = usuarios.filter(u => u.activo).length;
 
   const stats = [
@@ -222,7 +222,7 @@ export default function AdminPage() {
                     </p>
                     <p className="text-xs text-slate-400">{u.email} · {formatFecha(u.creadoEn)}</p>
                   </div>
-                  <Badge variant={u.rol.toLowerCase() as "admin" | "vendedor" | "comprador"} size="sm" />
+                  <Badge variant={u.rol.toLowerCase() as "admin" | "vendedor" | "cliente"} size="sm" />
                 </li>
               ))}
               {usuarios.length === 0 && (

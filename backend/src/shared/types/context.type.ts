@@ -4,7 +4,7 @@ import type Stripe from "stripe";
 
 export interface UsuarioJWT {
   id:                string;
-  rol:               "ADMIN" | "VENDEDOR" | "COMPRADOR";
+  rol:               "ADMIN" | "VENDEDOR" | "CLIENTE";
   perfilVendedorId?: string | null;
   perfilCompradorId?: string | null;
 }

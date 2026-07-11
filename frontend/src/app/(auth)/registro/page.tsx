@@ -13,13 +13,13 @@ import { REGISTER } from "@/graphql/auth/mutations";
 import { useAuth } from "@/context/auth-context";
 import { cn } from "@/lib/utils";
 
-type Rol = "VENDEDOR" | "COMPRADOR";
+type Rol = "VENDEDOR" | "CLIENTE";
 
 const baseSchema = z.object({
   email:           z.email("Email inválido"),
   password:        z.string().min(8, "Mínimo 8 caracteres").regex(/\d/, "Debe contener al menos un número"),
   confirmPassword: z.string(),
-  rol:             z.enum(["VENDEDOR", "COMPRADOR"]),
+  rol:             z.enum(["VENDEDOR", "CLIENTE"]),
   nombreNegocio:   z.string().optional(),
   nombreCompleto:  z.string().optional(),
   telefono:        z.string().optional(),
@@ -32,7 +32,7 @@ const schema = baseSchema.superRefine((d, ctx) => {
   if (d.rol === "VENDEDOR" && !d.nombreNegocio?.trim()) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["nombreNegocio"], message: "El nombre del negocio es requerido" });
   }
-  if (d.rol === "COMPRADOR" && !d.nombreCompleto?.trim()) {
+  if (d.rol === "CLIENTE" && !d.nombreCompleto?.trim()) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["nombreCompleto"], message: "Tu nombre completo es requerido" });
   }
 });
@@ -46,10 +46,10 @@ const labelClass = "block text-xs font-semibold text-slate-700 uppercase trackin
 export default function RegistroPage() {
   const router = useRouter();
   const { login } = useAuth();
-  const [rolSeleccionado, setRolSeleccionado] = useState<Rol>("COMPRADOR");
+  const [rolSeleccionado, setRolSeleccionado] = useState<Rol>("CLIENTE");
 
   const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } =
-    useForm<FormData>({ resolver: zodResolver(schema), defaultValues: { rol: "COMPRADOR" } });
+    useForm<FormData>({ resolver: zodResolver(schema), defaultValues: { rol: "CLIENTE" } });
 
   const [registerMutation] = useMutation(REGISTER);
 
@@ -89,7 +89,7 @@ export default function RegistroPage() {
 
       {/* Role selector */}
       <div className="grid grid-cols-2 gap-3 mb-6">
-        {(["COMPRADOR", "VENDEDOR"] as Rol[]).map((rol) => (
+        {(["CLIENTE", "VENDEDOR"] as Rol[]).map((rol) => (
           <button
             key={rol}
             type="button"
@@ -101,14 +101,14 @@ export default function RegistroPage() {
                 : "border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50"
             )}
           >
-            {rol === "COMPRADOR"
+            {rol === "CLIENTE"
               ? <ShoppingBag className="h-5 w-5" />
               : <Store className="h-5 w-5" />}
             <span className="text-xs font-semibold">
-              {rol === "COMPRADOR" ? "Comprador" : "Vendedor"}
+              {rol === "CLIENTE" ? "Cliente" : "Vendedor"}
             </span>
             <span className="text-[10px] text-center leading-tight opacity-70">
-              {rol === "COMPRADOR" ? "Compra productos locales" : "Vende tu catálogo"}
+              {rol === "CLIENTE" ? "Compra productos locales" : "Vende tu catálogo"}
             </span>
           </button>
         ))}

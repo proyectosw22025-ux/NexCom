@@ -43,7 +43,7 @@ function LoginContent() {
       const rol = payload.usuario.rol;
       if (rol === "ADMIN")         router.push("/admin");
       else if (rol === "VENDEDOR") router.push("/vendedor");
-      else                         router.push("/productos"); // el comprador aterriza en la tienda
+      else                         router.push("/productos"); // el cliente aterriza en la tienda
 
     } catch (err: unknown) {
       const msg = err instanceof ApolloError

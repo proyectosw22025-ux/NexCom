@@ -65,7 +65,7 @@ export function CambiarEstadoModal({ trigger, estadoActual, onConfirm }: Cambiar
         <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-xl border border-slate-200 p-6 w-[90vw] max-w-md z-50">
           <Dialog.Title className="text-base font-bold text-slate-900">Actualizar estado de la orden</Dialog.Title>
           <Dialog.Description className="text-sm text-slate-500 mt-1">
-            Confirma el avance del pedido. El comprador será notificado automáticamente.
+            Confirma el avance del pedido. El cliente será notificado automáticamente.
           </Dialog.Description>
 
           {/* Transición visual X → Y */}
@@ -98,7 +98,7 @@ export function CambiarEstadoModal({ trigger, estadoActual, onConfirm }: Cambiar
           {/* Nota opcional */}
           <div>
             <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5">
-              Nota para el comprador <span className="text-slate-400 normal-case font-normal">(opcional)</span>
+              Nota para el cliente <span className="text-slate-400 normal-case font-normal">(opcional)</span>
             </label>
             <textarea
               value={notas}

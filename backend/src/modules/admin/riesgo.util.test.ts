@@ -29,6 +29,6 @@ describe("calcularRiesgoVendedor", () => {
 
   it("disputas perdidas aparecen como factor", () => {
     const r = calcularRiesgoVendedor({ total: 30, cancelados: 0, disputas: 2, disputasPerdidas: 2, verificado: true });
-    expect(r.factores.some((f) => f.includes("a favor del comprador"))).toBe(true);
+    expect(r.factores.some((f) => f.includes("a favor del cliente"))).toBe(true);
   });
 });

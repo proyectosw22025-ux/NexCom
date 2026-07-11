@@ -74,7 +74,7 @@ export default function CompradorPage() {
   return (
     <div className="p-8 max-w-5xl">
       <PageHero
-        titulo={`Hola, ${user?.perfilComprador?.nombreCompleto?.split(" ")[0] ?? "Comprador"} 👋`}
+        titulo={`Hola, ${user?.perfilComprador?.nombreCompleto?.split(" ")[0] ?? "Cliente"} 👋`}
         subtitulo="Resumen de tu actividad en NexCom"
         icon={ShoppingBag}
         tono="indigo"
@@ -112,7 +112,7 @@ export default function CompradorPage() {
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
             <h2 className="text-sm font-bold text-slate-900">Últimos pedidos</h2>
-            <Link href="/comprador/ordenes" className="text-xs text-indigo-600 hover:underline font-semibold">
+            <Link href="/cliente/ordenes" className="text-xs text-indigo-600 hover:underline font-semibold">
               Ver todos →
             </Link>
           </div>
@@ -134,7 +134,7 @@ export default function CompradorPage() {
               {ordenes.slice(0, 5).map((o) => (
                 <li key={o.id}>
                   <Link
-                    href={`/comprador/ordenes/${o.id}`}
+                    href={`/cliente/ordenes/${o.id}`}
                     className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50 transition-colors"
                   >
                     <div className="flex-1 min-w-0">

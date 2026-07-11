@@ -114,7 +114,7 @@ export default function VendedorDevolucionesPage() {
                     <input
                       value={respuestas[d.id] ?? ""}
                       onChange={(e) => setRespuestas((r) => ({ ...r, [d.id]: e.target.value }))}
-                      placeholder="Respuesta para el comprador (opcional)…"
+                      placeholder="Respuesta para el cliente (opcional)…"
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm mb-3
                                  focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
                     />

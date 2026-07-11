@@ -7,7 +7,7 @@ import type { PrismaClient } from "@prisma/client";
  * INVARIANTES que hacen confiable el sistema:
  *   1. El neto retenido nunca queda negativo.
  *   2. Los fondos solo pasan a "disponible" al LIBERARSE (entrega confirmada).
- *   3. El reembolso (disputa a favor del comprador) revierte exactamente lo retenido.
+ *   3. El reembolso (disputa a favor del cliente) revierte exactamente lo retenido.
  *   4. Liberar/retener/reembolsar son idempotentes por orden (sin doble crédito).
  */
 
@@ -57,7 +57,7 @@ describe("coherencia del escrow (ciclo de vida del dinero)", () => {
     s = await saldosService.getSaldo(V, prisma);
     expect(s).toMatchObject({ retenido: "90.00", disponible: "90.00" });
 
-    // 4) Disputa a favor del comprador en B → reembolso revierte exacto: retenido 0
+    // 4) Disputa a favor del cliente en B → reembolso revierte exacto: retenido 0
     await saldosService.registrarReembolso(V, "B", prisma);
     s = await saldosService.getSaldo(V, prisma);
     expect(s).toMatchObject({ retenido: "0.00", disponible: "90.00" });

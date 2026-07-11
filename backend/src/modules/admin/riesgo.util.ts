@@ -5,7 +5,7 @@
  * Señales (todas derivadas de datos ya existentes — sin dependencias externas):
  *  - Tasa de cancelación (órdenes canceladas / total).
  *  - Tasa de disputas (reclamos / total de órdenes).
- *  - Disputas resueltas a favor del comprador (señal fuerte de fraude/mal servicio).
+ *  - Disputas resueltas a favor del cliente (señal fuerte de fraude/mal servicio).
  *  - Falta de verificación (KYC).
  */
 export interface SenalesRiesgo {
@@ -36,7 +36,7 @@ export function calcularRiesgoVendedor(s: SenalesRiesgo): Riesgo {
   if (tasaDisputa > 0.1) factores.push("Reclamos frecuentes");
 
   score += Math.min(20, s.disputasPerdidas * 10);
-  if (s.disputasPerdidas > 0) factores.push(`${s.disputasPerdidas} disputa(s) a favor del comprador`);
+  if (s.disputasPerdidas > 0) factores.push(`${s.disputasPerdidas} disputa(s) a favor del cliente`);
 
   if (!s.verificado) {
     score += 10;

@@ -167,7 +167,7 @@ export default function CompradorSaldoPage() {
                 <Wallet className="h-10 w-10 text-slate-200 mx-auto mb-3" />
                 <p className="text-sm text-slate-500">Aún no tienes movimientos.</p>
                 <p className="text-xs text-slate-400 mt-1">Cuando te aprueben una devolución, el dinero aparecerá aquí.</p>
-                <Link href="/comprador/ordenes" className="text-xs text-indigo-600 hover:underline mt-3 inline-block">Ver mis pedidos →</Link>
+                <Link href="/cliente/ordenes" className="text-xs text-indigo-600 hover:underline mt-3 inline-block">Ver mis pedidos →</Link>
               </div>
             ) : (
               <div className="divide-y divide-slate-50">

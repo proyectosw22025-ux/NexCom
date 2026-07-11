@@ -53,7 +53,7 @@ describe("ordenesService.confirmarRecojo (escaneo del QR del paquete)", () => {
     expect(saldosService.liberarFondos).toHaveBeenCalledWith("vend-1", "orden-1", prisma);
   });
 
-  it("(2) rechaza si la orden no pertenece al comprador", async () => {
+  it("(2) rechaza si la orden no pertenece al cliente", async () => {
     const prisma = prismaCon(null); // findFirst con compradorId ajeno → null
     await expect(
       ordenesService.confirmarRecojo("orden-1", "otro-comprador", "user-x", "654321", "111222", prisma),

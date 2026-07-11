@@ -4,7 +4,7 @@ import type { NexComContext } from "../../shared/types/context.type.js";
 import { devolucionesService } from "./devoluciones.service.js";
 
 function compradorId(ctx: NexComContext) {
-  requireRole(ctx, "COMPRADOR");
+  requireRole(ctx, "CLIENTE");
   if (!ctx.user?.perfilCompradorId) {
     throw new GraphQLError("Perfil de comprador no encontrado.", { extensions: { code: "NOT_FOUND" } });
   }

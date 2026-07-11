@@ -61,7 +61,7 @@ describe("devolucionesService.solicitar", () => {
     expect(notifCreate.mock.calls[0][0].data.usuarioId).toBe("u-vend");
   });
 
-  it("rechaza si el solicitante no es el comprador de la orden (NOT_FOUND)", async () => {
+  it("rechaza si el solicitante no es el cliente de la orden (NOT_FOUND)", async () => {
     vi.mocked(devolucionesRepository.findOrdenParaDevolucion).mockResolvedValue(ordenEntregada as never);
     await expect(
       devolucionesService.solicitar("OTRO", "u-x", "orden-1", "motivo válido", "DEFECTUOSO", [], prisma),
@@ -115,7 +115,7 @@ describe("devolucionesService.responder", () => {
     orden:     { items: [{ productoId: "p1", cantidad: 2 }] },
   };
 
-  it("al aprobar: reembolsa (restock) y notifica al comprador", async () => {
+  it("al aprobar: reembolsa (restock) y notifica al cliente", async () => {
     vi.mocked(devolucionesRepository.findConParticipantes).mockResolvedValue(devSolicitada as never);
     vi.mocked(devolucionesRepository.reembolsar).mockResolvedValue({
       id: "dev-1", ordenId: "orden-1", estado: "REEMBOLSADA",
@@ -132,7 +132,7 @@ describe("devolucionesService.responder", () => {
     expect(notifCreate.mock.calls[0][0].data.usuarioId).toBe("u-comp");
   });
 
-  it("al rechazar: no restockea y notifica al comprador", async () => {
+  it("al rechazar: no restockea y notifica al cliente", async () => {
     vi.mocked(devolucionesRepository.findConParticipantes).mockResolvedValue(devSolicitada as never);
     vi.mocked(devolucionesRepository.rechazar).mockResolvedValue({
       id: "dev-1", ordenId: "orden-1", estado: "RECHAZADA",

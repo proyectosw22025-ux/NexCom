@@ -95,7 +95,7 @@ export default function RecogeSaldo() {
               <p className="px-4 py-6 text-center text-xs text-slate-400">Aún no tienes movimientos.</p>
             )}
           </div>
-          <Link href="/comprador/saldo" className="block text-center text-xs text-indigo-600 font-semibold py-2">
+          <Link href="/cliente/saldo" className="block text-center text-xs text-indigo-600 font-semibold py-2">
             Ver billetera completa →
           </Link>
         </div>

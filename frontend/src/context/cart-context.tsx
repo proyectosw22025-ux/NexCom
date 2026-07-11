@@ -71,7 +71,7 @@ const CartContext = createContext<CartContextValue | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const isComprador = user?.rol === "COMPRADOR";
+  const isComprador = user?.rol === "CLIENTE";
   const [isOpen, setIsOpen] = useState(false);
 
   const { data, loading } = useQuery<{ miCarrito: Carrito | null }>(MI_CARRITO, {

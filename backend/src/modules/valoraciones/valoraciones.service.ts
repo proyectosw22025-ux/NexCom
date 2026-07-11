@@ -26,7 +26,7 @@ export const valoracionesService = {
       });
     }
 
-    // Verificar que la orden pertenece al comprador y está ENTREGADO
+    // Verificar que la orden pertenece al cliente y está ENTREGADO
     const orden = await prisma.orden.findFirst({
       where: { id: input.ordenId, compradorId },
     });

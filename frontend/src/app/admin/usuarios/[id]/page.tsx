@@ -28,7 +28,7 @@ function formatFecha(iso: string) {
   });
 }
 
-const ROLES = ["ADMIN", "VENDEDOR", "COMPRADOR"] as const;
+const ROLES = ["ADMIN", "VENDEDOR", "CLIENTE"] as const;
 type Rol = typeof ROLES[number];
 
 export default function AdminUsuarioDetallePage() {
@@ -109,7 +109,7 @@ export default function AdminUsuarioDetallePage() {
           </h1>
           <p className="text-sm text-slate-400 mt-0.5">{u.email}</p>
         </div>
-        <Badge variant={u.rol.toLowerCase() as "admin" | "vendedor" | "comprador"} />
+        <Badge variant={u.rol.toLowerCase() as "admin" | "vendedor" | "cliente"} />
       </div>
 
       {/* Estado general */}
@@ -159,7 +159,7 @@ export default function AdminUsuarioDetallePage() {
             <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center">
               <RolIcon className="h-4 w-4 text-indigo-600" />
             </div>
-            <h2 className="text-sm font-bold text-slate-900">Perfil Comprador</h2>
+            <h2 className="text-sm font-bold text-slate-900">Perfil Cliente</h2>
           </div>
           <div className="grid grid-cols-2 gap-4">
             {[

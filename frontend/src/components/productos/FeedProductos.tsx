@@ -21,7 +21,7 @@ const FEED_PRODUCTOS = gql`
 `;
 
 /**
- * Feed de productos para el panel del comprador: lo primero que ve al entrar,
+ * Feed de productos para el panel del cliente: lo primero que ve al entrar,
  * al estilo de un marketplace moderno (recomendados / lo más vendido).
  */
 export function FeedProductos({ titulo = "Recomendados para ti", limite = 8, orden = "MAS_VENDIDOS" }:

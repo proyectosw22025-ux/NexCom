@@ -17,7 +17,7 @@ function fecha(iso: string) {
   return new Date(iso).toLocaleDateString("es-BO", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-/** Sección de factura (estilo boliviano) para el comprador en el detalle de orden. */
+/** Sección de factura (estilo boliviano) para el cliente en el detalle de orden. */
 export function FacturaOrden({ ordenId }: { ordenId: string }) {
   const { data, loading } = useQuery<{ facturaDeOrden: Factura | null }>(FACTURA_DE_ORDEN, {
     variables: { ordenId }, fetchPolicy: "cache-and-network",

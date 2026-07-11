@@ -17,7 +17,7 @@ interface Orden {
 export default function RecogeEscanear() {
   const { user, isLoading } = useAuth();
   const online = useOnlineStatus();
-  const esComprador = user?.rol === "COMPRADOR";
+  const esComprador = user?.rol === "CLIENTE";
   const { data, loading, refetch } = useQuery<{ misOrdenes: Orden[] }>(MIS_ORDENES, {
     fetchPolicy: "cache-and-network", skip: !esComprador,
   });
@@ -35,14 +35,14 @@ export default function RecogeEscanear() {
     );
   }
 
-  // El escaneo de recojo es una acción del comprador (confirma la recepción).
+  // El escaneo de recojo es una acción del cliente (confirma la recepción).
   if (!esComprador) {
     return (
       <div className="p-6 text-center">
         <div className="w-12 h-12 rounded-2xl bg-violet-100 flex items-center justify-center mx-auto mb-3">
           <Store className="h-6 w-6 text-violet-600" />
         </div>
-        <p className="text-sm text-slate-600">El escaneo de recojo lo hace el comprador al recibir el paquete.</p>
+        <p className="text-sm text-slate-600">El escaneo de recojo lo hace el cliente al recibir el paquete.</p>
         <Link href="/vendedor/ordenes" className="mt-3 inline-block text-xs text-indigo-600 font-semibold">Ver mis órdenes →</Link>
       </div>
     );

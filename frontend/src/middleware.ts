@@ -5,7 +5,7 @@ import { NextResponse, type NextRequest } from "next/server";
 const PROTECTED = [
   { prefix: "/vendedor", roles: ["VENDEDOR", "ADMIN"] },
   { prefix: "/admin",    roles: ["ADMIN"] },
-  { prefix: "/comprador",roles: ["COMPRADOR", "ADMIN"] },
+  { prefix: "/cliente",roles: ["CLIENTE", "ADMIN"] },
 ];
 
 export function middleware(request: NextRequest) {
@@ -27,5 +27,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/vendedor/:path*", "/admin/:path*", "/comprador/:path*"],
+  matcher: ["/vendedor/:path*", "/admin/:path*", "/cliente/:path*"],
 };

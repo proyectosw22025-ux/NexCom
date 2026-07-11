@@ -46,7 +46,7 @@ export function ProductoCompra({ producto: p }: { producto: ProductoCardData }) 
 
   async function handleAddToCart() {
     if (!user) { window.location.href = "/login"; return; }
-    if (user.rol !== "COMPRADOR") { toast.error("Solo compradores pueden agregar al carrito."); return; }
+    if (user.rol !== "CLIENTE") { toast.error("Solo compradores pueden agregar al carrito."); return; }
     setAdding(true);
     await agregar(p.id, cantidad);
     setAdding(false);
@@ -161,7 +161,7 @@ export function ProductoCompra({ producto: p }: { producto: ProductoCardData }) 
             {p.stock > 0 ? `${p.stock} unidades disponibles` : "Sin stock disponible"}
           </div>
 
-          {user?.rol === "COMPRADOR" && p.stock > 0 && (
+          {user?.rol === "CLIENTE" && p.stock > 0 && (
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 bg-slate-100 rounded-xl p-1">
                 <button onClick={() => setCantidad((c) => Math.max(1, c - 1))} className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors">
@@ -195,7 +195,7 @@ export function ProductoCompra({ producto: p }: { producto: ProductoCardData }) 
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {user?.rol === "COMPRADOR" && p.vendedor.id && (
+            {user?.rol === "CLIENTE" && p.vendedor.id && (
               <button
                 onClick={handleMensajear}
                 disabled={iniciandoChat}

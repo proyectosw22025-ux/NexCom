@@ -113,7 +113,7 @@ async function main() {
     await prisma.usuario.create({
       data: {
         email: "comprador@nexcom.bo", passwordHash: hash,
-        rol: "COMPRADOR", verificado: true, activo: true,
+        rol: "CLIENTE", verificado: true, activo: true,
         perfilComprador: {
           create: { nombreCompleto: "Juan Comprador", telefono: "+591 70000001" },
         },

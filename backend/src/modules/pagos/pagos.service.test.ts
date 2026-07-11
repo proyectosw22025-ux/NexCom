@@ -209,7 +209,7 @@ describe("pagosService — flujo boliviano simulado", () => {
     expect(notifCreate).toHaveBeenCalledTimes(2); // comprador + vendedor
   });
 
-  it("confirmarPagoSimulado rechaza si la orden no es del comprador", async () => {
+  it("confirmarPagoSimulado rechaza si la orden no es del cliente", async () => {
     vi.mocked(pagosRepository.findOrdenConParticipantes).mockResolvedValue({
       id: "orden-1", estado: "PENDIENTE_PAGO", pago: { id: "p", metodo: "qr" },
       comprador: { id: "OTRO", usuarioId: "x" }, vendedor: { id: "v", usuarioId: "y" },

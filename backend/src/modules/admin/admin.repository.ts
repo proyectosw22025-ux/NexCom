@@ -37,7 +37,7 @@ export const adminRepository = {
     prisma: PrismaClient,
   ) {
     const where = {
-      ...(rol ? { rol: rol as "ADMIN" | "VENDEDOR" | "COMPRADOR" } : {}),
+      ...(rol ? { rol: rol as "ADMIN" | "VENDEDOR" | "CLIENTE" } : {}),
       ...(activo !== undefined ? { activo } : {}),
     };
     const [items, total] = await Promise.all([
@@ -69,7 +69,7 @@ export const adminRepository = {
   async updateRol(id: string, rol: string, prisma: PrismaClient) {
     return prisma.usuario.update({
       where: { id },
-      data:  { rol: rol as "ADMIN" | "VENDEDOR" | "COMPRADOR" },
+      data:  { rol: rol as "ADMIN" | "VENDEDOR" | "CLIENTE" },
       include: USUARIO_INCLUDE,
     });
   },

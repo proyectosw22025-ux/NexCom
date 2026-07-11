@@ -21,7 +21,7 @@ const usuarioBase = {
   id: "user-1",
   email: "comprador@nexcom.bo",
   passwordHash: "hashed-password",
-  rol: "COMPRADOR" as const,
+  rol: "CLIENTE" as const,
   activo: true,
   verificado: true,
 };

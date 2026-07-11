@@ -12,11 +12,11 @@ function compradorId(ctx: NexComContext) {
 export const disputasResolvers = {
   Query: {
     misDisputas: (_: unknown, __: unknown, ctx: NexComContext) => {
-      requireRole(ctx, "COMPRADOR");
+      requireRole(ctx, "CLIENTE");
       return disputasService.getMisDisputas(compradorId(ctx), ctx.prisma);
     },
     disputaDeOrden: (_: unknown, { ordenId }: { ordenId: string }, ctx: NexComContext) => {
-      requireRole(ctx, "COMPRADOR");
+      requireRole(ctx, "CLIENTE");
       compradorId(ctx);
       return disputasService.getDisputaDeOrden(ordenId, ctx.prisma);
     },
@@ -36,7 +36,7 @@ export const disputasResolvers = {
       input: { ordenId: string; motivo: string; descripcion?: string; evidenciaUrl?: string },
       ctx: NexComContext,
     ) => {
-      requireRole(ctx, "COMPRADOR");
+      requireRole(ctx, "CLIENTE");
       return disputasService.abrir(compradorId(ctx), ctx.user!.id, input, ctx.prisma);
     },
 

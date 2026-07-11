@@ -13,7 +13,7 @@ export function requireAuth(ctx: NexComContext): UsuarioJWT {
 
 export function requireRole(
   ctx: NexComContext,
-  ...roles: Array<"ADMIN" | "VENDEDOR" | "COMPRADOR">
+  ...roles: Array<"ADMIN" | "VENDEDOR" | "CLIENTE">
 ): UsuarioJWT {
   const user = requireAuth(ctx);
   if (!roles.includes(user.rol)) {

@@ -19,7 +19,7 @@ const MOTIVO_LABEL: Record<string, string> = {
   NO_RECIBIDO: "No recibido", PRODUCTO_INCORRECTO: "Producto incorrecto", DANADO: "Llegó dañado", OTRO: "Otro",
 };
 const ESTADO_LABEL: Record<string, { label: string; clase: string }> = {
-  RESUELTA_COMPRADOR: { label: "Reembolso al comprador", clase: "text-emerald-600" },
+  RESUELTA_COMPRADOR: { label: "Reembolso al cliente", clase: "text-emerald-600" },
   RESUELTA_VENDEDOR:  { label: "Liberado al vendedor",   clase: "text-slate-600" },
 };
 
@@ -38,11 +38,11 @@ export default function AdminDisputasPage() {
   const pendientes = data?.disputasPendientes ?? [];
   const resueltas  = data?.disputasResueltas ?? [];
 
-  async function handleResolver(d: Disputa, aFavor: "COMPRADOR" | "VENDEDOR") {
+  async function handleResolver(d: Disputa, aFavor: "CLIENTE" | "VENDEDOR") {
     setResolviendo(d.id + aFavor);
     try {
       await resolver({ variables: { disputaId: d.id, aFavor, nota: notas[d.id]?.trim() || null } });
-      toast.success(aFavor === "COMPRADOR" ? "Reembolso aplicado al comprador." : "Pago liberado al vendedor.");
+      toast.success(aFavor === "CLIENTE" ? "Reembolso aplicado al cliente." : "Pago liberado al vendedor.");
       refetch();
     } catch (err: unknown) {
       toast.error(err instanceof ApolloError ? (err.graphQLErrors[0]?.message ?? "Error.") : "Error.");
@@ -113,12 +113,12 @@ export default function AdminDisputasPage() {
                     />
                     <div className="flex gap-2 mt-3">
                       <button
-                        onClick={() => handleResolver(d, "COMPRADOR")}
+                        onClick={() => handleResolver(d, "CLIENTE")}
                         disabled={!!resolviendo}
                         className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-colors"
                       >
-                        {resolviendo === d.id + "COMPRADOR" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
-                        Reembolsar al comprador
+                        {resolviendo === d.id + "CLIENTE" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                        Reembolsar al cliente
                       </button>
                       <button
                         onClick={() => handleResolver(d, "VENDEDOR")}

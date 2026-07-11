@@ -3,7 +3,7 @@ type BadgeVariant =
   | "entregado" | "completado" | "cancelado"
   | "activo" | "inactivo" | "destacado"
   | "stock-ok" | "stock-bajo" | "sin-stock"
-  | "admin" | "vendedor" | "comprador";
+  | "admin" | "vendedor" | "cliente";
 
 const variantStyles: Record<BadgeVariant, string> = {
   pendiente:    "bg-amber-50   text-amber-700   border-amber-200",
@@ -21,7 +21,7 @@ const variantStyles: Record<BadgeVariant, string> = {
   "sin-stock":  "bg-red-50     text-red-600     border-red-200",
   admin:        "bg-slate-800  text-white        border-slate-700",
   vendedor:     "bg-violet-100 text-violet-700  border-violet-200",
-  comprador:    "bg-indigo-50  text-indigo-700  border-indigo-200",
+  cliente:      "bg-indigo-50  text-indigo-700  border-indigo-200",
 };
 
 const variantLabels: Record<BadgeVariant, string> = {
@@ -40,7 +40,7 @@ const variantLabels: Record<BadgeVariant, string> = {
   "sin-stock":  "Agotado",
   admin:        "Admin",
   vendedor:     "Vendedor",
-  comprador:    "Comprador",
+  cliente:      "Cliente",
 };
 
 interface BadgeProps {

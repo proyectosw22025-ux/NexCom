@@ -27,7 +27,7 @@ const ESTADO_UI: Record<string, { icon: typeof Clock; color: string; bg: string;
   RECHAZADA:   { icon: XCircle,      color: "text-red-700",     bg: "bg-red-50 border-red-200",         label: "Devolución rechazada" },
 };
 
-/** Sección de devolución para el comprador: solicita o muestra el estado. */
+/** Sección de devolución para el cliente: solicita o muestra el estado. */
 export function DevolucionComprador({ ordenId }: { ordenId: string }) {
   const { data, loading } = useQuery<{ devolucionDeOrden: Devolucion | null }>(DEVOLUCION_DE_ORDEN, {
     variables: { ordenId }, fetchPolicy: "cache-and-network",

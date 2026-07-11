@@ -56,7 +56,7 @@ function ConfirmacionContent() {
       <div className="flex flex-col gap-3">
         {ok && (varios ? (
           <Link
-            href="/comprador/ordenes"
+            href="/cliente/ordenes"
             className="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700
                        text-white font-semibold rounded-xl py-3 text-sm transition-colors shadow-sm shadow-indigo-200"
           >
@@ -64,7 +64,7 @@ function ConfirmacionContent() {
           </Link>
         ) : ordenId && (
           <Link
-            href={`/comprador/ordenes/${ordenId}`}
+            href={`/cliente/ordenes/${ordenId}`}
             className="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700
                        text-white font-semibold rounded-xl py-3 text-sm transition-colors
                        shadow-sm shadow-indigo-200"

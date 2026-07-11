@@ -43,7 +43,7 @@ function mapOrden(o: ReturnType<typeof rawOrden>) {
     direccionSnapshot: o.direccionSnapshot as Record<string, unknown> | null,
     autoLiberaEn:      o.autoLiberaEn ? o.autoLiberaEn.toISOString() : null,
     fondosLiberadosEn: o.fondosLiberadosEn ? o.fondosLiberadosEn.toISOString() : null,
-    // El código del paquete NUNCA se expone al comprador: su prueba de entrega es
+    // El código del paquete NUNCA se expone al cliente: su prueba de entrega es
     // escanear el QR físico. Los mappers del vendedor lo re-exponen (imprime la etiqueta).
     codigoEntrega:     null as string | null,
   };

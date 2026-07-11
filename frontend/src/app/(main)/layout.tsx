@@ -61,7 +61,7 @@ function NavbarInner() {
           <ThemeMenu />
 
           {/* Cart */}
-          {user?.rol === "COMPRADOR" && (
+          {user?.rol === "CLIENTE" && (
             <button
               onClick={openCart}
               aria-label={`Carrito${(carrito?.totalItems ?? 0) > 0 ? `, ${carrito!.totalItems} artículos` : ""}`}
@@ -118,18 +118,18 @@ function NavbarInner() {
                   </div>
 
                   <div className="py-1">
-                    {user.rol === "COMPRADOR" && (
+                    {user.rol === "CLIENTE" && (
                       <>
-                        <Link href="/comprador" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                        <Link href="/cliente" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
                           <LayoutDashboard className="h-4 w-4 text-slate-400" /> Mi Panel
                         </Link>
-                        <Link href="/comprador/ordenes" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                        <Link href="/cliente/ordenes" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
                           <Package className="h-4 w-4 text-slate-400" /> Mis Pedidos
                         </Link>
                         <Link href="/favoritos" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
                           <Heart className="h-4 w-4 text-slate-400" /> Favoritos
                         </Link>
-                        <Link href="/comprador/perfil" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                        <Link href="/cliente/perfil" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
                           <User className="h-4 w-4 text-slate-400" /> Mi Perfil
                         </Link>
                         <Link href="/productos" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">

@@ -18,7 +18,7 @@ datasource db {
 enum Rol {
   ADMIN
   VENDEDOR
-  COMPRADOR
+  CLIENTE
 }
 
 enum EstadoOferta {
@@ -108,7 +108,7 @@ model Usuario {
   id            String   @id @default(cuid())
   email         String   @unique
   passwordHash  String
-  rol           Rol      @default(COMPRADOR)
+  rol           Rol      @default(CLIENTE)
   verificado    Boolean  @default(false)
   activo        Boolean  @default(true)
   creadoEn      DateTime @default(now()) @map("creado_en")

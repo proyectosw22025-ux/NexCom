@@ -66,7 +66,7 @@ export function ProductoCard({ producto, index, initialFavorito = false }: { pro
   async function handleAddToCart(e: React.MouseEvent) {
     e.preventDefault();
     if (!user) { window.location.href = "/login"; return; }
-    if (user.rol !== "COMPRADOR") { toast.error("Solo compradores pueden agregar al carrito."); return; }
+    if (user.rol !== "CLIENTE") { toast.error("Solo compradores pueden agregar al carrito."); return; }
     setAdding(true);
     await agregar(producto.id, 1);
     setAdding(false);
@@ -77,7 +77,7 @@ export function ProductoCard({ producto, index, initialFavorito = false }: { pro
   async function handleToggleFav(e: React.MouseEvent) {
     e.preventDefault();
     if (!user) { window.location.href = "/login"; return; }
-    if (user.rol !== "COMPRADOR") { toast.error("Solo compradores pueden guardar favoritos."); return; }
+    if (user.rol !== "CLIENTE") { toast.error("Solo compradores pueden guardar favoritos."); return; }
     try {
       const { data } = await toggleFavorito({ variables: { productoId: producto.id } });
       setFavorito(data?.toggleFavorito ?? false);
@@ -132,7 +132,7 @@ export function ProductoCard({ producto, index, initialFavorito = false }: { pro
             </span>
           </div>
         )}
-        {user?.rol === "COMPRADOR" && (
+        {user?.rol === "CLIENTE" && (
           <button
             onClick={handleToggleFav}
             className="absolute top-2 right-2 w-8 h-8 bg-white/80 backdrop-blur-sm rounded-full
@@ -192,7 +192,7 @@ export function ProductoCard({ producto, index, initialFavorito = false }: { pro
               </p>
             ) : null}
           </div>
-          {user?.rol === "COMPRADOR" && producto.stock > 0 && (
+          {user?.rol === "CLIENTE" && producto.stock > 0 && (
             <button
               onClick={handleAddToCart}
               disabled={adding || added}
