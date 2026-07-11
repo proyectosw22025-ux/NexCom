@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.nexcom.recoge",
+    "sha256_cert_fingerprints": ["E7:6D:32:B4:98:7B:12:99:70:02:71:6F:55:5A:6E:B3:A3:9C:62:29:ED:0F:71:DC:1C:EA:8A:04:36:50:42:8C"]
+  }
+}]
