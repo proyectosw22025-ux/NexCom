@@ -1,6 +1,6 @@
 {
   "name": "Recoge NexCom",
-  "short_name": "Recoge",
+  "short_name": "Recoge NexCom",
   "description": "Recoge tus pedidos, revisa tu saldo y tus reportes. Funciona con y sin conexión.",
   "id": "/recoge",
   "start_url": "/recoge",
