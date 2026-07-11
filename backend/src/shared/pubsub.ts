@@ -43,6 +43,22 @@ type PubSubEvents = {
 
 export const pubsub = createPubSub<PubSubEvents>({ eventTarget });
 
+/**
+ * Publica una notificación en tiempo real. Es "fire-and-forget" y **nunca lanza**:
+ * si el pub/sub de Redis no está disponible (p. ej. cuota de Upstash agotada), la
+ * publicación se pierde silenciosamente pero NO rompe la transacción de negocio
+ * que la disparó (confirmar pago, reembolso, etc.). La notificación ya quedó
+ * persistida en la BD, así que el usuario la ve igual al recargar; solo se pierde
+ * el "push" instantáneo. Evita además unhandled rejections en los logs.
+ */
 export function publishNotificacion(usuarioId: string, notificacion: NotificacionPayload) {
-  pubsub.publish(`notificacion:${usuarioId}`, notificacion);
+  try {
+    const r = pubsub.publish(`notificacion:${usuarioId}`, notificacion) as unknown;
+    if (r && typeof (r as Promise<unknown>).catch === "function") {
+      (r as Promise<unknown>).catch((e) =>
+        console.warn("[pubsub] publish falló:", (e as Error).message));
+    }
+  } catch (e) {
+    console.warn("[pubsub] publish falló:", (e as Error).message);
+  }
 }
