@@ -210,6 +210,9 @@ export const productosService = {
     if (precio && precio.lte(0)) {
       throw new GraphQLError("El precio debe ser mayor a 0.", { extensions: { code: "BAD_USER_INPUT" } });
     }
+    if (input.stock !== undefined && input.stock < 0) {
+      throw new GraphQLError("El stock no puede ser negativo.", { extensions: { code: "BAD_USER_INPUT" } });
+    }
 
     const etiquetaIds = input.etiquetas != null
       ? (input.etiquetas.length ? await resolveEtiquetaIds(input.etiquetas, prisma) : [])
