@@ -59,7 +59,7 @@ export default function AdminPage() {
 
   const { data: productosData, loading: loadingP } = useQuery<{
     productos: { items: ProductoAdmin[]; total: number }
-  }>(TODOS_PRODUCTOS, { variables: { pagina: 1, limite: 5, soloActivos: false }, fetchPolicy: "cache-and-network" });
+  }>(TODOS_PRODUCTOS, { variables: { pagina: 1, limite: 5, soloActivos: null }, fetchPolicy: "cache-and-network" });
 
   const { data: productosActivosData } = useQuery<{ productos: { total: number } }>(
     TODOS_PRODUCTOS, { variables: { pagina: 1, limite: 1, soloActivos: true }, fetchPolicy: "cache-and-network" },

@@ -8,8 +8,9 @@ import { Badge } from "@/components/ui/Badge";
 import { FilterPills } from "@/components/ui/FilterPills";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHero } from "@/components/ui/PageHero";
-import { BarChart2, Loader2, ChevronRight, LineChart, ShieldAlert, Boxes, Users } from "lucide-react";
+import { BarChart2, Loader2, ChevronRight, LineChart, ShieldAlert, Boxes, Users, Download } from "lucide-react";
 import Link from "next/link";
+import { exportarCSV } from "@/lib/csv-export";
 
 // Code-split: cada dashboard (recharts) solo se carga en su pestaña.
 const cargando = (
@@ -62,9 +63,20 @@ function Moderacion() {
   const total        = data?.reportes?.total ?? 0;
   const totalPaginas = data?.reportes?.totalPaginas ?? 1;
 
+  function exportar() {
+    exportarCSV(
+      `reportes-${new Date().toISOString().slice(0, 10)}.csv`,
+      ["Tipo", "Motivo", "Descripción", "Reportado por", "Estado", "Creado", "Resuelto", "Resuelto por"],
+      reportes.map((r) => [
+        r.tipo, r.motivo, r.descripcion ?? "", r.reportador.email, r.estado,
+        formatFecha(r.creadoEn), r.resueltoEn ? formatFecha(r.resueltoEn) : "", r.resueltoPor?.email ?? "",
+      ]),
+    );
+  }
+
   return (
     <div className="animate-fade-in">
-      <div className="flex gap-3 mb-5 flex-wrap">
+      <div className="flex gap-3 mb-5 flex-wrap items-center">
         <FilterPills
           ariaLabel="Filtrar por estado" accent="slate" value={estadoFiltro}
           onChange={(e) => { setEstadoFiltro(e); setPagina(1); }}
@@ -79,6 +91,15 @@ function Moderacion() {
             value: t, label: t === "TODOS" ? "Tipo: todos" : t.charAt(0) + t.slice(1).toLowerCase(),
           }))}
         />
+        <button
+          onClick={exportar}
+          disabled={reportes.length === 0}
+          title="Exportar los reportes de esta vista a CSV"
+          className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200
+                     text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          <Download className="h-3.5 w-3.5" /> Exportar CSV
+        </button>
       </div>
 
       {loading ? (

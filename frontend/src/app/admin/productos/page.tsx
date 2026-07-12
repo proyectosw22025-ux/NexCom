@@ -23,7 +23,7 @@ const FILAS = 12;
 export default function AdminProductosPage() {
   const [pagina, setPagina] = useState(1);
   const [search, setSearch] = useState("");
-  const [soloActivos, setSoloActivos] = useState<boolean | undefined>(undefined);
+  const [soloActivos, setSoloActivos] = useState<boolean | null>(null);
 
   const { data, loading, refetch } = useQuery<{
     productos: { items: ProductoAdmin[]; total: number; totalPaginas: number }
@@ -74,7 +74,7 @@ export default function AdminProductosPage() {
                        focus:outline-none focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400 transition-all"
           />
         </div>
-        {([undefined, true, false] as const).map((val) => (
+        {([null, true, false] as const).map((val) => (
           <button
             key={String(val)}
             onClick={() => { setSoloActivos(val); setPagina(1); }}
@@ -84,7 +84,7 @@ export default function AdminProductosPage() {
                 : "border-slate-200 text-slate-600 hover:bg-slate-50"
             }`}
           >
-            {val === undefined ? "Todos" : val ? "Activos" : "Inactivos"}
+            {val === null ? "Todos" : val ? "Activos" : "Inactivos"}
           </button>
         ))}
       </div>

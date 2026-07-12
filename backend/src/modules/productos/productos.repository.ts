@@ -128,7 +128,9 @@ export const productosRepository = {
         : {};
 
     const where = {
-      ...(soloActivos !== false ? { activo: true } : {}),
+      // Tri-estado: false=solo inactivos · null=todos · true/undefined=solo activos (default seguro).
+      // Público pasa true (o nada → activos); el admin usa null (todos) o false (inactivos).
+      ...(soloActivos === false ? { activo: false } : soloActivos === null ? {} : { activo: true }),
       ...(categoriaId ? { categoriaId } : {}),
       ...(vendedorId ? { vendedorId } : {}),
       ...(ciudad ? { vendedor: { is: { ciudad } } } : {}),
