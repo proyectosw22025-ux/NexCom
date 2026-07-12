@@ -359,10 +359,14 @@ async function bootstrap() {
   // Primer barrido al arrancar (recupera lo pendiente tras un deploy/caída)
   runWithLock("cron:escrow:barrido", 14 * 60, () => ordenesService.barridoEscrow(prisma)).catch(console.error);
 
-  // Redis: conexión no bloqueante — el servidor arranca aunque Redis no esté disponible
-  redis.connect()
-    .then(() => console.log("[Redis] Conectado en", env.REDIS_URL))
-    .catch((err: Error) => console.warn("[Redis] No disponible — cache desactivado:", err.message));
+  // Redis: conexión no bloqueante — el servidor arranca aunque Redis no esté
+  // disponible. Con lazyConnect, un comando temprano (p. ej. el lock del cron de
+  // arranque, arriba) ya pudo iniciar la conexión; solo forzamos connect() si el
+  // cliente sigue "en espera", para no disparar el falso "already connecting".
+  // El log real de conexión lo emite el handler .on("connect") de redis.client.ts.
+  if (redis.status === "wait") {
+    redis.connect().catch((err: Error) => console.warn("[Redis] No se pudo conectar:", err.message));
+  }
 
   // Worker de la cola de emails (BullMQ): procesa envíos asíncronos con reintentos
   try {
