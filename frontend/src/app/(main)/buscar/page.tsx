@@ -6,7 +6,7 @@ import { useState, useEffect, Suspense } from "react";
 import { BUSCAR, PRODUCTOS } from "@/graphql/productos/queries";
 import { ProductoCard, type ProductoCardData } from "@/components/productos/ProductoCard";
 import { ProductoCardSkeleton } from "@/components/productos/ProductoCardSkeleton";
-import { Search, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Sparkles, Store, X } from "lucide-react";
 import Link from "next/link";
 
 interface BuscarResult {
@@ -28,20 +28,37 @@ function BuscarContent() {
   const termino      = searchParams.get("q") ?? "";
   const [pagina, setPagina] = useState(1);
   const [input, setInput]   = useState(termino);
+  const [tiendaId, setTiendaId] = useState<string | null>(null);
+  // Tiendas presentes en los resultados SIN filtrar (para no colapsar los chips
+  // al seleccionar una tienda). Se capturan en el primer resultado sin filtro.
+  const [tiendas, setTiendas] = useState<{ id: string; nombre: string }[]>([]);
   const LIMITE = 12;
 
   useEffect(() => {
     setInput(termino);
     setPagina(1);
+    setTiendaId(null);
+    setTiendas([]);
   }, [termino]);
 
   const { data, loading } = useQuery<BuscarResult>(BUSCAR, {
-    variables:   { termino, pagina, limite: LIMITE },
+    variables:   { termino, pagina, limite: LIMITE, vendedorId: tiendaId },
     skip:        !termino,
     fetchPolicy: "cache-and-network",
   });
 
-  const result      = data?.buscar;
+  const result = data?.buscar;
+
+  // Captura la lista de tiendas de los resultados sin filtro (facetas).
+  useEffect(() => {
+    if (tiendaId || !result?.items?.length) return;
+    const mapa = new Map<string, string>();
+    for (const p of result.items) {
+      if (p.vendedor?.id) mapa.set(p.vendedor.id, p.vendedor.nombreNegocio);
+    }
+    if (mapa.size > 0) setTiendas(Array.from(mapa, ([id, nombre]) => ({ id, nombre })));
+  }, [result, tiendaId]);
+
   const sinResultados = !!termino && !loading && !!result && result.items.length === 0;
 
   // Fallback "nunca una página vacía": al no haber resultados, sugerir productos
@@ -94,6 +111,39 @@ function BuscarContent() {
           {result && (
             <p className="text-sm text-slate-400 mt-1">{result.total} producto{result.total !== 1 ? "s" : ""} encontrado{result.total !== 1 ? "s" : ""}</p>
           )}
+        </div>
+      )}
+
+      {/* Filtro por tienda (facetas) */}
+      {termino && tiendas.length > 1 && (
+        <div className="flex items-center gap-2 flex-wrap mb-6">
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+            <Store className="h-3.5 w-3.5" /> Tienda:
+          </span>
+          <button
+            onClick={() => { setTiendaId(null); setPagina(1); }}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+              tiendaId === null
+                ? "bg-indigo-600 border-indigo-600 text-white"
+                : "border-slate-200 text-slate-600 hover:bg-slate-50"
+            }`}
+          >
+            Todas
+          </button>
+          {tiendas.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => { setTiendaId(t.id); setPagina(1); }}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors inline-flex items-center gap-1 ${
+                tiendaId === t.id
+                  ? "bg-indigo-600 border-indigo-600 text-white"
+                  : "border-slate-200 text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              {t.nombre}
+              {tiendaId === t.id && <X className="h-3 w-3" />}
+            </button>
+          ))}
         </div>
       )}
 

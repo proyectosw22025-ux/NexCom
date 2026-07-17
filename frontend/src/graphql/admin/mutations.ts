@@ -65,6 +65,12 @@ export const RESOLVER_REPORTE = gql`
   }
 `;
 
+export const ELIMINAR_PUBLICACION = gql`
+  mutation EliminarPublicacion($id: ID!) {
+    eliminarPublicacion(id: $id)
+  }
+`;
+
 export const ACTUALIZAR_CONFIG = gql`
   mutation ActualizarConfig($clave: String!, $valor: String!) {
     actualizarConfig(clave: $clave, valor: $valor) {

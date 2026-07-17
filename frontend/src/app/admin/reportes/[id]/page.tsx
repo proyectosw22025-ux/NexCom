@@ -2,14 +2,26 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation } from "@apollo/client";
-import { LISTAR_REPORTES } from "@/graphql/admin/queries";
-import { RESOLVER_REPORTE } from "@/graphql/admin/mutations";
+import Image from "next/image";
+import { REPORTE_DETALLE } from "@/graphql/admin/queries";
+import { RESOLVER_REPORTE, ELIMINAR_PUBLICACION, TOGGLE_ACTIVO_USUARIO } from "@/graphql/admin/mutations";
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { ArrowLeft, BarChart2, Loader2, CheckCircle, XCircle } from "lucide-react";
+import { ArrowLeft, BarChart2, Loader2, CheckCircle, XCircle, Trash2, Ban, ShieldCheck, ImageOff } from "lucide-react";
 import { toast } from "sonner";
 import { ApolloError } from "@apollo/client";
 import { useState } from "react";
+
+interface Referencia {
+  tipo: string;
+  encontrado: boolean;
+  titulo: string | null;
+  subtitulo: string | null;
+  imagenUrl: string | null;
+  usuarioId: string | null;
+  usuarioActivo: boolean | null;
+  productoActivo: boolean | null;
+}
 
 interface Reporte {
   id: string; tipo: string; referenciaId: string; motivo: string;
@@ -17,6 +29,7 @@ interface Reporte {
   creadoEn: string; resueltoEn: string | null;
   reportador:  { id: string; email: string };
   resueltoPor: { id: string; email: string } | null;
+  referencia:  Referencia | null;
 }
 
 function formatFecha(iso: string) {
@@ -37,16 +50,17 @@ export default function AdminReporteDetallePage() {
   const router  = useRouter();
   const [resolucion, setResolucion] = useState("");
 
-  const { data, loading, refetch } = useQuery<{
-    reportes: { items: Reporte[] }
-  }>(LISTAR_REPORTES, {
-    variables: { pagina: 1, limite: 100 },
+  const { data, loading, refetch } = useQuery<{ reporte: Reporte | null }>(REPORTE_DETALLE, {
+    variables: { id },
     fetchPolicy: "cache-and-network",
   });
 
-  const [resolverReporte, { loading: resolving }] = useMutation(RESOLVER_REPORTE);
+  const [resolverReporte,   { loading: resolving }] = useMutation(RESOLVER_REPORTE);
+  const [eliminarPublicacion, { loading: eliminando }] = useMutation(ELIMINAR_PUBLICACION);
+  const [toggleActivoUsuario, { loading: baneando }]   = useMutation(TOGGLE_ACTIVO_USUARIO);
 
-  const reporte = data?.reportes?.items?.find(r => r.id === id);
+  const reporte    = data?.reporte ?? null;
+  const referencia = reporte?.referencia ?? null;
 
   async function handleResolver(estado: "RESUELTO" | "RECHAZADO") {
     if (!resolucion.trim()) {
@@ -58,12 +72,34 @@ export default function AdminReporteDetallePage() {
       toast.success(estado === "RESUELTO" ? "Reporte resuelto." : "Reporte rechazado.");
       refetch();
     } catch (err: unknown) {
-      const msg = err instanceof ApolloError ? (err.graphQLErrors[0]?.message ?? "Error.") : "Error.";
-      toast.error(msg);
+      toast.error(err instanceof ApolloError ? (err.graphQLErrors[0]?.message ?? "Error.") : "Error.");
     }
   }
 
-  if (loading) {
+  async function handleEliminar() {
+    if (!reporte) return;
+    try {
+      await eliminarPublicacion({ variables: { id: reporte.referenciaId } });
+      toast.success("Publicación eliminada.");
+      refetch();
+    } catch (err: unknown) {
+      toast.error(err instanceof ApolloError ? (err.graphQLErrors[0]?.message ?? "Error.") : "Error.");
+    }
+  }
+
+  async function handleToggleUsuario() {
+    if (!referencia?.usuarioId) return;
+    try {
+      const { data: res } = await toggleActivoUsuario({ variables: { id: referencia.usuarioId } });
+      const activo = res?.toggleActivoUsuario?.activo;
+      toast.success(activo ? "Usuario habilitado." : "Usuario deshabilitado.");
+      refetch();
+    } catch (err: unknown) {
+      toast.error(err instanceof ApolloError ? (err.graphQLErrors[0]?.message ?? "Error.") : "Error.");
+    }
+  }
+
+  if (loading && !data) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-2">
         <Loader2 className="h-6 w-6 animate-spin text-slate-300" />
@@ -85,6 +121,7 @@ export default function AdminReporteDetallePage() {
   }
 
   const estaResuelto = reporte.estado === "RESUELTO" || reporte.estado === "RECHAZADO";
+  const usuarioActivo = referencia?.usuarioActivo ?? true;
 
   return (
     <div className="p-8 max-w-3xl">
@@ -106,7 +143,38 @@ export default function AdminReporteDetallePage() {
         />
       </div>
 
-      {/* Detalles */}
+      {/* Contenido reportado (vista previa) */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5 mb-4">
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Contenido reportado</p>
+        {referencia?.encontrado ? (
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden shrink-0 relative">
+              {referencia.imagenUrl
+                ? <Image src={referencia.imagenUrl} alt={referencia.titulo ?? ""} fill className="object-cover" />
+                : <div className="w-full h-full flex items-center justify-center"><ImageOff className="h-5 w-5 text-slate-300" /></div>
+              }
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-slate-900 truncate">{referencia.titulo}</p>
+              {referencia.subtitulo && <p className="text-sm text-slate-500 truncate">{referencia.subtitulo}</p>}
+              <div className="flex gap-2 mt-1.5">
+                {referencia.productoActivo === false && (
+                  <Badge variant="inactivo" size="sm" label="Publicación deshabilitada" />
+                )}
+                {referencia.usuarioActivo === false && (
+                  <Badge variant="cancelado" size="sm" label="Usuario deshabilitado" />
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-slate-400">
+            El contenido reportado ya no existe o fue eliminado. (ID: <span className="font-mono text-xs">{reporte.referenciaId}</span>)
+          </p>
+        )}
+      </div>
+
+      {/* Detalles del reporte */}
       <div className="bg-white rounded-2xl border border-slate-200 p-5 mb-4 space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -114,14 +182,10 @@ export default function AdminReporteDetallePage() {
             <span className="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-medium">{reporte.tipo}</span>
           </div>
           <div>
-            <p className="text-xs text-slate-400 mb-0.5">ID referenciado</p>
-            <p className="text-xs font-mono text-slate-700 truncate">{reporte.referenciaId}</p>
-          </div>
-          <div>
             <p className="text-xs text-slate-400 mb-0.5">Reportado por</p>
-            <p className="text-sm font-medium text-slate-900">{reporte.reportador.email}</p>
+            <p className="text-sm font-medium text-slate-900 truncate">{reporte.reportador.email}</p>
           </div>
-          <div>
+          <div className="col-span-2">
             <p className="text-xs text-slate-400 mb-0.5">Fecha</p>
             <p className="text-sm text-slate-700">{formatFecha(reporte.creadoEn)}</p>
           </div>
@@ -139,6 +203,59 @@ export default function AdminReporteDetallePage() {
           </div>
         )}
       </div>
+
+      {/* Acciones directas sobre el contenido / usuario */}
+      {referencia?.encontrado && (referencia.tipo === "PRODUCTO" || referencia.usuarioId) && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 mb-4">
+          <h2 className="text-sm font-bold text-slate-900 mb-1">Acciones sobre el contenido</h2>
+          <p className="text-xs text-slate-400 mb-4">Estas acciones son inmediatas e independientes de resolver el reporte.</p>
+          <div className="flex flex-wrap gap-3">
+            {referencia.tipo === "PRODUCTO" && (
+              <ConfirmDialog
+                title="Eliminar publicación"
+                description="Se eliminará definitivamente el producto. Si tiene ventas registradas, no podrá eliminarse (deshabilítalo en su lugar). Esta acción no se puede deshacer."
+                confirmLabel="Eliminar"
+                variant="danger"
+                onConfirm={handleEliminar}
+                trigger={
+                  <button
+                    disabled={eliminando}
+                    className="inline-flex items-center gap-2 border border-red-200 text-red-600 font-semibold
+                               rounded-xl px-4 py-2.5 text-sm hover:bg-red-50 transition-colors disabled:opacity-50"
+                  >
+                    {eliminando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                    Eliminar publicación
+                  </button>
+                }
+              />
+            )}
+            {referencia.usuarioId && (
+              <ConfirmDialog
+                title={usuarioActivo ? "Deshabilitar usuario" : "Habilitar usuario"}
+                description={usuarioActivo
+                  ? "El usuario no podrá iniciar sesión ni operar hasta ser habilitado de nuevo."
+                  : "El usuario podrá volver a iniciar sesión y operar en la plataforma."}
+                confirmLabel={usuarioActivo ? "Deshabilitar" : "Habilitar"}
+                variant={usuarioActivo ? "danger" : undefined}
+                onConfirm={handleToggleUsuario}
+                trigger={
+                  <button
+                    disabled={baneando}
+                    className={`inline-flex items-center gap-2 font-semibold rounded-xl px-4 py-2.5 text-sm transition-colors disabled:opacity-50 ${
+                      usuarioActivo
+                        ? "border border-amber-200 text-amber-700 hover:bg-amber-50"
+                        : "border border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                    }`}
+                  >
+                    {baneando ? <Loader2 className="h-4 w-4 animate-spin" /> : usuarioActivo ? <Ban className="h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />}
+                    {usuarioActivo ? "Deshabilitar usuario" : "Habilitar usuario"}
+                  </button>
+                }
+              />
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Resolución previa */}
       {estaResuelto && (
@@ -164,10 +281,10 @@ export default function AdminReporteDetallePage() {
         </div>
       )}
 
-      {/* Acciones de moderación */}
+      {/* Resolución del reporte */}
       {!estaResuelto && (
         <div className="bg-white rounded-2xl border border-slate-200 p-5">
-          <h2 className="text-sm font-bold text-slate-900 mb-4">Acción de moderación</h2>
+          <h2 className="text-sm font-bold text-slate-900 mb-4">Resolver reporte</h2>
 
           <div className="mb-4">
             <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5">

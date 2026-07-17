@@ -5,7 +5,7 @@ export const busquedaResolvers = {
   Query: {
     buscar: (
       _: unknown,
-      args: { termino: string; pagina?: number; limite?: number; categoriaId?: string },
+      args: { termino: string; pagina?: number; limite?: number; categoriaId?: string; vendedorId?: string },
       ctx: NexComContext,
     ) => busquedaService.buscar(args, ctx.prisma),
 

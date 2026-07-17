@@ -20,6 +20,7 @@ export const busquedaTypeDefs = /* GraphQL */ `
       pagina:     Int
       limite:     Int
       categoriaId: ID
+      vendedorId:  ID
     ): ResultadoBusqueda!
 
     sugerenciasBusqueda(termino: String!): [SugerenciaProducto!]!

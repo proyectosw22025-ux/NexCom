@@ -56,8 +56,8 @@ export const MIS_PRODUCTOS = gql`
 
 export const BUSCAR = gql`
   ${PRODUCTO_FIELDS}
-  query Buscar($termino: String!, $pagina: Int, $limite: Int, $categoriaId: ID) {
-    buscar(termino: $termino, pagina: $pagina, limite: $limite, categoriaId: $categoriaId) {
+  query Buscar($termino: String!, $pagina: Int, $limite: Int, $categoriaId: ID, $vendedorId: ID) {
+    buscar(termino: $termino, pagina: $pagina, limite: $limite, categoriaId: $categoriaId, vendedorId: $vendedorId) {
       items { ...ProductoFields }
       total
       pagina

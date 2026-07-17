@@ -58,6 +58,34 @@ export const LISTAR_REPORTES = gql`
   }
 `;
 
+export const REPORTE_DETALLE = gql`
+  query ReporteDetalle($id: ID!) {
+    reporte(id: $id) {
+      id
+      tipo
+      referenciaId
+      motivo
+      descripcion
+      estado
+      resolucion
+      creadoEn
+      resueltoEn
+      reportador  { id email }
+      resueltoPor { id email }
+      referencia {
+        tipo
+        encontrado
+        titulo
+        subtitulo
+        imagenUrl
+        usuarioId
+        usuarioActivo
+        productoActivo
+      }
+    }
+  }
+`;
+
 export const ANALITICA_ADMIN = gql`
   query AnaliticaAdmin($dias: Int, $desde: String, $hasta: String) {
     analiticaAdmin(dias: $dias, desde: $desde, hasta: $hasta) {

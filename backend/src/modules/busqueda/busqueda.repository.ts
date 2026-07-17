@@ -14,13 +14,17 @@ function mapEtiquetas<T extends { etiquetas: { etiqueta: { id: string; nombre: s
 
 export const busquedaRepository = {
   async buscar(
-    { termino, categoriaId, pagina, limite }:
-      { termino: string; categoriaId?: string | null; pagina: number; limite: number },
+    { termino, categoriaId, vendedorId, pagina, limite }:
+      { termino: string; categoriaId?: string | null; vendedorId?: string | null; pagina: number; limite: number },
     prisma: PrismaClient,
   ) {
     const offset = (pagina - 1) * limite;
     const categoryFilter = categoriaId
       ? Prisma.sql`AND p.categoria_id = ${categoriaId}`
+      : Prisma.sql``;
+    // Filtro por tienda: acota la búsqueda a los productos de un vendedor.
+    const vendorFilter = vendedorId
+      ? Prisma.sql`AND p.vendedor_id = ${vendedorId}`
       : Prisma.sql``;
 
     // FTS (relevancia semántica) + ILIKE (subcadena) + pg_trgm (tolerante a
@@ -30,6 +34,7 @@ export const busquedaRepository = {
       FROM productos p
       WHERE p.activo = true
       ${categoryFilter}
+      ${vendorFilter}
       AND (
         to_tsvector('spanish', coalesce(p.nombre,'') || ' ' || coalesce(p.descripcion,''))
           @@ plainto_tsquery('spanish', ${termino})
@@ -52,6 +57,7 @@ export const busquedaRepository = {
       FROM productos p
       WHERE p.activo = true
       ${categoryFilter}
+      ${vendorFilter}
       AND (
         to_tsvector('spanish', coalesce(p.nombre,'') || ' ' || coalesce(p.descripcion,''))
           @@ plainto_tsquery('spanish', ${termino})

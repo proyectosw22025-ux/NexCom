@@ -10,20 +10,20 @@ function hashParams(params: object): string {
 
 export const busquedaService = {
   async buscar(
-    { termino, pagina = 1, limite = 20, categoriaId }:
-      { termino: string; pagina?: number; limite?: number; categoriaId?: string | null },
+    { termino, pagina = 1, limite = 20, categoriaId, vendedorId }:
+      { termino: string; pagina?: number; limite?: number; categoriaId?: string | null; vendedorId?: string | null },
     prisma: PrismaClient,
   ) {
     const q = termino.trim();
     if (!q) return { items: [], total: 0, pagina, totalPaginas: 0, termino: q };
 
-    const hash     = hashParams({ q, pagina, limite, categoriaId });
+    const hash     = hashParams({ q, pagina, limite, categoriaId, vendedorId });
     const cacheKey = `busqueda:${hash}`;
     const cached   = await getFromCache<object>(cacheKey);
     if (cached) return cached;
 
     const { items, total } = await busquedaRepository.buscar(
-      { termino: q, categoriaId, pagina, limite },
+      { termino: q, categoriaId, vendedorId, pagina, limite },
       prisma,
     );
 

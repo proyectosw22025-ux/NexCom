@@ -13,6 +13,11 @@ export const reportesResolvers = {
       requireRole(ctx, "ADMIN");
       return reportesService.getReportes(args, ctx.prisma);
     },
+
+    reporte: (_: unknown, { id }: { id: string }, ctx: NexComContext) => {
+      requireRole(ctx, "ADMIN");
+      return reportesService.getReporte(id, ctx.prisma);
+    },
   },
 
   Mutation: {
@@ -35,10 +40,17 @@ export const reportesResolvers = {
       requireRole(ctx, "ADMIN");
       return reportesService.resolverReporte(id, estado, resolucion, ctx.user!.id, ctx.prisma);
     },
+
+    eliminarPublicacion: (_: unknown, { id }: { id: string }, ctx: NexComContext) => {
+      requireRole(ctx, "ADMIN");
+      return reportesService.eliminarPublicacion(id, ctx.prisma);
+    },
   },
 
   Reporte: {
     creadoEn:   (r: { creadoEn: Date }) => r.creadoEn.toISOString(),
     resueltoEn: (r: { resueltoEn: Date | null }) => r.resueltoEn?.toISOString() ?? null,
+    referencia: (r: { tipo: TipoReporte; referenciaId: string }, _: unknown, ctx: NexComContext) =>
+      reportesService.getReferencia(r.tipo, r.referenciaId, ctx.prisma),
   },
 };
