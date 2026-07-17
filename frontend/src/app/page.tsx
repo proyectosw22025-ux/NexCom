@@ -40,6 +40,7 @@ const beneficios = [
   { icon: ShieldCheck, label: "Tiendas verificadas" },
 ];
 
+// Página de inicio (landing pública) — NexCom, marketplace boliviano.
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
