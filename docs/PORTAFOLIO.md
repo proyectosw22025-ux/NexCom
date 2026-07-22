@@ -28,6 +28,19 @@ Next.js 15 · React 19 · TypeScript · Apollo Client · Tailwind CSS 4 · Fasti
 
 ---
 
+## Capturas sugeridas (4)
+
+| # | Pantalla | Ruta | Por qué esta |
+|---|---|---|---|
+| 1 | **Catálogo público** — hero + grilla de productos con precios en Bs., ofertas y buscador | `/productos` | Primera impresión: se ve como un marketplace real (estilo MercadoLibre), no como un proyecto de clase. |
+| 2 | **Recojo por QR (Compra Protegida)** — pantalla del cliente con el OTP generado y el paso de escaneo del paquete | `/cliente/ordenes/[id]` → "Recoger pedido" | Es el diferenciador del proyecto: escrow + verificación en dos factores. Nadie más muestra esto. |
+| 3 | **Saldo del vendedor** — tarjetas de retirable / en asentamiento / en garantía + movimientos y retiro | `/vendedor/saldo` | Demuestra la lógica financiera (fintech): comisiones, escrow y ventanas de asentamiento. |
+| 4 | **App "Recoge NexCom" instalada en el teléfono** — pantalla de inicio con bottom-nav, idealmente con el aviso "Sin conexión" visible | APK / `/recoge` | Cierra la historia móvil: PWA → APK real funcionando offline. Foto del teléfono físico o mockup. |
+
+**Consejos de captura:** usa datos del seed (tiendas y productos con nombres reales, montos en Bs. creíbles, nunca vacíos); navegador a 1440 px sin barra de favoritos; para la #4, foto del teléfono real con la app abierta o un mockup de dispositivo; difumina correos reales si aparecen. Si solo puedes usar 3, descarta la #3.
+
+---
+
 ## Versión corta (tarjeta de portafolio)
 
 **NexCom — Marketplace boliviano con Compra Protegida · Full-stack**
