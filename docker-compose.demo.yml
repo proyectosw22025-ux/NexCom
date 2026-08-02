@@ -1,0 +1,103 @@
+# NexCom — Stack COMPLETO listo para usar tras clonar (sin configurar nada)
+#
+#   docker compose -f docker-compose.demo.yml up --build
+#
+# Levanta Postgres + Redis + Backend + Frontend, aplica las migraciones y
+# SIEMBRA datos de demo (tiendas, productos con foto, ofertas, cupones y ~75
+# días de ventas para los reportes del admin). Todo autocontenido: no requiere
+# .env ni servicios externos.
+#
+#   Frontend: http://localhost:3000
+#   Backend:  http://localhost:4000/graphql
+#
+# Accesos demo (contraseña de todos: Demo1234!)
+#   admin@nexcom.bo · tecnobolivia@demo.bo (vendedor) · cliente1@demo.bo
+#
+# Nota: las imágenes de producto se sirven desde Unsplash, así que el catálogo
+# se ve completo solo con internet. El resto funciona 100% offline.
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: nexcom
+      POSTGRES_USER: nexcom
+      POSTGRES_PASSWORD: nexcom
+    ports: ["5432:5432"]
+    volumes: [demo_postgres:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nexcom"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7.2-alpine
+    ports: ["6379:6379"]
+    volumes: [demo_redis:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Aplica migraciones + siembra la demo, luego termina (uso único por arranque).
+  # Usa la etapa `build` porque la imagen final no incluye src/ (solo dist/),
+  # y los seeds se ejecutan con tsx sobre TypeScript.
+  seed:
+    build:
+      context: ./backend
+      target: build
+    environment:
+      DATABASE_URL: postgresql://nexcom:nexcom@postgres:5432/nexcom
+      NODE_ENV: production
+    depends_on:
+      postgres: { condition: service_healthy }
+    command: >
+      sh -c "npx prisma migrate deploy &&
+             npx tsx src/scripts/seed-data.ts &&
+             npx tsx src/scripts/seed-actividad.ts"
+    restart: "no"
+
+  backend:
+    build: ./backend
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://nexcom:nexcom@postgres:5432/nexcom
+      REDIS_URL: redis://redis:6379
+      FRONTEND_URL: http://localhost:3000
+      GRAPHQL_PATH: /graphql
+      # Secretos de DEMO — regenerar en cualquier despliegue real
+      JWT_ACCESS_SECRET: demo_access_secret_no_usar_en_produccion_0123456789abcdef
+      JWT_REFRESH_SECRET: demo_refresh_secret_no_usar_en_produccion_fedcba9876543210
+      JWT_ACCESS_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      CACHE_TTL_PRODUCTO: "300"
+      CACHE_TTL_CATALOGO: "180"
+      CACHE_TTL_BUSQUEDA: "60"
+      CACHE_TTL_CATEGORIAS: "3600"
+      CACHE_TTL_OFERTAS: "30"
+    ports: ["4000:4000"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+      seed:     { condition: service_completed_successfully }
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_GRAPHQL_URL: http://localhost:4000/graphql
+    ports: ["3000:3000"]
+    depends_on:
+      backend: { condition: service_healthy }
+
+volumes:
+  demo_postgres:
+  demo_redis:
