@@ -15,6 +15,10 @@
 #
 # Nota: las imágenes de producto se sirven desde Unsplash, así que el catálogo
 # se ve completo solo con internet. El resto funciona 100% offline.
+#
+# ¿Puerto ocupado? Los puertos del host son configurables:
+#   FRONTEND_PORT=3001 BACKEND_PORT=4001 docker compose -f docker-compose.demo.yml up --build
+# (en PowerShell: $env:FRONTEND_PORT="3001"; $env:BACKEND_PORT="4001"; docker compose ...)
 
 services:
   postgres:
@@ -23,7 +27,7 @@ services:
       POSTGRES_DB: nexcom
       POSTGRES_USER: nexcom
       POSTGRES_PASSWORD: nexcom
-    ports: ["5432:5432"]
+    ports: ["${POSTGRES_PORT:-5432}:5432"]
     volumes: [demo_postgres:/var/lib/postgresql/data]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U nexcom"]
@@ -33,7 +37,7 @@ services:
 
   redis:
     image: redis:7.2-alpine
-    ports: ["6379:6379"]
+    ports: ["${REDIS_PORT:-6379}:6379"]
     volumes: [demo_redis:/data]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -65,19 +69,29 @@ services:
       NODE_ENV: production
       DATABASE_URL: postgresql://nexcom:nexcom@postgres:5432/nexcom
       REDIS_URL: redis://redis:6379
-      FRONTEND_URL: http://localhost:3000
+      FRONTEND_URL: http://localhost:${FRONTEND_PORT:-3000}
       GRAPHQL_PATH: /graphql
       # Secretos de DEMO — regenerar en cualquier despliegue real
       JWT_ACCESS_SECRET: demo_access_secret_no_usar_en_produccion_0123456789abcdef
       JWT_REFRESH_SECRET: demo_refresh_secret_no_usar_en_produccion_fedcba9876543210
       JWT_ACCESS_EXPIRES_IN: 15m
       JWT_REFRESH_EXPIRES_IN: 7d
+      # Placeholders para pasar la validación de arranque. El pago va en modo
+      # simulado (QR/transferencia/contra entrega) y el correo no se envía:
+      # nada de esto contacta a Stripe ni a un SMTP real en la demo.
+      STRIPE_SECRET_KEY: sk_test_demo_no_operativa
+      STRIPE_WEBHOOK_SECRET: whsec_demo_no_operativa
+      MAIL_HOST: localhost
+      MAIL_PORT: "2525"
+      MAIL_USER: demo
+      MAIL_PASS: demo
+      MAIL_FROM: NexCom <noreply@nexcom.bo>
       CACHE_TTL_PRODUCTO: "300"
       CACHE_TTL_CATALOGO: "180"
       CACHE_TTL_BUSQUEDA: "60"
       CACHE_TTL_CATEGORIAS: "3600"
       CACHE_TTL_OFERTAS: "30"
-    ports: ["4000:4000"]
+    ports: ["${BACKEND_PORT:-4000}:4000"]
     depends_on:
       postgres: { condition: service_healthy }
       redis:    { condition: service_healthy }
@@ -93,8 +107,8 @@ services:
     build:
       context: ./frontend
       args:
-        NEXT_PUBLIC_GRAPHQL_URL: http://localhost:4000/graphql
-    ports: ["3000:3000"]
+        NEXT_PUBLIC_GRAPHQL_URL: http://localhost:${BACKEND_PORT:-4000}/graphql
+    ports: ["${FRONTEND_PORT:-3000}:3000"]
     depends_on:
       backend: { condition: service_healthy }
 

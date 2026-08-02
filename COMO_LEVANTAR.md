@@ -37,6 +37,24 @@ Para detenerlo: `Ctrl+C`, y para borrar también los datos:
 docker compose -f docker-compose.demo.yml down -v
 ```
 
+### ¿Puerto ocupado?
+
+Si ya tienes algo en el 3000 o el 4000 (otro proyecto, otro contenedor), los
+puertos del host son configurables — no hace falta apagar nada:
+
+```bash
+# Linux / macOS / Git Bash
+FRONTEND_PORT=3001 BACKEND_PORT=4001 docker compose -f docker-compose.demo.yml up --build
+```
+```powershell
+# PowerShell
+$env:FRONTEND_PORT="3001"; $env:BACKEND_PORT="4001"
+docker compose -f docker-compose.demo.yml up --build
+```
+
+Para saber qué está usando un puerto en Windows:
+`Get-NetTCPConnection -LocalPort 3000 -State Listen`
+
 > Las fotos de producto se sirven desde Unsplash: con internet el catálogo se ve
 > completo. Sin internet la app funciona igual, solo sin esas imágenes.
 
