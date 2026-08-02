@@ -168,7 +168,7 @@ export default function RegistroPage() {
             <input {...register("telefono")} type="tel" placeholder="+591 7XXXXXXX" className={inputClass} />
           </div>
         </div>
-
+              
         {/* Password */}
         <div className="space-y-1.5">
           <label className={labelClass}>Contraseña</label>

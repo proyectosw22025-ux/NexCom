@@ -1,6 +1,8 @@
+
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { campaniaActiva } from "@/lib/campanias";
+
 
 /**
  * Banner de temporada (modo feria). Se renderiza en el servidor según la fecha
@@ -28,3 +30,5 @@ export function CampaniaBanner() {
     </Link>
   );
 }
+
+
